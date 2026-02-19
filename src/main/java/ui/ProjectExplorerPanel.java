@@ -2,8 +2,18 @@ package ui;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
+import utils.DocumentService;
+
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -15,6 +25,8 @@ import javafx.scene.input.MouseButton;
  * Panel d'exploration de projet (arborescence de fichiers).
  */
 public class ProjectExplorerPanel extends BasePanel {
+
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("i18n.messages");
 
     private final TreeView<File> treeView;
     private File projectDir;
@@ -37,9 +49,173 @@ public class ProjectExplorerPanel extends BasePanel {
             }
         });
 
+        // Menu contextuel
+        ContextMenu contextMenu = createContextMenu();
+        treeView.setContextMenu(contextMenu);
+
         setContent(treeView);
         setPrefWidth(250);
         setMaxHeight(Double.MAX_VALUE);
+    }
+
+    /**
+     * Crée le menu contextuel pour les opérations sur les fichiers.
+     */
+    private ContextMenu createContextMenu() {
+        ContextMenu menu = new ContextMenu();
+
+        MenuItem newFileItem = new MenuItem(bundle.getString("context.newFile"));
+        newFileItem.setOnAction(e -> handleNewFile());
+
+        MenuItem newFolderItem = new MenuItem(bundle.getString("context.newFolder"));
+        newFolderItem.setOnAction(e -> handleNewFolder());
+
+        MenuItem renameItem = new MenuItem(bundle.getString("context.rename"));
+        renameItem.setOnAction(e -> handleRename());
+
+        MenuItem deleteItem = new MenuItem(bundle.getString("context.delete"));
+        deleteItem.setOnAction(e -> handleDelete());
+
+        menu.getItems().addAll(newFileItem, newFolderItem, new SeparatorMenuItem(), renameItem, new SeparatorMenuItem(), deleteItem);
+
+        // Désactiver les items si aucune sélection
+        menu.setOnShowing(e -> {
+            TreeItem<File> selected = treeView.getSelectionModel().getSelectedItem();
+            boolean hasSelection = selected != null;
+            renameItem.setDisable(!hasSelection);
+            deleteItem.setDisable(!hasSelection);
+            // Nouveau fichier/dossier : actif si sélection est un dossier ou un fichier (on crée dans le parent)
+            newFileItem.setDisable(!hasSelection);
+            newFolderItem.setDisable(!hasSelection);
+        });
+
+        return menu;
+    }
+
+    /**
+     * Retourne le répertoire cible pour les opérations (le dossier sélectionné ou le parent du fichier sélectionné).
+     */
+    private File getTargetDirectory() {
+        TreeItem<File> selected = treeView.getSelectionModel().getSelectedItem();
+        if (selected == null) return projectDir;
+        File file = selected.getValue();
+        return file.isDirectory() ? file : file.getParentFile();
+    }
+
+    /**
+     * Gère la création d'un nouveau fichier.
+     */
+    private void handleNewFile() {
+        File targetDir = getTargetDirectory();
+        if (targetDir == null) return;
+
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle(bundle.getString("context.newFile.title"));
+        dialog.setHeaderText(bundle.getString("context.newFile.header"));
+        dialog.setContentText(bundle.getString("context.newFile.prompt"));
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(name -> {
+            if (!name.isBlank()) {
+                Optional<File> created = DocumentService.createFile(targetDir, name);
+                if (created.isPresent()) {
+                    refresh();
+                } else {
+                    showError(bundle.getString("context.error.create"), name);
+                }
+            }
+        });
+    }
+
+    /**
+     * Gère la création d'un nouveau répertoire.
+     */
+    private void handleNewFolder() {
+        File targetDir = getTargetDirectory();
+        if (targetDir == null) return;
+
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle(bundle.getString("context.newFolder.title"));
+        dialog.setHeaderText(bundle.getString("context.newFolder.header"));
+        dialog.setContentText(bundle.getString("context.newFolder.prompt"));
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(name -> {
+            if (!name.isBlank()) {
+                Optional<File> created = DocumentService.createDirectory(targetDir, name);
+                if (created.isPresent()) {
+                    refresh();
+                } else {
+                    showError(bundle.getString("context.error.create"), name);
+                }
+            }
+        });
+    }
+
+    /**
+     * Gère le renommage d'un fichier ou répertoire.
+     */
+    private void handleRename() {
+        TreeItem<File> selected = treeView.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        File file = selected.getValue();
+        TextInputDialog dialog = new TextInputDialog(file.getName());
+        dialog.setTitle(bundle.getString("context.rename.title"));
+        dialog.setHeaderText(bundle.getString("context.rename.header").replace("{0}", file.getName()));
+        dialog.setContentText(bundle.getString("context.rename.prompt"));
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(newName -> {
+            if (!newName.isBlank() && !newName.equals(file.getName())) {
+                Optional<File> renamed = DocumentService.rename(file, newName);
+                if (renamed.isPresent()) {
+                    refresh();
+                } else {
+                    showError(bundle.getString("context.error.rename"), file.getName());
+                }
+            }
+        });
+    }
+
+    /**
+     * Gère la suppression d'un fichier ou répertoire.
+     */
+    private void handleDelete() {
+        TreeItem<File> selected = treeView.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        File file = selected.getValue();
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(bundle.getString("context.delete.title"));
+        alert.setHeaderText(bundle.getString("context.delete.header").replace("{0}", file.getName()));
+
+        if (file.isDirectory()) {
+            long count = DocumentService.countFilesInDirectory(file);
+            alert.setContentText(bundle.getString("context.delete.folder.content").replace("{0}", String.valueOf(count)));
+        } else {
+            alert.setContentText(bundle.getString("context.delete.file.content"));
+        }
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            if (DocumentService.delete(file)) {
+                refresh();
+            } else {
+                showError(bundle.getString("context.error.delete"), file.getName());
+            }
+        }
+    }
+
+    /**
+     * Affiche une boîte de dialogue d'erreur.
+     */
+    private void showError(String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erreur");
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     /**

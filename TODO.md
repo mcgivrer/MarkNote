@@ -1,5 +1,6 @@
 # TODO
 
+0. [ ] Refactorer la classe principale en multiples classes pour separer les panel, la ui et les traitements des fichiers.
 1. [ ] Ajouter une syntax Highlighter,
 2. [ ] Ajouter le support de plantuml et de mermaid,
 3. [ ] Ajouter un editeur de "Front Matter" pour les docs Markdown.

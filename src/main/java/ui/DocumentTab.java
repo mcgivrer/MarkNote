@@ -1,13 +1,13 @@
 package ui;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
+
+import utils.DocumentService;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
@@ -165,15 +165,14 @@ public class DocumentTab extends Tab {
             return false;
         }
 
-        try {
-            Files.writeString(targetFile.toPath(), editor.getText());
+        if (DocumentService.writeFile(targetFile, editor.getText())) {
             this.file = targetFile;
             this.savedContent = editor.getText();
             setText(truncateTabName(targetFile.getName()));
             setTooltip(new Tooltip(targetFile.getName()));
             return true;
-        } catch (IOException ex) {
-            showError(messages.getString("error.save.title"), ex.getMessage());
+        } else {
+            showError(messages.getString("error.save.title"), targetFile.getAbsolutePath());
             return false;
         }
     }
@@ -185,16 +184,16 @@ public class DocumentTab extends Tab {
      * @return true si le chargement a réussi
      */
     public boolean loadFrom(File file) {
-        try {
-            String content = Files.readString(file.toPath());
+        Optional<String> content = DocumentService.readFile(file);
+        if (content.isPresent()) {
             this.file = file;
-            this.savedContent = content;
-            editor.setText(content);
+            this.savedContent = content.get();
+            editor.setText(content.get());
             setText(truncateTabName(file.getName()));
             setTooltip(new Tooltip(file.getName()));
             return true;
-        } catch (IOException ex) {
-            showError(messages.getString("error.read.title"), ex.getMessage());
+        } else {
+            showError(messages.getString("error.read.title"), file.getAbsolutePath());
             return false;
         }
     }

@@ -1,6 +1,4 @@
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.Optional;
@@ -11,6 +9,7 @@ import ui.DocumentTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
+import utils.DocumentService;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -241,16 +240,16 @@ public class MarkNote extends Application {
             }
         }
 
-        try {
-            String content = Files.readString(file.toPath());
-            DocumentTab tab = new DocumentTab(file.getName(), content, file);
+        Optional<String> content = DocumentService.readFile(file);
+        if (content.isPresent()) {
+            DocumentTab tab = new DocumentTab(file.getName(), content.get(), file);
             setupDocumentTab(tab);
             mainTabPane.getTabs().add(tab);
             mainTabPane.getSelectionModel().select(tab);
             config.addRecentFile(file);
             refreshRecentMenu();
-        } catch (IOException ex) {
-            showError(messages.getString("error.read.title"), ex.getMessage());
+        } else {
+            showError(messages.getString("error.read.title"), file.getAbsolutePath());
         }
     }
 
