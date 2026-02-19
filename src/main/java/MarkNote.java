@@ -6,6 +6,7 @@ import java.util.ResourceBundle;
 
 import config.AppConfig;
 import ui.DocumentTab;
+import ui.ImagePreviewTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
@@ -238,8 +239,21 @@ public class MarkNote extends Application {
                 mainTabPane.getSelectionModel().select(tab);
                 return;
             }
+            if (tab instanceof ImagePreviewTab imgTab && file.equals(imgTab.getFile())) {
+                mainTabPane.getSelectionModel().select(tab);
+                return;
+            }
         }
 
+        // Si c'est une image, ouvrir dans un onglet de prévisualisation
+        if (ImagePreviewTab.isImageFile(file)) {
+            ImagePreviewTab tab = new ImagePreviewTab(file);
+            mainTabPane.getTabs().add(tab);
+            mainTabPane.getSelectionModel().select(tab);
+            return;
+        }
+
+        // Sinon, ouvrir comme document texte
         Optional<String> content = DocumentService.readFile(file);
         if (content.isPresent()) {
             DocumentTab tab = new DocumentTab(file.getName(), content.get(), file);
