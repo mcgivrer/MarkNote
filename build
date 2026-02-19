@@ -1,10 +1,10 @@
 #!/bin/bash
 #---- project parameters
-project_name=GameIDE
+project_name=MarkNote
 project_version=0.0.1
-main_class=GameIDE
+main_class=MarkNote
 JARS=
-JFX_VERSION=24
+JFX_VERSION=25
 vendor_name="SNAPGAMES"
 author_name="Frédéric Delorme<frederic.delorme@gmail.com>"
 #

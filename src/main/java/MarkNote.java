@@ -2,12 +2,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ResourceBundle;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
@@ -54,7 +57,10 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-public class GameIDE extends Application {
+public class MarkNote extends Application {
+
+    // Internationalisation
+    private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
 
     private Parser markdownParser;
     private HtmlRenderer htmlRenderer;
@@ -78,7 +84,7 @@ public class GameIDE extends Application {
     private BorderPane projectPane;
 
     // --- Fichiers récents ---
-    private static final String CONFIG_FILE = System.getProperty("user.home") + File.separator + ".gameide.conf";
+    private static final String CONFIG_FILE = System.getProperty("user.home") + File.separator + ".marknote.conf";
     private final LinkedList<String> recentFiles = new LinkedList<>();
     private final LinkedList<String> recentDirs = new LinkedList<>();
     private int maxRecentItems = 10;
@@ -111,14 +117,14 @@ public class GameIDE extends Application {
         WebView preview = new WebView();
 
         // Header du preview avec titre + bouton [x]
-        Label previewTitle = new Label("Preview");
+        Label previewTitle = new Label(messages.getString("preview.title"));
         previewTitle.setStyle("-fx-font-weight: bold;");
         Region previewSpacer = new Region();
         HBox.setHgrow(previewSpacer, Priority.ALWAYS);
         Button closePreviewBtn = new Button("\u00D7");
         closePreviewBtn.setStyle(
                 "-fx-font-size: 10; -fx-padding: 0 4 0 4; -fx-background-color: transparent; -fx-cursor: hand;");
-        closePreviewBtn.setTooltip(new Tooltip("Fermer la preview"));
+        closePreviewBtn.setTooltip(new Tooltip(messages.getString("preview.close.tooltip")));
         HBox previewHeader = new HBox(previewTitle, previewSpacer, closePreviewBtn);
         previewHeader.setAlignment(Pos.CENTER_LEFT);
         previewHeader.setPadding(new Insets(4));
@@ -157,14 +163,14 @@ public class GameIDE extends Application {
         });
 
         // Header du project explorer avec titre + bouton [x]
-        Label projectTitle = new Label("Exploration du projet");
+        Label projectTitle = new Label(messages.getString("project.title"));
         projectTitle.setStyle("-fx-font-weight: bold;");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         Button closeProjectBtn = new Button("\u00D7");
         closeProjectBtn.setStyle(
                 "-fx-font-size: 10; -fx-padding: 0 4 0 4; -fx-background-color: transparent; -fx-cursor: hand;");
-        closeProjectBtn.setTooltip(new Tooltip("Fermer l'explorateur"));
+        closeProjectBtn.setTooltip(new Tooltip(messages.getString("project.close.tooltip")));
         HBox projectHeader = new HBox(projectTitle, spacer, closeProjectBtn);
         projectHeader.setAlignment(Pos.CENTER_LEFT);
         projectHeader.setPadding(new Insets(4));
@@ -192,32 +198,32 @@ public class GameIDE extends Application {
         MenuBar menuBar = new MenuBar();
 
         // == Menu Fichier ==
-        Menu fileMenu = new Menu("Fichier");
+        Menu fileMenu = new Menu(messages.getString("menu.file"));
 
-        MenuItem newDocItem = new MenuItem("Nouveau doc");
+        MenuItem newDocItem = new MenuItem(messages.getString("menu.file.new"));
         newDocItem.setAccelerator(KeyCombination.keyCombination("Ctrl+N"));
         newDocItem.setOnAction(e -> addMarkdownTab(tabPane, preview));
 
-        MenuItem openProjectItem = new MenuItem("Ouvrir un projet...");
+        MenuItem openProjectItem = new MenuItem(messages.getString("menu.file.openProject"));
         openProjectItem.setOnAction(e -> openProject(stage, tabPane, preview));
 
-        MenuItem openItem = new MenuItem("Ouvrir un fichier...");
+        MenuItem openItem = new MenuItem(messages.getString("menu.file.openFile"));
         openItem.setAccelerator(KeyCombination.keyCombination("Ctrl+O"));
         openItem.setOnAction(e -> loadFile(stage, tabPane, preview));
 
         // Sous-menu fichiers récents
-        recentMenu = new Menu("Fichiers récents");
+        recentMenu = new Menu(messages.getString("menu.file.recent"));
         refreshRecentMenu(tabPane, preview);
 
-        MenuItem saveItem = new MenuItem("Sauvegarder");
+        MenuItem saveItem = new MenuItem(messages.getString("menu.file.save"));
         saveItem.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
         saveItem.setOnAction(e -> saveFile(stage, tabPane, false));
 
-        MenuItem saveAsItem = new MenuItem("Sauvegarder sous...");
+        MenuItem saveAsItem = new MenuItem(messages.getString("menu.file.saveAs"));
         saveAsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Shift+S"));
         saveAsItem.setOnAction(e -> saveFile(stage, tabPane, true));
 
-        MenuItem quitItem = new MenuItem("Quitter");
+        MenuItem quitItem = new MenuItem(messages.getString("menu.file.quit"));
         quitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
         quitItem.setOnAction(e -> Platform.exit());
 
@@ -226,9 +232,9 @@ public class GameIDE extends Application {
                 new SeparatorMenuItem(), quitItem);
 
         // == Menu Affichage ==
-        Menu viewMenu = new Menu("Affichage");
+        Menu viewMenu = new Menu(messages.getString("menu.view"));
 
-        CheckMenuItem showProjectPanel = new CheckMenuItem("Exploration du projet");
+        CheckMenuItem showProjectPanel = new CheckMenuItem(messages.getString("menu.view.projectExplorer"));
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
         showProjectPanel.setSelected(true);
         showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
@@ -245,7 +251,7 @@ public class GameIDE extends Application {
         // Bouton [x] du project explorer décoche le menu
         closeProjectBtn.setOnAction(e -> showProjectPanel.setSelected(false));
 
-        CheckMenuItem showPreviewPanel = new CheckMenuItem("Panneau de preview");
+        CheckMenuItem showPreviewPanel = new CheckMenuItem(messages.getString("menu.view.previewPanel"));
         showPreviewPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+P"));
         showPreviewPanel.setSelected(true);
         showPreviewPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
@@ -265,9 +271,9 @@ public class GameIDE extends Application {
         viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel);
 
         // == Menu Aide ==
-        Menu helpMenu = new Menu("Aide");
+        Menu helpMenu = new Menu(messages.getString("menu.help"));
 
-        MenuItem optionsItem = new MenuItem("Options...");
+        MenuItem optionsItem = new MenuItem(messages.getString("menu.help.options"));
         optionsItem.setOnAction(e -> showOptionsDialog(tabPane, preview));
 
         helpMenu.getItems().add(optionsItem);
@@ -281,13 +287,13 @@ public class GameIDE extends Application {
             File lastDir = new File(recentDirs.getFirst());
             if (lastDir.exists() && lastDir.isDirectory()) {
                 Alert reopenAlert = new Alert(Alert.AlertType.CONFIRMATION);
-                reopenAlert.setTitle("Rouvrir le projet");
-                reopenAlert.setHeaderText("Rouvrir le dernier projet ?");
-                reopenAlert.setContentText("Voulez-vous rouvrir le projet \"" + lastDir.getName() + "\" ?");
+                reopenAlert.setTitle(messages.getString("reopen.title"));
+                reopenAlert.setHeaderText(messages.getString("reopen.header"));
+                reopenAlert.setContentText(MessageFormat.format(messages.getString("reopen.content"), lastDir.getName()));
                 Optional<ButtonType> result = reopenAlert.showAndWait();
                 if (result.isPresent() && result.get() == ButtonType.OK) {
                     projectDir = lastDir;
-                    stage.setTitle("GameIDE - " + lastDir.getName());
+                    stage.setTitle(messages.getString("app.title") + " - " + lastDir.getName());
                     refreshProjectTree();
                 }
             }
@@ -300,7 +306,7 @@ public class GameIDE extends Application {
 
         Scene scene = new Scene(root, 1200, 700);
         if (projectDir == null) {
-            stage.setTitle("GameIDE - Éditeur Markdown");
+            stage.setTitle(messages.getString("app.title.editor"));
         }
         stage.setScene(scene);
         stage.show();
@@ -382,7 +388,7 @@ public class GameIDE extends Application {
         recentMenu.getItems().clear();
 
         if (recentFiles.isEmpty() && recentDirs.isEmpty()) {
-            MenuItem emptyItem = new MenuItem("(aucun)");
+            MenuItem emptyItem = new MenuItem(messages.getString("recent.empty"));
             emptyItem.setDisable(true);
             recentMenu.getItems().add(emptyItem);
             return;
@@ -390,7 +396,7 @@ public class GameIDE extends Application {
 
         // Section fichiers
         if (!recentFiles.isEmpty()) {
-            MenuItem filesHeader = new MenuItem("── Fichiers ──");
+            MenuItem filesHeader = new MenuItem(messages.getString("recent.files.header"));
             filesHeader.setDisable(true);
             filesHeader.setStyle("-fx-font-weight: bold;");
             recentMenu.getItems().add(filesHeader);
@@ -402,7 +408,7 @@ public class GameIDE extends Application {
                     if (f.exists()) {
                         openFileInTab(f, tabPane, preview);
                     } else {
-                        showError("Fichier introuvable", "Le fichier n'existe plus :\n" + path);
+                        showError(messages.getString("error.fileNotFound.title"), MessageFormat.format(messages.getString("error.fileNotFound.message"), path));
                         recentFiles.remove(path);
                         saveConfig();
                         refreshRecentMenu(tabPane, preview);
@@ -419,7 +425,7 @@ public class GameIDE extends Application {
 
         // Section répertoires
         if (!recentDirs.isEmpty()) {
-            MenuItem dirsHeader = new MenuItem("── Projets ──");
+            MenuItem dirsHeader = new MenuItem(messages.getString("recent.projects.header"));
             dirsHeader.setDisable(true);
             dirsHeader.setStyle("-fx-font-weight: bold;");
             recentMenu.getItems().add(dirsHeader);
@@ -430,12 +436,12 @@ public class GameIDE extends Application {
                 item.setOnAction(e -> {
                     if (d.exists() && d.isDirectory()) {
                         projectDir = d;
-                        primaryStage.setTitle("GameIDE - " + d.getName());
+                        primaryStage.setTitle(messages.getString("app.title") + " - " + d.getName());
                         addRecentDir(d);
                         refreshProjectTree();
                         refreshRecentMenu(tabPane, preview);
                     } else {
-                        showError("Répertoire introuvable", "Le répertoire n'existe plus :\n" + path);
+                        showError(messages.getString("error.dirNotFound.title"), MessageFormat.format(messages.getString("error.dirNotFound.message"), path));
                         recentDirs.remove(path);
                         saveConfig();
                         refreshRecentMenu(tabPane, preview);
@@ -447,7 +453,7 @@ public class GameIDE extends Application {
 
         // Séparateur + effacer l'historique
         recentMenu.getItems().add(new SeparatorMenuItem());
-        MenuItem clearItem = new MenuItem("Effacer l'historique");
+        MenuItem clearItem = new MenuItem(messages.getString("recent.clear"));
         clearItem.setOnAction(e -> {
             recentFiles.clear();
             recentDirs.clear();
@@ -465,20 +471,20 @@ public class GameIDE extends Application {
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.initOwner(primaryStage);
-        dialog.setTitle("Options");
+        dialog.setTitle(messages.getString("options.title"));
 
         javafx.scene.control.TabPane optionsTabs = new javafx.scene.control.TabPane();
         optionsTabs.setTabClosingPolicy(javafx.scene.control.TabPane.TabClosingPolicy.UNAVAILABLE);
 
         // --- Onglet Misc. ---
-        Tab miscTab = new Tab("Misc.");
+        Tab miscTab = new Tab(messages.getString("options.tab.misc"));
 
         GridPane miscGrid = new GridPane();
         miscGrid.setHgap(10);
         miscGrid.setVgap(10);
         miscGrid.setPadding(new Insets(20));
 
-        Label recentLabel = new Label("Nombre de fichiers/projets récents :");
+        Label recentLabel = new Label(messages.getString("options.recentCount"));
         Spinner<Integer> recentSpinner = new Spinner<>(1, 50, maxRecentItems);
         recentSpinner.setEditable(true);
         recentSpinner.setPrefWidth(100);
@@ -486,13 +492,13 @@ public class GameIDE extends Application {
         miscGrid.add(recentLabel, 0, 0);
         miscGrid.add(recentSpinner, 1, 0);
 
-        Label openDocLabel = new Label("Créer un document au démarrage :");
+        Label openDocLabel = new Label(messages.getString("options.openDocOnStart"));
         CheckBox openDocCheck = new CheckBox();
         openDocCheck.setSelected(openDocOnStart);
         miscGrid.add(openDocLabel, 0, 1);
         miscGrid.add(openDocCheck, 1, 1);
 
-        Label reopenLabel = new Label("Rouvrir le dernier projet au démarrage :");
+        Label reopenLabel = new Label(messages.getString("options.reopenLastProject"));
         CheckBox reopenCheck = new CheckBox();
         reopenCheck.setSelected(reopenLastProject);
         miscGrid.add(reopenLabel, 0, 2);
@@ -502,8 +508,8 @@ public class GameIDE extends Application {
         optionsTabs.getTabs().add(miscTab);
 
         // --- Boutons OK / Annuler ---
-        Button okBtn = new Button("OK");
-        Button cancelBtn = new Button("Annuler");
+        Button okBtn = new Button(messages.getString("options.ok"));
+        Button cancelBtn = new Button(messages.getString("options.cancel"));
 
         okBtn.setDefaultButton(true);
         cancelBtn.setCancelButton(true);
@@ -543,7 +549,7 @@ public class GameIDE extends Application {
 
     private void openProject(Stage stage, TabPane tabPane, WebView preview) {
         DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("Ouvrir un répertoire de projet");
+        chooser.setTitle(messages.getString("chooser.openProject"));
         if (projectDir != null && projectDir.exists()) {
             chooser.setInitialDirectory(projectDir);
         }
@@ -552,7 +558,7 @@ public class GameIDE extends Application {
             return;
 
         projectDir = dir;
-        stage.setTitle("GameIDE - " + dir.getName());
+        stage.setTitle(messages.getString("app.title") + " - " + dir.getName());
         addRecentDir(dir);
         refreshProjectTree();
         refreshRecentMenu(tabPane, preview);
@@ -607,7 +613,7 @@ public class GameIDE extends Application {
             addRecentFile(file);
             refreshRecentMenu(tabPane, preview);
         } catch (IOException ex) {
-            showError("Erreur de lecture", ex.getMessage());
+            showError(messages.getString("error.read.title"), ex.getMessage());
         }
     }
 
@@ -624,9 +630,9 @@ public class GameIDE extends Application {
 
         if (file == null || forceChoose) {
             FileChooser chooser = new FileChooser();
-            chooser.setTitle("Sauvegarder le document");
-            chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Markdown", "*.md", "*.markdown"),
-                    new FileChooser.ExtensionFilter("Texte", "*.txt"), new FileChooser.ExtensionFilter("Tous", "*.*"));
+            chooser.setTitle(messages.getString("chooser.saveFile"));
+            chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter(messages.getString("chooser.filter.markdown"), "*.md", "*.markdown"),
+                    new FileChooser.ExtensionFilter(messages.getString("chooser.filter.text"), "*.txt"), new FileChooser.ExtensionFilter(messages.getString("chooser.filter.all"), "*.*"));
             if (file != null) {
                 chooser.setInitialDirectory(file.getParentFile());
                 chooser.setInitialFileName(file.getName());
@@ -652,7 +658,7 @@ public class GameIDE extends Application {
                 refreshProjectTree();
             }
         } catch (IOException ex) {
-            showError("Erreur de sauvegarde", ex.getMessage());
+            showError(messages.getString("error.save.title"), ex.getMessage());
         }
     }
 
@@ -662,9 +668,9 @@ public class GameIDE extends Application {
 
     private void loadFile(Stage stage, TabPane tabPane, WebView preview) {
         FileChooser chooser = new FileChooser();
-        chooser.setTitle("Ouvrir un document");
-        chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Markdown", "*.md", "*.markdown"),
-                new FileChooser.ExtensionFilter("Texte", "*.txt"), new FileChooser.ExtensionFilter("Tous", "*.*"));
+        chooser.setTitle(messages.getString("chooser.openFile"));
+        chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter(messages.getString("chooser.filter.markdown"), "*.md", "*.markdown"),
+                new FileChooser.ExtensionFilter(messages.getString("chooser.filter.text"), "*.txt"), new FileChooser.ExtensionFilter(messages.getString("chooser.filter.all"), "*.*"));
         if (projectDir != null) {
             chooser.setInitialDirectory(projectDir);
         }
@@ -678,7 +684,7 @@ public class GameIDE extends Application {
             addRecentFile(file);
             refreshRecentMenu(tabPane, preview);
         } catch (IOException ex) {
-            showError("Erreur de lecture", ex.getMessage());
+            showError(messages.getString("error.read.title"), ex.getMessage());
         }
     }
 
@@ -687,8 +693,8 @@ public class GameIDE extends Application {
     // ========================================
 
     private void addMarkdownTab(TabPane tabPane, WebView preview) {
-        addMarkdownTab(tabPane, preview, "Doc " + (tabPane.getTabs().size() + 1),
-                "# Nouveau document\n\nTape du *Markdown* ici.", null);
+        addMarkdownTab(tabPane, preview, MessageFormat.format(messages.getString("newdoc.title"), tabPane.getTabs().size() + 1),
+                messages.getString("newdoc.content"), null);
     }
 
     private void addMarkdownTab(TabPane tabPane, WebView preview, String title, String content, File file) {
@@ -806,13 +812,13 @@ public class GameIDE extends Application {
     private void handleCloseConfirmation(Tab tab, TabPane tabPane) {
         String docName = tab.getText().replaceFirst("^\\*", "");
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Document modifié");
-        alert.setHeaderText("Le document \"" + docName + "\" a été modifié.");
-        alert.setContentText("Voulez-vous sauvegarder avant de fermer ?");
+        alert.setTitle(messages.getString("modified.title"));
+        alert.setHeaderText(MessageFormat.format(messages.getString("modified.header"), docName));
+        alert.setContentText(messages.getString("modified.content"));
 
-        ButtonType saveBtn = new ButtonType("Sauvegarder");
-        ButtonType discardBtn = new ButtonType("Fermer sans sauvegarder");
-        ButtonType cancelBtn = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType saveBtn = new ButtonType(messages.getString("modified.save"));
+        ButtonType discardBtn = new ButtonType(messages.getString("modified.discard"));
+        ButtonType cancelBtn = new ButtonType(messages.getString("modified.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
         alert.getButtonTypes().setAll(saveBtn, discardBtn, cancelBtn);
 
         Optional<ButtonType> result = alert.showAndWait();
