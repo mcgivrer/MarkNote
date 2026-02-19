@@ -54,23 +54,10 @@ mkdir -vp ${TARGET}/{classes,build/libs,jfx-libs}
 
 # Prepare platform-specific JavaFX libs for compilation
 echo "Preparing JavaFX libs for ${JFX_OS_SUFFIX}..."
-# Copy platform-independent JavaFX jars (API)
-for jar in ${LIBS}/javafx-*-24.jar; do
-    jarname=$(basename "$jar")
-    # Skip platform-specific jars
-    if [[ ! "$jarname" =~ -linux\.jar$ ]] && [[ ! "$jarname" =~ -win\.jar$ ]] && [[ ! "$jarname" =~ -mac\.jar$ ]]; then
-        cp "$jar" ${TARGET}/jfx-libs/
-    fi
-done
+# Copy common libs (platform-independent JavaFX jars + flexmark)
+cp ${LIBS}/common/*.jar ${TARGET}/jfx-libs/
 # Copy platform-specific JavaFX jars (native bindings)
-cp ${LIBS}/javafx-*-24-${JFX_OS_SUFFIX}.jar ${TARGET}/jfx-libs/ 2>/dev/null || true
-# Copy non-JavaFX libs
-for jar in ${LIBS}/*.jar; do
-    jarname=$(basename "$jar")
-    if [[ ! "$jarname" =~ ^javafx- ]]; then
-        cp "$jar" ${TARGET}/jfx-libs/
-    fi
-done
+cp ${LIBS}/${JFX_OS_SUFFIX}/*.jar ${TARGET}/jfx-libs/ 2>/dev/null || true
 
 # Compile sources using platform-specific libs
 JFX_COMPILE_PATH="${TARGET}/jfx-libs"
