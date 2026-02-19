@@ -142,3 +142,70 @@ if( [ "$1" == "run" ] ); then
         echo "done."
     done
 fi
+
+if( [ "$1" == "package" ] ); then
+    echo "Creating distribution package..."
+    
+    DIST_DIR="${TARGET}/dist/${project_name}-${project_version}-${JFX_OS_SUFFIX}"
+    JRE_DIR="${DIST_DIR}/jre"
+    
+    # Clean and create distribution directory
+    rm -rf "${TARGET}/dist"
+    mkdir -p "${DIST_DIR}"
+    
+    # Copy build artifacts
+    echo "Copying build artifacts..."
+    cp "${BUILD}/${project_name}-${project_version}.jar" "${DIST_DIR}/"
+    mkdir -p "${DIST_DIR}/libs"
+    cp ${BUILD}/libs/*.jar "${DIST_DIR}/libs/"
+    
+    # Create minimal JRE with jlink
+    echo "Creating minimal JRE with jlink..."
+    # Modules required for JavaFX application
+    JRE_MODULES="java.base,java.desktop,java.logging,java.xml,java.scripting,java.sql,java.naming,java.prefs,jdk.unsupported,jdk.jsobject"
+    
+    # Add JavaFX modules path for jlink
+    jlink --module-path "${TARGET}/jfx-libs" \
+          --add-modules ${JRE_MODULES} \
+          --output "${JRE_DIR}" \
+          --strip-debug \
+          --compress zip-6 \
+          --no-header-files \
+          --no-man-pages
+    
+    echo "JRE created: $(du -sh ${JRE_DIR} | cut -f1)"
+    
+    # Create launcher script using embedded JRE
+    echo "Creating launcher script..."
+    if [[ "$JFX_OS_SUFFIX" == "win" ]]; then
+        # Windows batch script
+        cat > "${DIST_DIR}/${project_name}.bat" << WINLAUNCHER
+@echo off
+setlocal
+set SCRIPT_DIR=%~dp0
+set JRE_PATH=%SCRIPT_DIR%jre\\bin\\java.exe
+"%JRE_PATH%" --module-path "%SCRIPT_DIR%libs" --add-modules ${JFX_MODULES} -cp "%SCRIPT_DIR%${project_name}-${project_version}.jar;%SCRIPT_DIR%libs\\*" ${main_class} %*
+endlocal
+WINLAUNCHER
+    else
+        # Unix shell script
+        cat > "${DIST_DIR}/${project_name}.sh" << 'UNIXLAUNCHER_START'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+JRE_PATH="${SCRIPT_DIR}/jre/bin/java"
+UNIXLAUNCHER_START
+        echo "\"\${JRE_PATH}\" --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar:\${SCRIPT_DIR}/libs/*\" ${main_class} \"\$@\"" >> "${DIST_DIR}/${project_name}.sh"
+        chmod +x "${DIST_DIR}/${project_name}.sh"
+    fi
+    
+    # Create ZIP archive
+    echo "Creating ZIP archive..."
+    PACKAGE_NAME="${project_name}-${project_version}-${JFX_OS_SUFFIX}.zip"
+    cd "${TARGET}/dist"
+    zip -r "../${PACKAGE_NAME}" "${project_name}-${project_version}-${JFX_OS_SUFFIX}"
+    cd - > /dev/null
+    
+    echo -e "${GREEN}Package created: ${TARGET}/${PACKAGE_NAME}${NC}"
+    echo "Package size: $(du -sh ${TARGET}/${PACKAGE_NAME} | cut -f1)"
+    echo "done."
+fi
