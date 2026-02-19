@@ -18,9 +18,9 @@ CLASSES=${TARGET}/classes
 RESOURCES=${SRC}/main/resources
 SOURCE_ENCODING="UTF-8"
 SOURCE_VERSION="25"
-JARS=libs/dependencies/
+JARS=libs/
 JFX_PATH="libs"
-JFX_MODULES="javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.web"
+JFX_MODULES="javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web"
 COMPILATION_OPTS="-Xlint:unchecked -Xlint:deprecation -parameters"
 JAR_OPTS="-Xmx512m"
 RUN_OPT="--module-path ${JFX_PATH} --add-modules ${JFX_MODULES}"
@@ -47,7 +47,7 @@ rm -vrf target/
 find $SRC/main/java $RESOURCES -name "*.java"
 mkdir -vp ${TARGET}/{classes,build/libs}
 # Compile sources
-javac ${COMPILATION_OPTS} --module-path ${JFX_PATH} --add-modules ${JFX_MODULES} -cp libs/  $(find $SRC/main/java $RESOURCES -name "*.java") -d ${CLASSES}
+javac ${COMPILATION_OPTS} --module-path ${JFX_PATH} --add-modules ${JFX_MODULES} -cp "libs/*" $(find $SRC/main/java $RESOURCES -name "*.java") -d ${CLASSES}
 # create MANIFEST file
 cp -vr $RESOURCES/* $CLASSES
 echo "done."
@@ -68,6 +68,9 @@ Implementation-Vendor: ${vendor_name}
 Implementation-Author: ${author_name}
     """ >>target/META-INF/MANIFEST.MF
     #  jar cvfe target/build/${project_name}-$app-${project_version}.jar $app -C target/classes .
+    # Copy libs into build
+    mkdir -p ${BUILD}/libs
+    cp -v ${LIBS}/*.jar ${BUILD}/libs/
     jar cvfe target/build/${project_name}-${project_version}.jar $app -C target/classes .
     echo "done."
     # create run script
@@ -109,7 +112,7 @@ if( [ "$1" == "run" ] ); then
         echo ">> run JAR ${project_name}-${project_version}.jar ..."
         shift 1
         #    java $RUN_OPT -jar ${TARGET}/build/${project_name}-$app-${project_version}.jar $@
-        java $RUN_OPT -jar ${TARGET}/build/${project_name}-${project_version}.jar $@
+        java $RUN_OPT -cp "${TARGET}/build/${project_name}-${project_version}.jar${FS}libs/*" $app $@
         echo "done."
     done
 fi

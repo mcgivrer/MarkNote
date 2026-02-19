@@ -1,0 +1,33 @@
+{
+    "java.project.sourcePaths": [
+        "src\\main\\java"
+    ],
+    "java.project.referencedLibraries": [
+        "libs\\flexmark-0.64.8.jar",
+        "libs\\flexmark-util-ast-0.64.8.jar",
+        "libs\\flexmark-util-builder-0.64.8.jar",
+        "libs\\flexmark-util-collection-0.64.8.jar",
+        "libs\\flexmark-util-data-0.64.8.jar",
+        "libs\\flexmark-util-dependency-0.64.8.jar",
+        "libs\\flexmark-util-format-0.64.8.jar",
+        "libs\\flexmark-util-html-0.64.8.jar",
+        "libs\\flexmark-util-misc-0.64.8.jar",
+        "libs\\flexmark-util-options-0.64.8.jar",
+        "libs\\flexmark-util-sequence-0.64.8.jar",
+        "libs\\flexmark-util-visitor-0.64.8.jar",
+        "libs\\javafx-base-24.jar",
+        "libs\\javafx-base-24-win.jar",
+        "libs\\javafx-controls-24.jar",
+        "libs\\javafx-controls-24-win.jar",
+        "libs\\javafx-fxml-24.jar",
+        "libs\\javafx-fxml-24-win.jar",
+        "libs\\javafx-graphics-24.jar",
+        "libs\\javafx-graphics-24-win.jar",
+        "libs\\javafx-media-24.jar",
+        "libs\\javafx-media-24-win.jar",
+        "libs\\javafx-web-24.jar",
+        "libs\\javafx-web-24-win.jar"
+    ],
+    "java.project.outputPath": "target\\classes",
+    "java.format.settings.url": ".vscode/java-formatter.xml"
+}
