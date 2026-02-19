@@ -74,12 +74,23 @@ Implementation-Author: ${author_name}
     jar cvfe target/build/${project_name}-${project_version}.jar $app -C target/classes .
     echo "done."
     # create run script
-    echo "create run script ${project_name}.sh ..."
-    rm -f ${project_name}.sh
-    echo """#!/bin/bash
-java -jar ${TARGET}/build/${project_name}-${project_version}.jar \$@
-    """ >${project_name}.sh
-    chmod +x ${project_name}.sh
+    echo "create run script ${BUILD}/${project_name}.sh ..."
+    rm -f ${BUILD}/${project_name}.sh
+    cat > ${BUILD}/${project_name}.sh << 'LAUNCH_EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Convert MSYS/Cygwin paths to Windows paths if needed
+if command -v cygpath &> /dev/null; then
+    SCRIPT_DIR="$(cygpath -w "$SCRIPT_DIR")"
+fi
+if [[ "$OSTYPE" == "linux"* ]] || [[ "$OSTYPE" == "darwin"* ]]; then
+    FS=":"
+else
+    FS=";"
+fi
+LAUNCH_EOF
+    echo "java --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar\${FS}\${SCRIPT_DIR}/libs/*\" $app \"\$@\"" >> ${BUILD}/${project_name}.sh
+    chmod +x ${BUILD}/${project_name}.sh
 done
 echo "done."
 # Run tests
