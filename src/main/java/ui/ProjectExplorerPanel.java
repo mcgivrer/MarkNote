@@ -1,10 +1,13 @@
 package ui;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import utils.DocumentService;
 
@@ -12,6 +15,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TreeCell;
@@ -19,7 +23,12 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DataFormat;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseButton;
+import javafx.scene.input.TransferMode;
 
 /**
  * Panel d'exploration de projet (arborescence de fichiers).
@@ -37,6 +46,7 @@ public class ProjectExplorerPanel extends BasePanel {
 
         treeView = new TreeView<>();
         treeView.setShowRoot(true);
+        treeView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         treeView.setCellFactory(tv -> new FileTreeCell());
 
         // Double-clic pour ouvrir un fichier
@@ -288,9 +298,97 @@ public class ProjectExplorerPanel extends BasePanel {
     }
 
     /**
-     * Cellule personnalisée pour afficher les fichiers avec des icônes.
+     * Cellule personnalisée pour afficher les fichiers avec des icônes et support du drag & drop.
      */
-    private static class FileTreeCell extends TreeCell<File> {
+    private class FileTreeCell extends TreeCell<File> {
+        
+        private static final DataFormat FILE_LIST_FORMAT = new DataFormat("application/x-java-file-list");
+        
+        public FileTreeCell() {
+            // Drag detected - début du drag
+            setOnDragDetected(event -> {
+                if (getItem() == null) return;
+                
+                List<TreeItem<File>> selectedItems = treeView.getSelectionModel().getSelectedItems();
+                if (selectedItems.isEmpty()) return;
+                
+                // Ne pas permettre de déplacer la racine
+                if (selectedItems.stream().anyMatch(item -> item == treeView.getRoot())) return;
+                
+                Dragboard dragboard = startDragAndDrop(TransferMode.MOVE);
+                ClipboardContent content = new ClipboardContent();
+                
+                List<File> files = selectedItems.stream()
+                        .map(TreeItem::getValue)
+                        .collect(Collectors.toList());
+                content.putFiles(files);
+                
+                dragboard.setContent(content);
+                event.consume();
+            });
+            
+            // Drag over - survol pendant le drag
+            setOnDragOver(event -> {
+                if (event.getGestureSource() != this && event.getDragboard().hasFiles()) {
+                    File target = getItem();
+                    if (target != null && target.isDirectory()) {
+                        event.acceptTransferModes(TransferMode.MOVE);
+                    }
+                }
+                event.consume();
+            });
+            
+            // Drag entered - entrée dans la cellule
+            setOnDragEntered(event -> {
+                if (event.getGestureSource() != this && event.getDragboard().hasFiles()) {
+                    File target = getItem();
+                    if (target != null && target.isDirectory()) {
+                        setStyle("-fx-background-color: lightblue;");
+                    }
+                }
+            });
+            
+            // Drag exited - sortie de la cellule
+            setOnDragExited(event -> {
+                setStyle("");
+            });
+            
+            // Drop - déposer les fichiers
+            setOnDragDropped(event -> {
+                Dragboard dragboard = event.getDragboard();
+                boolean success = false;
+                
+                if (dragboard.hasFiles()) {
+                    File targetDir = getItem();
+                    List<File> files = dragboard.getFiles();
+                    
+                    if (targetDir != null && targetDir.isDirectory() && !files.isEmpty()) {
+                        // Filtrer les fichiers qui ne peuvent pas être déplacés vers ce dossier
+                        List<File> validFiles = files.stream()
+                                .filter(f -> !f.equals(targetDir))
+                                .filter(f -> !targetDir.toPath().startsWith(f.toPath()))
+                                .collect(Collectors.toList());
+                        
+                        if (!validFiles.isEmpty() && confirmMove(validFiles, targetDir)) {
+                            int moved = DocumentService.moveAll(validFiles, targetDir);
+                            if (moved > 0) {
+                                refresh();
+                                success = true;
+                            } else {
+                                showError(bundle.getString("context.error.move"), targetDir.getName());
+                            }
+                        }
+                    }
+                }
+                
+                event.setDropCompleted(success);
+                event.consume();
+            });
+            
+            // Drag done - fin du drag
+            setOnDragDone(DragEvent::consume);
+        }
+        
         @Override
         protected void updateItem(File item, boolean empty) {
             super.updateItem(item, empty);
@@ -305,5 +403,41 @@ public class ProjectExplorerPanel extends BasePanel {
                 setGraphic(new ImageView(new Image(iconPath)));
             }
         }
+    }
+    
+    /**
+     * Demande confirmation pour le déplacement de fichiers.
+     *
+     * @param files     Les fichiers à déplacer
+     * @param targetDir Le répertoire de destination
+     * @return true si l'utilisateur confirme
+     */
+    private boolean confirmMove(List<File> files, File targetDir) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(bundle.getString("context.move.title"));
+        
+        if (files.size() == 1) {
+            alert.setHeaderText(bundle.getString("context.move.header.single")
+                    .replace("{0}", files.get(0).getName())
+                    .replace("{1}", targetDir.getName()));
+        } else {
+            alert.setHeaderText(bundle.getString("context.move.header.multi")
+                    .replace("{0}", String.valueOf(files.size()))
+                    .replace("{1}", targetDir.getName()));
+        }
+        
+        if (files.size() < 4) {
+            String fileNames = files.stream()
+                    .map(File::getName)
+                    .collect(Collectors.joining(", "));
+            alert.setContentText(bundle.getString("context.move.content.files")
+                    .replace("{0}", fileNames));
+        } else {
+            alert.setContentText(bundle.getString("context.move.content.count")
+                    .replace("{0}", String.valueOf(files.size())));
+        }
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
     }
 }

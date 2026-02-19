@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -176,5 +178,49 @@ public final class DocumentService {
      */
     public static boolean isDirectory(File file) {
         return file != null && file.isDirectory();
+    }
+
+    /**
+     * Déplace un fichier ou répertoire vers un répertoire cible.
+     *
+     * @param file      Le fichier/répertoire à déplacer
+     * @param targetDir Le répertoire de destination
+     * @return Le fichier déplacé, ou Optional.empty() en cas d'erreur
+     */
+    public static Optional<File> move(File file, File targetDir) {
+        if (file == null || targetDir == null || !targetDir.isDirectory()) {
+            return Optional.empty();
+        }
+        // Ne pas déplacer un dossier dans lui-même ou un de ses sous-dossiers
+        if (file.isDirectory() && targetDir.toPath().startsWith(file.toPath())) {
+            return Optional.empty();
+        }
+        File destination = new File(targetDir, file.getName());
+        try {
+            Files.move(file.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return Optional.of(destination);
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Déplace plusieurs fichiers/répertoires vers un répertoire cible.
+     *
+     * @param files     La liste des fichiers/répertoires à déplacer
+     * @param targetDir Le répertoire de destination
+     * @return Le nombre de fichiers déplacés avec succès
+     */
+    public static int moveAll(List<File> files, File targetDir) {
+        if (files == null || targetDir == null || !targetDir.isDirectory()) {
+            return 0;
+        }
+        int successCount = 0;
+        for (File file : files) {
+            if (move(file, targetDir).isPresent()) {
+                successCount++;
+            }
+        }
+        return successCount;
     }
 }
