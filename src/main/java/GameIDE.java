@@ -280,9 +280,16 @@ public class GameIDE extends Application {
         if (reopenLastProject && !recentDirs.isEmpty()) {
             File lastDir = new File(recentDirs.getFirst());
             if (lastDir.exists() && lastDir.isDirectory()) {
-                projectDir = lastDir;
-                stage.setTitle("GameIDE - " + lastDir.getName());
-                refreshProjectTree();
+                Alert reopenAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                reopenAlert.setTitle("Rouvrir le projet");
+                reopenAlert.setHeaderText("Rouvrir le dernier projet ?");
+                reopenAlert.setContentText("Voulez-vous rouvrir le projet \"" + lastDir.getName() + "\" ?");
+                Optional<ButtonType> result = reopenAlert.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.OK) {
+                    projectDir = lastDir;
+                    stage.setTitle("GameIDE - " + lastDir.getName());
+                    refreshProjectTree();
+                }
             }
         }
 
@@ -636,7 +643,8 @@ public class GameIDE extends Application {
             Files.writeString(file.toPath(), editor.getText());
             tabFileMap.put(currentTab, file);
             tabSavedContent.put(currentTab, editor.getText());
-            currentTab.setText(file.getName());
+            currentTab.setText(truncateTabName(file.getName()));
+            currentTab.setTooltip(new Tooltip(file.getName()));
             addRecentFile(file);
             refreshRecentMenu(tabPane, null);
             // Rafraîchir l'arbre si le fichier est dans le projet
@@ -684,7 +692,8 @@ public class GameIDE extends Application {
     }
 
     private void addMarkdownTab(TabPane tabPane, WebView preview, String title, String content, File file) {
-        Tab tab = new Tab(title);
+        Tab tab = new Tab(truncateTabName(title));
+        tab.setTooltip(new Tooltip(title));
 
         TextArea editor = new TextArea(content);
         editor.setWrapText(true);
@@ -773,16 +782,25 @@ public class GameIDE extends Application {
         return false;
     }
 
+    private static final int MAX_TAB_NAME_LENGTH = 15;
+
+    private String truncateTabName(String name) {
+        if (name.length() <= MAX_TAB_NAME_LENGTH) return name;
+        return name.substring(0, MAX_TAB_NAME_LENGTH - 1) + "\u2026";
+    }
+
     private void updateTabTitle(Tab tab) {
         String baseName = tabFileMap.get(tab) != null ? tabFileMap.get(tab).getName()
                 : tab.getText().replaceFirst("^\\*", "");
+        String truncated = truncateTabName(baseName);
         if (isTabModified(tab)) {
             if (!tab.getText().startsWith("*")) {
-                tab.setText("*" + baseName);
+                tab.setText("*" + truncated);
             }
         } else {
-            tab.setText(baseName);
+            tab.setText(truncated);
         }
+        tab.setTooltip(new Tooltip(baseName));
     }
 
     private void handleCloseConfirmation(Tab tab, TabPane tabPane) {
