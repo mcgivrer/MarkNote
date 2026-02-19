@@ -223,4 +223,69 @@ public final class DocumentService {
         }
         return successCount;
     }
+
+    /**
+     * Copie un fichier ou répertoire vers un répertoire cible.
+     *
+     * @param file      Le fichier/répertoire à copier
+     * @param targetDir Le répertoire de destination
+     * @return Le fichier copié, ou Optional.empty() en cas d'erreur
+     */
+    public static Optional<File> copy(File file, File targetDir) {
+        if (file == null || targetDir == null || !targetDir.isDirectory()) {
+            return Optional.empty();
+        }
+        File destination = new File(targetDir, file.getName());
+        try {
+            if (file.isDirectory()) {
+                copyRecursively(file.toPath(), destination.toPath());
+            } else {
+                Files.copy(file.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            return Optional.of(destination);
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Copie récursivement un répertoire.
+     *
+     * @param source      Le répertoire source
+     * @param destination Le répertoire de destination
+     * @throws IOException En cas d'erreur de copie
+     */
+    private static void copyRecursively(Path source, Path destination) throws IOException {
+        Files.createDirectories(destination);
+        try (Stream<Path> entries = Files.list(source)) {
+            for (Path entry : entries.toList()) {
+                Path targetPath = destination.resolve(entry.getFileName());
+                if (Files.isDirectory(entry)) {
+                    copyRecursively(entry, targetPath);
+                } else {
+                    Files.copy(entry, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
+    }
+
+    /**
+     * Copie plusieurs fichiers/répertoires vers un répertoire cible.
+     *
+     * @param files     La liste des fichiers/répertoires à copier
+     * @param targetDir Le répertoire de destination
+     * @return Le nombre de fichiers copiés avec succès
+     */
+    public static int copyAll(List<File> files, File targetDir) {
+        if (files == null || targetDir == null || !targetDir.isDirectory()) {
+            return 0;
+        }
+        int successCount = 0;
+        for (File file : files) {
+            if (copy(file, targetDir).isPresent()) {
+                successCount++;
+            }
+        }
+        return successCount;
+    }
 }

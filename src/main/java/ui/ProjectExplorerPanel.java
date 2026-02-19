@@ -326,10 +326,15 @@ public class ProjectExplorerPanel extends BasePanel {
             
             // Drag over - survol pendant le drag
             setOnDragOver(event -> {
-                if (event.getGestureSource() != this && event.getDragboard().hasFiles()) {
+                if (event.getDragboard().hasFiles()) {
                     File target = getItem();
                     if (target != null && target.isDirectory()) {
-                        event.acceptTransferModes(TransferMode.MOVE);
+                        // Interne = MOVE, Externe = COPY
+                        if (event.getGestureSource() instanceof FileTreeCell) {
+                            event.acceptTransferModes(TransferMode.MOVE);
+                        } else {
+                            event.acceptTransferModes(TransferMode.COPY);
+                        }
                     }
                 }
                 event.consume();
@@ -337,10 +342,15 @@ public class ProjectExplorerPanel extends BasePanel {
             
             // Drag entered - entrée dans la cellule
             setOnDragEntered(event -> {
-                if (event.getGestureSource() != this && event.getDragboard().hasFiles()) {
+                if (event.getDragboard().hasFiles()) {
                     File target = getItem();
                     if (target != null && target.isDirectory()) {
-                        setStyle("-fx-background-color: lightblue;");
+                        // Couleur différente pour copie externe vs déplacement interne
+                        if (event.getGestureSource() instanceof FileTreeCell) {
+                            setStyle("-fx-background-color: lightblue;");
+                        } else {
+                            setStyle("-fx-background-color: lightgreen;");
+                        }
                     }
                 }
             });
@@ -354,25 +364,39 @@ public class ProjectExplorerPanel extends BasePanel {
             setOnDragDropped(event -> {
                 Dragboard dragboard = event.getDragboard();
                 boolean success = false;
+                boolean isExternalDrop = !(event.getGestureSource() instanceof FileTreeCell);
                 
                 if (dragboard.hasFiles()) {
                     File targetDir = getItem();
                     List<File> files = dragboard.getFiles();
                     
                     if (targetDir != null && targetDir.isDirectory() && !files.isEmpty()) {
-                        // Filtrer les fichiers qui ne peuvent pas être déplacés vers ce dossier
-                        List<File> validFiles = files.stream()
-                                .filter(f -> !f.equals(targetDir))
-                                .filter(f -> !targetDir.toPath().startsWith(f.toPath()))
-                                .collect(Collectors.toList());
-                        
-                        if (!validFiles.isEmpty() && confirmMove(validFiles, targetDir)) {
-                            int moved = DocumentService.moveAll(validFiles, targetDir);
-                            if (moved > 0) {
-                                refresh();
-                                success = true;
-                            } else {
-                                showError(bundle.getString("context.error.move"), targetDir.getName());
+                        if (isExternalDrop) {
+                            // Copie depuis l'extérieur
+                            if (confirmCopy(files, targetDir)) {
+                                int copied = DocumentService.copyAll(files, targetDir);
+                                if (copied > 0) {
+                                    refresh();
+                                    success = true;
+                                } else {
+                                    showError(bundle.getString("context.error.copy"), targetDir.getName());
+                                }
+                            }
+                        } else {
+                            // Déplacement interne
+                            List<File> validFiles = files.stream()
+                                    .filter(f -> !f.equals(targetDir))
+                                    .filter(f -> !targetDir.toPath().startsWith(f.toPath()))
+                                    .collect(Collectors.toList());
+                            
+                            if (!validFiles.isEmpty() && confirmMove(validFiles, targetDir)) {
+                                int moved = DocumentService.moveAll(validFiles, targetDir);
+                                if (moved > 0) {
+                                    refresh();
+                                    success = true;
+                                } else {
+                                    showError(bundle.getString("context.error.move"), targetDir.getName());
+                                }
                             }
                         }
                     }
@@ -431,6 +455,34 @@ public class ProjectExplorerPanel extends BasePanel {
                     .replace("{0}", fileNames));
         } else {
             alert.setContentText(bundle.getString("context.move.content.count")
+                    .replace("{0}", String.valueOf(files.size())));
+        }
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+    
+    /**
+     * Demande confirmation pour la copie de fichiers externes.
+     *
+     * @param files     Les fichiers à copier
+     * @param targetDir Le répertoire de destination
+     * @return true si l'utilisateur confirme
+     */
+    private boolean confirmCopy(List<File> files, File targetDir) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(bundle.getString("context.copy.title"));
+        
+        if (files.size() == 1) {
+            alert.setHeaderText(bundle.getString("context.copy.header.single")
+                    .replace("{0}", files.get(0).getName())
+                    .replace("{1}", targetDir.getName()));
+            alert.setContentText(bundle.getString("context.copy.content.single"));
+        } else {
+            alert.setHeaderText(bundle.getString("context.copy.header.multi")
+                    .replace("{0}", String.valueOf(files.size()))
+                    .replace("{1}", targetDir.getName()));
+            alert.setContentText(bundle.getString("context.copy.content.count")
                     .replace("{0}", String.valueOf(files.size())));
         }
         
