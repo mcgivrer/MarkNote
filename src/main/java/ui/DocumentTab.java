@@ -1,0 +1,281 @@
+package ui;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.text.MessageFormat;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.function.Consumer;
+
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
+/**
+ * Représente un onglet de document Markdown.
+ * Gère l'édition, la sauvegarde et la détection des modifications.
+ */
+public class DocumentTab extends Tab {
+
+    private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    private static final int MAX_TAB_NAME_LENGTH = 15;
+
+    private final TextArea editor;
+    private File file;
+    private String savedContent;
+    private Consumer<String> onTextChanged;
+
+    /**
+     * Crée un nouvel onglet de document.
+     *
+     * @param title   Le titre de l'onglet
+     * @param content Le contenu initial
+     * @param file    Le fichier associé (peut être null pour un nouveau document)
+     */
+    public DocumentTab(String title, String content, File file) {
+        super(truncateTabName(title));
+        setTooltip(new Tooltip(title));
+
+        this.file = file;
+        this.savedContent = content;
+
+        editor = new TextArea(content);
+        editor.setWrapText(true);
+        setContent(editor);
+
+        // Listener pour détecter les modifications
+        editor.textProperty().addListener((obs, oldText, newText) -> {
+            updateTabTitle();
+            if (onTextChanged != null) {
+                onTextChanged.accept(newText);
+            }
+        });
+
+        // Confirmation avant fermeture si modifié
+        setOnCloseRequest(e -> {
+            if (isModified()) {
+                e.consume();
+                handleCloseConfirmation();
+            }
+        });
+    }
+
+    /**
+     * Crée un nouvel onglet avec le contenu par défaut.
+     *
+     * @param tabNumber Le numéro de l'onglet (pour le titre)
+     */
+    public DocumentTab(int tabNumber) {
+        this(MessageFormat.format(messages.getString("newdoc.title"), tabNumber),
+             messages.getString("newdoc.content"),
+             null);
+    }
+
+    /**
+     * Vérifie si le document a été modifié depuis la dernière sauvegarde.
+     *
+     * @return true si le document est modifié
+     */
+    public boolean isModified() {
+        return savedContent == null || !savedContent.equals(editor.getText());
+    }
+
+    /**
+     * Retourne le contenu actuel du document.
+     *
+     * @return Le contenu du document
+     */
+    public String getTextContent() {
+        return editor.getText();
+    }
+
+    /**
+     * Retourne le fichier associé au document.
+     *
+     * @return Le fichier (peut être null)
+     */
+    public File getFile() {
+        return file;
+    }
+
+    /**
+     * Définit le fichier associé au document.
+     *
+     * @param file Le fichier
+     */
+    public void setFile(File file) {
+        this.file = file;
+    }
+
+    /**
+     * Retourne l'éditeur de texte.
+     *
+     * @return Le TextArea
+     */
+    public TextArea getEditor() {
+        return editor;
+    }
+
+    /**
+     * Définit l'action à exécuter quand le texte change.
+     *
+     * @param action L'action (reçoit le nouveau texte)
+     */
+    public void setOnTextChanged(Consumer<String> action) {
+        this.onTextChanged = action;
+    }
+
+    /**
+     * Sauvegarde le document.
+     *
+     * @param stage       Le stage parent (pour le FileChooser)
+     * @param forceChoose Forcer la sélection d'un fichier (Sauvegarder sous...)
+     * @param projectDir  Le répertoire de projet par défaut
+     * @return true si la sauvegarde a réussi
+     */
+    public boolean save(Stage stage, boolean forceChoose, File projectDir) {
+        File targetFile = file;
+
+        if (targetFile == null || forceChoose) {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(messages.getString("chooser.saveFile"));
+            chooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter(messages.getString("chooser.filter.markdown"), "*.md", "*.markdown"),
+                    new FileChooser.ExtensionFilter(messages.getString("chooser.filter.text"), "*.txt"),
+                    new FileChooser.ExtensionFilter(messages.getString("chooser.filter.all"), "*.*"));
+            
+            if (targetFile != null) {
+                chooser.setInitialDirectory(targetFile.getParentFile());
+                chooser.setInitialFileName(targetFile.getName());
+            } else if (projectDir != null && projectDir.exists()) {
+                chooser.setInitialDirectory(projectDir);
+            }
+            targetFile = chooser.showSaveDialog(stage);
+        }
+
+        if (targetFile == null) {
+            return false;
+        }
+
+        try {
+            Files.writeString(targetFile.toPath(), editor.getText());
+            this.file = targetFile;
+            this.savedContent = editor.getText();
+            setText(truncateTabName(targetFile.getName()));
+            setTooltip(new Tooltip(targetFile.getName()));
+            return true;
+        } catch (IOException ex) {
+            showError(messages.getString("error.save.title"), ex.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Charge un fichier dans le document.
+     *
+     * @param file Le fichier à charger
+     * @return true si le chargement a réussi
+     */
+    public boolean loadFrom(File file) {
+        try {
+            String content = Files.readString(file.toPath());
+            this.file = file;
+            this.savedContent = content;
+            editor.setText(content);
+            setText(truncateTabName(file.getName()));
+            setTooltip(new Tooltip(file.getName()));
+            return true;
+        } catch (IOException ex) {
+            showError(messages.getString("error.read.title"), ex.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Met à jour le titre de l'onglet avec l'indicateur de modification.
+     */
+    private void updateTabTitle() {
+        String baseName = file != null ? file.getName() : getText().replaceFirst("^\\*", "");
+        String truncated = truncateTabName(baseName);
+        if (isModified()) {
+            if (!getText().startsWith("*")) {
+                setText("*" + truncated);
+            }
+        } else {
+            setText(truncated);
+        }
+        setTooltip(new Tooltip(baseName));
+    }
+
+    /**
+     * Gère la confirmation de fermeture d'un document modifié.
+     */
+    private void handleCloseConfirmation() {
+        String docName = getText().replaceFirst("^\\*", "");
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(messages.getString("modified.title"));
+        alert.setHeaderText(MessageFormat.format(messages.getString("modified.header"), docName));
+        alert.setContentText(messages.getString("modified.content"));
+
+        ButtonType saveBtn = new ButtonType(messages.getString("modified.save"));
+        ButtonType discardBtn = new ButtonType(messages.getString("modified.discard"));
+        ButtonType cancelBtn = new ButtonType(messages.getString("modified.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(saveBtn, discardBtn, cancelBtn);
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent()) {
+            if (result.get() == saveBtn) {
+                TabPane tabPane = getTabPane();
+                if (tabPane != null) {
+                    tabPane.getSelectionModel().select(this);
+                }
+                // Note: La sauvegarde doit être gérée par l'appelant via un callback
+                // Pour l'instant, on ferme si le document n'est plus modifié après sauvegarde
+                if (!isModified()) {
+                    closeTab();
+                }
+            } else if (result.get() == discardBtn) {
+                closeTab();
+            }
+            // Annuler : ne rien faire
+        }
+    }
+
+    /**
+     * Force la fermeture de l'onglet sans confirmation.
+     */
+    public void closeTab() {
+        TabPane tabPane = getTabPane();
+        if (tabPane != null) {
+            tabPane.getTabs().remove(this);
+        }
+    }
+
+    /**
+     * Marque le contenu actuel comme sauvegardé.
+     */
+    public void markAsSaved() {
+        this.savedContent = editor.getText();
+        updateTabTitle();
+    }
+
+    private static String truncateTabName(String name) {
+        if (name.length() <= MAX_TAB_NAME_LENGTH) return name;
+        return name.substring(0, MAX_TAB_NAME_LENGTH - 1) + "\u2026";
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}

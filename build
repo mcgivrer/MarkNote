@@ -28,11 +28,16 @@ RUN_OPT="--module-path ${JFX_PATH} --add-modules ${JFX_MODULES}"
 TEST_CLASSES=${TARGET}/test-classes
 TEST_RESOURCES=${SRC}/test/resources
 LIB_TEST=$LIBS/junit-platform-console-standalone-6.0.1.jar
-# detect OS type to set the classpath separator
+# detect OS type to set the classpath separator and JavaFX platform suffix
 if [[ "$OSTYPE" == "linux"* ]]; then
     FS=":"
+    JFX_OS_SUFFIX="linux"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    FS=":"
+    JFX_OS_SUFFIX="mac"
 else
     FS=";"
+    JFX_OS_SUFFIX="win"
 fi
 # define colors
 RED='\033[0;31m'
@@ -45,9 +50,31 @@ JAVA_BUILD=$(java --version | head -1 | cut -f2 -d' ')
 # Prepare Build
 rm -vrf target/
 find $SRC/main/java $RESOURCES -name "*.java"
-mkdir -vp ${TARGET}/{classes,build/libs}
-# Compile sources
-javac ${COMPILATION_OPTS} --module-path ${JFX_PATH} --add-modules ${JFX_MODULES} -cp "libs/*" $(find $SRC/main/java $RESOURCES -name "*.java") -d ${CLASSES}
+mkdir -vp ${TARGET}/{classes,build/libs,jfx-libs}
+
+# Prepare platform-specific JavaFX libs for compilation
+echo "Preparing JavaFX libs for ${JFX_OS_SUFFIX}..."
+# Copy platform-independent JavaFX jars (API)
+for jar in ${LIBS}/javafx-*-24.jar; do
+    jarname=$(basename "$jar")
+    # Skip platform-specific jars
+    if [[ ! "$jarname" =~ -linux\.jar$ ]] && [[ ! "$jarname" =~ -win\.jar$ ]] && [[ ! "$jarname" =~ -mac\.jar$ ]]; then
+        cp "$jar" ${TARGET}/jfx-libs/
+    fi
+done
+# Copy platform-specific JavaFX jars (native bindings)
+cp ${LIBS}/javafx-*-24-${JFX_OS_SUFFIX}.jar ${TARGET}/jfx-libs/ 2>/dev/null || true
+# Copy non-JavaFX libs
+for jar in ${LIBS}/*.jar; do
+    jarname=$(basename "$jar")
+    if [[ ! "$jarname" =~ ^javafx- ]]; then
+        cp "$jar" ${TARGET}/jfx-libs/
+    fi
+done
+
+# Compile sources using platform-specific libs
+JFX_COMPILE_PATH="${TARGET}/jfx-libs"
+javac ${COMPILATION_OPTS} --module-path ${JFX_COMPILE_PATH} --add-modules ${JFX_MODULES} -cp "${JFX_COMPILE_PATH}/*" $(find $SRC/main/java $RESOURCES -name "*.java") -d ${CLASSES}
 # create MANIFEST file
 cp -vr $RESOURCES/* $CLASSES
 echo "done."
@@ -68,9 +95,10 @@ Implementation-Vendor: ${vendor_name}
 Implementation-Author: ${author_name}
     """ >>target/META-INF/MANIFEST.MF
     #  jar cvfe target/build/${project_name}-$app-${project_version}.jar $app -C target/classes .
-    # Copy libs into build
+    # Copy libs into build (use pre-prepared platform-specific libs)
     mkdir -p ${BUILD}/libs
-    cp -v ${LIBS}/*.jar ${BUILD}/libs/
+    cp -v ${TARGET}/jfx-libs/*.jar ${BUILD}/libs/
+    
     jar cvfe target/build/${project_name}-${project_version}.jar $app -C target/classes .
     echo "done."
     # create run script
@@ -123,7 +151,7 @@ if( [ "$1" == "run" ] ); then
         echo ">> run JAR ${project_name}-${project_version}.jar ..."
         shift 1
         #    java $RUN_OPT -jar ${TARGET}/build/${project_name}-$app-${project_version}.jar $@
-        java $RUN_OPT -cp "${TARGET}/build/${project_name}-${project_version}.jar${FS}libs/*" $app $@
+        java --module-path "${TARGET}/build/libs" --add-modules ${JFX_MODULES} -cp "${TARGET}/build/${project_name}-${project_version}.jar${FS}${TARGET}/build/libs/*" $app $@
         echo "done."
     done
 fi
