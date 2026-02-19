@@ -78,6 +78,13 @@ public class OptionsDialog {
         miscGrid.add(reopenLabel, 0, 2);
         miscGrid.add(reopenCheck, 1, 2);
 
+        // Afficher la page Welcome au démarrage
+        Label welcomeLabel = new Label(messages.getString("options.showWelcomePage"));
+        CheckBox welcomeCheck = new CheckBox();
+        welcomeCheck.setSelected(config.isShowWelcomePage());
+        miscGrid.add(welcomeLabel, 0, 3);
+        miscGrid.add(welcomeCheck, 1, 3);
+
         miscTab.setContent(miscGrid);
         optionsTabs.getTabs().add(miscTab);
 
@@ -92,6 +99,7 @@ public class OptionsDialog {
             config.setMaxRecentItems(recentSpinner.getValue());
             config.setOpenDocOnStart(openDocCheck.isSelected());
             config.setReopenLastProject(reopenCheck.isSelected());
+            config.setShowWelcomePage(welcomeCheck.isSelected());
             config.save();
             saved = true;
             dialog.close();

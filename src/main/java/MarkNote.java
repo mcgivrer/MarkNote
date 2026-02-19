@@ -10,6 +10,7 @@ import ui.ImagePreviewTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
+import ui.WelcomeTab;
 import utils.DocumentService;
 
 import javafx.application.Application;
@@ -93,8 +94,13 @@ public class MarkNote extends Application {
         // Rouvrir le dernier projet si l'option est activée
         handleReopenLastProject();
 
+        // Afficher l'onglet Welcome si l'option est activée
+        if (config.isShowWelcomePage()) {
+            showWelcomeTab();
+        }
+
         // Premier onglet (optionnel)
-        if (config.isOpenDocOnStart()) {
+        if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
             addNewDocument();
         }
 
@@ -182,7 +188,11 @@ public class MarkNote extends Application {
         // Bouton [x] du preview décoche le menu
         previewPanel.setOnClose(() -> showPreviewPanel.setSelected(false));
 
-        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel);
+        // Option Afficher Welcome
+        MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
+        showWelcomeItem.setOnAction(e -> showWelcomeTab());
+
+        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, showWelcomeItem);
 
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
@@ -205,6 +215,25 @@ public class MarkNote extends Application {
         setupDocumentTab(tab);
         mainTabPane.getTabs().add(tab);
         mainTabPane.getSelectionModel().select(tab);
+    }
+
+    /**
+     * Affiche l'onglet Welcome avec la liste des projets récents.
+     */
+    private void showWelcomeTab() {
+        WelcomeTab welcomeTab = new WelcomeTab(config.getRecentDirs(), config.getMaxRecentItems(), config);
+        welcomeTab.setOnProjectSelected(dir -> {
+            // Fermer l'onglet Welcome
+            mainTabPane.getTabs().remove(welcomeTab);
+            // Ouvrir le projet
+            projectExplorerPanel.setProjectDirectory(dir);
+            previewPanel.setBaseDirectory(dir);
+            primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
+            config.addRecentDir(dir);
+            refreshRecentMenu();
+        });
+        mainTabPane.getTabs().add(0, welcomeTab);
+        mainTabPane.getSelectionModel().select(welcomeTab);
     }
 
     /**
@@ -304,6 +333,7 @@ public class MarkNote extends Application {
         File dir = chooser.showDialog(primaryStage);
         if (dir != null) {
             projectExplorerPanel.setProjectDirectory(dir);
+            previewPanel.setBaseDirectory(dir);
             primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
             config.addRecentDir(dir);
             refreshRecentMenu();
@@ -386,6 +416,7 @@ public class MarkNote extends Application {
                 item.setOnAction(e -> {
                     if (d.exists() && d.isDirectory()) {
                         projectExplorerPanel.setProjectDirectory(d);
+                        previewPanel.setBaseDirectory(d);
                         primaryStage.setTitle(messages.getString("app.title") + " - " + d.getName());
                         config.addRecentDir(d);
                         refreshRecentMenu();
@@ -424,6 +455,7 @@ public class MarkNote extends Application {
                 Optional<ButtonType> result = reopenAlert.showAndWait();
                 if (result.isPresent() && result.get() == ButtonType.OK) {
                     projectExplorerPanel.setProjectDirectory(lastDir);
+                    previewPanel.setBaseDirectory(lastDir);
                     primaryStage.setTitle(messages.getString("app.title") + " - " + lastDir.getName());
                 }
             }

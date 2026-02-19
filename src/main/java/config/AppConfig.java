@@ -20,6 +20,7 @@ public class AppConfig {
     private int maxRecentItems = 10;
     private boolean openDocOnStart = true;
     private boolean reopenLastProject = false;
+    private boolean showWelcomePage = true;
 
     /**
      * Charge la configuration depuis le fichier.
@@ -52,6 +53,8 @@ public class AppConfig {
                     openDocOnStart = Boolean.parseBoolean(line.substring("openDocOnStart=".length()).trim());
                 } else if (line.startsWith("reopenLastProject=")) {
                     reopenLastProject = Boolean.parseBoolean(line.substring("reopenLastProject=".length()).trim());
+                } else if (line.startsWith("showWelcomePage=")) {
+                    showWelcomePage = Boolean.parseBoolean(line.substring("showWelcomePage=".length()).trim());
                 }
             }
         } catch (IOException ignored) {
@@ -67,6 +70,7 @@ public class AppConfig {
             lines.add("maxRecentItems=" + maxRecentItems);
             lines.add("openDocOnStart=" + openDocOnStart);
             lines.add("reopenLastProject=" + reopenLastProject);
+            lines.add("showWelcomePage=" + showWelcomePage);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -139,6 +143,10 @@ public class AppConfig {
         return reopenLastProject;
     }
 
+    public boolean isShowWelcomePage() {
+        return showWelcomePage;
+    }
+
     // --- Setters ---
 
     public void setMaxRecentItems(int maxRecentItems) {
@@ -158,6 +166,10 @@ public class AppConfig {
 
     public void setReopenLastProject(boolean reopenLastProject) {
         this.reopenLastProject = reopenLastProject;
+    }
+
+    public void setShowWelcomePage(boolean showWelcomePage) {
+        this.showWelcomePage = showWelcomePage;
     }
 
     /**
