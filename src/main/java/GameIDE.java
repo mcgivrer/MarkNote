@@ -23,6 +23,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
@@ -58,7 +59,8 @@ public class GameIDE extends Application {
     private Parser markdownParser;
     private HtmlRenderer htmlRenderer;
 
-    // Associe chaque Tab au fichier correspondant (null si nouveau doc non sauvegardé)
+    // Associe chaque Tab au fichier correspondant (null si nouveau doc non
+    // sauvegardé)
     private final Map<Tab, File> tabFileMap = new HashMap<>();
 
     // Contenu sauvegardé de chaque tab (pour détecter les modifications)
@@ -80,6 +82,7 @@ public class GameIDE extends Application {
     private final LinkedList<String> recentFiles = new LinkedList<>();
     private final LinkedList<String> recentDirs = new LinkedList<>();
     private int maxRecentItems = 10;
+    private boolean openDocOnStart = true;
     private Menu recentMenu;
 
     public static void main(String[] args) {
@@ -112,7 +115,8 @@ public class GameIDE extends Application {
         Region previewSpacer = new Region();
         HBox.setHgrow(previewSpacer, Priority.ALWAYS);
         Button closePreviewBtn = new Button("\u00D7");
-        closePreviewBtn.setStyle("-fx-font-size: 10; -fx-padding: 0 4 0 4; -fx-background-color: transparent; -fx-cursor: hand;");
+        closePreviewBtn.setStyle(
+                "-fx-font-size: 10; -fx-padding: 0 4 0 4; -fx-background-color: transparent; -fx-cursor: hand;");
         closePreviewBtn.setTooltip(new Tooltip("Fermer la preview"));
         HBox previewHeader = new HBox(previewTitle, previewSpacer, closePreviewBtn);
         previewHeader.setAlignment(Pos.CENTER_LEFT);
@@ -135,9 +139,8 @@ public class GameIDE extends Application {
                     setGraphic(null);
                 } else {
                     setText(item.getName().isEmpty() ? item.getPath() : item.getName());
-                    setGraphic(new ImageView(item.isDirectory()
-                            ? new Image("https://img.icons8.com/fluency/16/folder-invoices--v1.png")
-                            : new Image("https://img.icons8.com/fluency/16/file.png")));
+                    setGraphic(new ImageView(item.isDirectory() ? new Image("images/icons/folder-invoices--v1.png")
+                            : new Image("images/icons/file.png")));
                 }
             }
         });
@@ -158,7 +161,8 @@ public class GameIDE extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         Button closeProjectBtn = new Button("\u00D7");
-        closeProjectBtn.setStyle("-fx-font-size: 10; -fx-padding: 0 4 0 4; -fx-background-color: transparent; -fx-cursor: hand;");
+        closeProjectBtn.setStyle(
+                "-fx-font-size: 10; -fx-padding: 0 4 0 4; -fx-background-color: transparent; -fx-cursor: hand;");
         closeProjectBtn.setTooltip(new Tooltip("Fermer l'explorateur"));
         HBox projectHeader = new HBox(projectTitle, spacer, closeProjectBtn);
         projectHeader.setAlignment(Pos.CENTER_LEFT);
@@ -216,11 +220,9 @@ public class GameIDE extends Application {
         quitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
         quitItem.setOnAction(e -> Platform.exit());
 
-        fileMenu.getItems().addAll(newDocItem, new SeparatorMenuItem(),
-                openProjectItem, openItem, new SeparatorMenuItem(),
-                recentMenu, new SeparatorMenuItem(),
-                saveItem, saveAsItem, new SeparatorMenuItem(),
-                quitItem);
+        fileMenu.getItems().addAll(newDocItem, new SeparatorMenuItem(), openProjectItem, openItem,
+                new SeparatorMenuItem(), recentMenu, new SeparatorMenuItem(), saveItem, saveAsItem,
+                new SeparatorMenuItem(), quitItem);
 
         // == Menu Affichage ==
         Menu viewMenu = new Menu("Affichage");
@@ -273,8 +275,10 @@ public class GameIDE extends Application {
 
         root.setTop(menuBar);
 
-        // Premier onglet
-        addMarkdownTab(tabPane, preview);
+        // Premier onglet (optionnel)
+        if (openDocOnStart) {
+            addMarkdownTab(tabPane, preview);
+        }
 
         Scene scene = new Scene(root, 1200, 700);
         stage.setTitle("GameIDE - Éditeur Markdown");
@@ -288,7 +292,8 @@ public class GameIDE extends Application {
 
     private void loadConfig() {
         File configFile = new File(CONFIG_FILE);
-        if (!configFile.exists()) return;
+        if (!configFile.exists())
+            return;
 
         try {
             List<String> lines = Files.readAllLines(configFile.toPath());
@@ -296,22 +301,29 @@ public class GameIDE extends Application {
                 if (line.startsWith("maxRecentItems=")) {
                     try {
                         maxRecentItems = Integer.parseInt(line.substring("maxRecentItems=".length()).trim());
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException ignored) {
+                    }
                 } else if (line.startsWith("recentFile=")) {
                     String path = line.substring("recentFile=".length()).trim();
-                    if (!path.isEmpty()) recentFiles.add(path);
+                    if (!path.isEmpty())
+                        recentFiles.add(path);
                 } else if (line.startsWith("recentDir=")) {
                     String path = line.substring("recentDir=".length()).trim();
-                    if (!path.isEmpty()) recentDirs.add(path);
+                    if (!path.isEmpty())
+                        recentDirs.add(path);
+                } else if (line.startsWith("openDocOnStart=")) {
+                    openDocOnStart = Boolean.parseBoolean(line.substring("openDocOnStart=".length()).trim());
                 }
             }
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private void saveConfig() {
         try {
             List<String> lines = new ArrayList<>();
             lines.add("maxRecentItems=" + maxRecentItems);
+            lines.add("openDocOnStart=" + openDocOnStart);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -319,7 +331,8 @@ public class GameIDE extends Application {
                 lines.add("recentDir=" + d);
             }
             Files.writeString(Path.of(CONFIG_FILE), String.join("\n", lines));
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private void addRecentFile(File file) {
@@ -450,6 +463,12 @@ public class GameIDE extends Application {
         miscGrid.add(recentLabel, 0, 0);
         miscGrid.add(recentSpinner, 1, 0);
 
+        Label openDocLabel = new Label("Créer un document au démarrage :");
+        CheckBox openDocCheck = new CheckBox();
+        openDocCheck.setSelected(openDocOnStart);
+        miscGrid.add(openDocLabel, 0, 1);
+        miscGrid.add(openDocCheck, 1, 1);
+
         miscTab.setContent(miscGrid);
         optionsTabs.getTabs().add(miscTab);
 
@@ -462,9 +481,12 @@ public class GameIDE extends Application {
 
         okBtn.setOnAction(e -> {
             maxRecentItems = recentSpinner.getValue();
+            openDocOnStart = openDocCheck.isSelected();
             // Tronquer les listes si nécessaire
-            while (recentFiles.size() > maxRecentItems) recentFiles.removeLast();
-            while (recentDirs.size() > maxRecentItems) recentDirs.removeLast();
+            while (recentFiles.size() > maxRecentItems)
+                recentFiles.removeLast();
+            while (recentDirs.size() > maxRecentItems)
+                recentDirs.removeLast();
             saveConfig();
             refreshRecentMenu(tabPane, preview);
             dialog.close();
@@ -496,7 +518,8 @@ public class GameIDE extends Application {
             chooser.setInitialDirectory(projectDir);
         }
         File dir = chooser.showDialog(stage);
-        if (dir == null) return;
+        if (dir == null)
+            return;
 
         projectDir = dir;
         stage.setTitle("GameIDE - " + dir.getName());
@@ -507,7 +530,8 @@ public class GameIDE extends Application {
 
     // --- Construire l'arborescence du projet ---
     private void refreshProjectTree() {
-        if (projectDir == null || !projectDir.isDirectory()) return;
+        if (projectDir == null || !projectDir.isDirectory())
+            return;
 
         TreeItem<File> rootItem = buildTreeItem(projectDir);
         rootItem.setExpanded(true);
@@ -521,8 +545,10 @@ public class GameIDE extends Application {
             if (children != null) {
                 // Dossiers d'abord, puis fichiers, triés alphabétiquement
                 java.util.Arrays.sort(children, (a, b) -> {
-                    if (a.isDirectory() && !b.isDirectory()) return -1;
-                    if (!a.isDirectory() && b.isDirectory()) return 1;
+                    if (a.isDirectory() && !b.isDirectory())
+                        return -1;
+                    if (!a.isDirectory() && b.isDirectory())
+                        return 1;
                     return a.getName().compareToIgnoreCase(b.getName());
                 });
                 for (File child : children) {
@@ -561,17 +587,16 @@ public class GameIDE extends Application {
 
     private void saveFile(Stage stage, TabPane tabPane, boolean forceChoose) {
         Tab currentTab = tabPane.getSelectionModel().getSelectedItem();
-        if (currentTab == null) return;
+        if (currentTab == null)
+            return;
 
         File file = tabFileMap.get(currentTab);
 
         if (file == null || forceChoose) {
             FileChooser chooser = new FileChooser();
             chooser.setTitle("Sauvegarder le document");
-            chooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Markdown", "*.md", "*.markdown"),
-                    new FileChooser.ExtensionFilter("Texte", "*.txt"),
-                    new FileChooser.ExtensionFilter("Tous", "*.*"));
+            chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Markdown", "*.md", "*.markdown"),
+                    new FileChooser.ExtensionFilter("Texte", "*.txt"), new FileChooser.ExtensionFilter("Tous", "*.*"));
             if (file != null) {
                 chooser.setInitialDirectory(file.getParentFile());
                 chooser.setInitialFileName(file.getName());
@@ -580,7 +605,8 @@ public class GameIDE extends Application {
             }
             file = chooser.showSaveDialog(stage);
         }
-        if (file == null) return;
+        if (file == null)
+            return;
 
         try {
             TextArea editor = (TextArea) currentTab.getContent();
@@ -606,15 +632,14 @@ public class GameIDE extends Application {
     private void loadFile(Stage stage, TabPane tabPane, WebView preview) {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Ouvrir un document");
-        chooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Markdown", "*.md", "*.markdown"),
-                new FileChooser.ExtensionFilter("Texte", "*.txt"),
-                new FileChooser.ExtensionFilter("Tous", "*.*"));
+        chooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Markdown", "*.md", "*.markdown"),
+                new FileChooser.ExtensionFilter("Texte", "*.txt"), new FileChooser.ExtensionFilter("Tous", "*.*"));
         if (projectDir != null) {
             chooser.setInitialDirectory(projectDir);
         }
         File file = chooser.showOpenDialog(stage);
-        if (file == null) return;
+        if (file == null)
+            return;
 
         try {
             String content = Files.readString(file.toPath());
@@ -631,10 +656,8 @@ public class GameIDE extends Application {
     // ========================================
 
     private void addMarkdownTab(TabPane tabPane, WebView preview) {
-        addMarkdownTab(tabPane, preview,
-                "Doc " + (tabPane.getTabs().size() + 1),
-                "# Nouveau document\n\nTape du *Markdown* ici.",
-                null);
+        addMarkdownTab(tabPane, preview, "Doc " + (tabPane.getTabs().size() + 1),
+                "# Nouveau document\n\nTape du *Markdown* ici.", null);
     }
 
     private void addMarkdownTab(TabPane tabPane, WebView preview, String title, String content, File file) {
@@ -673,7 +696,8 @@ public class GameIDE extends Application {
         };
         editor.textProperty().addListener(textListener);
 
-        // Quand on change d'onglet, on rafraîchit la preview avec le texte de l'onglet courant
+        // Quand on change d'onglet, on rafraîchit la preview avec le texte de l'onglet
+        // courant
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab != null && newTab.getContent() instanceof TextArea ta) {
                 updatePreview(preview, ta.getText());
@@ -727,8 +751,7 @@ public class GameIDE extends Application {
     }
 
     private void updateTabTitle(Tab tab) {
-        String baseName = tabFileMap.get(tab) != null
-                ? tabFileMap.get(tab).getName()
+        String baseName = tabFileMap.get(tab) != null ? tabFileMap.get(tab).getName()
                 : tab.getText().replaceFirst("^\\*", "");
         if (isTabModified(tab)) {
             if (!tab.getText().startsWith("*")) {
