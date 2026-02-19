@@ -2,10 +2,20 @@ package ui;
 
 import java.io.File;
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.fxmisc.richtext.StyleClassedTextArea;
+import org.fxmisc.richtext.model.StyleSpans;
+import org.fxmisc.richtext.model.StyleSpansBuilder;
+import org.fxmisc.flowless.VirtualizedScrollPane;
 
 import utils.DocumentService;
 
@@ -14,7 +24,6 @@ import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -28,7 +37,35 @@ public class DocumentTab extends Tab {
     private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
     private static final int MAX_TAB_NAME_LENGTH = 15;
 
-    private final TextArea editor;
+    // Patterns pour la coloration syntaxique Markdown
+    private static final String HEADING_PATTERN = "^#{1,6}\\s.*$";
+    private static final String BOLD_PATTERN = "(\\*\\*|__).+?(\\*\\*|__)";
+    private static final String ITALIC_PATTERN = "(\\*|_)(?!\\*|_).+?(\\*|_)";
+    private static final String CODE_INLINE_PATTERN = "`[^`\\n]+`";
+    private static final String CODE_BLOCK_PATTERN = "```[\\s\\S]*?```";
+    private static final String LINK_PATTERN = "\\[([^\\[\\]]*?)\\]\\(([^\\(\\)]*?)\\)";
+    private static final String IMAGE_PATTERN = "!\\[([^\\[\\]]*?)\\]\\(([^\\(\\)]*?)\\)";
+    private static final String BLOCKQUOTE_PATTERN = "^>\\s.*$";
+    private static final String LIST_PATTERN = "^\\s*[-*+]\\s.*$|^\\s*\\d+\\.\\s.*$";
+    private static final String HORIZONTAL_RULE_PATTERN = "^([-*_]\\s*){3,}$";
+    private static final String STRIKETHROUGH_PATTERN = "~~.+?~~";
+
+    private static final Pattern PATTERN = Pattern.compile(
+            "(?<CODEBLOCK>" + CODE_BLOCK_PATTERN + ")"
+            + "|(?<HEADING>" + HEADING_PATTERN + ")"
+            + "|(?<BOLD>" + BOLD_PATTERN + ")"
+            + "|(?<ITALIC>" + ITALIC_PATTERN + ")"
+            + "|(?<CODEINLINE>" + CODE_INLINE_PATTERN + ")"
+            + "|(?<IMAGE>" + IMAGE_PATTERN + ")"
+            + "|(?<LINK>" + LINK_PATTERN + ")"
+            + "|(?<BLOCKQUOTE>" + BLOCKQUOTE_PATTERN + ")"
+            + "|(?<LIST>" + LIST_PATTERN + ")"
+            + "|(?<HORIZONTALRULE>" + HORIZONTAL_RULE_PATTERN + ")"
+            + "|(?<STRIKETHROUGH>" + STRIKETHROUGH_PATTERN + ")",
+            Pattern.MULTILINE
+    );
+
+    private final StyleClassedTextArea editor;
     private File file;
     private String savedContent;
     private Consumer<String> onTextChanged;
@@ -47,9 +84,25 @@ public class DocumentTab extends Tab {
         this.file = file;
         this.savedContent = content;
 
-        editor = new TextArea(content);
+        editor = new StyleClassedTextArea();
         editor.setWrapText(true);
-        setContent(editor);
+        editor.replaceText(content);
+        editor.getStyleClass().add("markdown-editor");
+        
+        // Charger le CSS pour la coloration syntaxique
+        String cssPath = getClass().getResource("/css/markdown-editor.css").toExternalForm();
+        editor.getStylesheets().add(cssPath);
+        
+        // Appliquer la coloration syntaxique initiale
+        applyHighlighting();
+        
+        // Coloration syntaxique avec délai pour éviter trop de recalculs
+        editor.multiPlainChanges()
+              .successionEnds(Duration.ofMillis(100))
+              .subscribe(ignore -> applyHighlighting());
+        
+        VirtualizedScrollPane<StyleClassedTextArea> scrollPane = new VirtualizedScrollPane<>(editor);
+        setContent(scrollPane);
 
         // Listener pour détecter les modifications
         editor.textProperty().addListener((obs, oldText, newText) -> {
@@ -66,6 +119,42 @@ public class DocumentTab extends Tab {
                 handleCloseConfirmation();
             }
         });
+    }
+
+    /**
+     * Applique la coloration syntaxique au texte.
+     */
+    private void applyHighlighting() {
+        editor.setStyleSpans(0, computeHighlighting(editor.getText()));
+    }
+
+    /**
+     * Calcule les styles à appliquer au texte Markdown.
+     */
+    private static StyleSpans<Collection<String>> computeHighlighting(String text) {
+        Matcher matcher = PATTERN.matcher(text);
+        int lastKwEnd = 0;
+        StyleSpansBuilder<Collection<String>> spansBuilder = new StyleSpansBuilder<>();
+        while (matcher.find()) {
+            String styleClass =
+                    matcher.group("CODEBLOCK") != null ? "code-block" :
+                    matcher.group("HEADING") != null ? "heading" :
+                    matcher.group("BOLD") != null ? "bold" :
+                    matcher.group("ITALIC") != null ? "italic" :
+                    matcher.group("CODEINLINE") != null ? "code-inline" :
+                    matcher.group("IMAGE") != null ? "image" :
+                    matcher.group("LINK") != null ? "link" :
+                    matcher.group("BLOCKQUOTE") != null ? "blockquote" :
+                    matcher.group("LIST") != null ? "list" :
+                    matcher.group("HORIZONTALRULE") != null ? "horizontal-rule" :
+                    matcher.group("STRIKETHROUGH") != null ? "strikethrough" :
+                    null;
+            spansBuilder.add(Collections.emptyList(), matcher.start() - lastKwEnd);
+            spansBuilder.add(Collections.singleton(styleClass), matcher.end() - matcher.start());
+            lastKwEnd = matcher.end();
+        }
+        spansBuilder.add(Collections.emptyList(), text.length() - lastKwEnd);
+        return spansBuilder.create();
     }
 
     /**
@@ -118,9 +207,9 @@ public class DocumentTab extends Tab {
     /**
      * Retourne l'éditeur de texte.
      *
-     * @return Le TextArea
+     * @return Le StyleClassedTextArea
      */
-    public TextArea getEditor() {
+    public StyleClassedTextArea getEditor() {
         return editor;
     }
 
@@ -188,7 +277,7 @@ public class DocumentTab extends Tab {
         if (content.isPresent()) {
             this.file = file;
             this.savedContent = content.get();
-            editor.setText(content.get());
+            editor.replaceText(content.get());
             setText(truncateTabName(file.getName()));
             setTooltip(new Tooltip(file.getName()));
             return true;
