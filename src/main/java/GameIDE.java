@@ -83,6 +83,7 @@ public class GameIDE extends Application {
     private final LinkedList<String> recentDirs = new LinkedList<>();
     private int maxRecentItems = 10;
     private boolean openDocOnStart = true;
+    private boolean reopenLastProject = false;
     private Menu recentMenu;
 
     public static void main(String[] args) {
@@ -275,13 +276,25 @@ public class GameIDE extends Application {
 
         root.setTop(menuBar);
 
+        // Rouvrir le dernier projet si l'option est activée
+        if (reopenLastProject && !recentDirs.isEmpty()) {
+            File lastDir = new File(recentDirs.getFirst());
+            if (lastDir.exists() && lastDir.isDirectory()) {
+                projectDir = lastDir;
+                stage.setTitle("GameIDE - " + lastDir.getName());
+                refreshProjectTree();
+            }
+        }
+
         // Premier onglet (optionnel)
         if (openDocOnStart) {
             addMarkdownTab(tabPane, preview);
         }
 
         Scene scene = new Scene(root, 1200, 700);
-        stage.setTitle("GameIDE - Éditeur Markdown");
+        if (projectDir == null) {
+            stage.setTitle("GameIDE - Éditeur Markdown");
+        }
         stage.setScene(scene);
         stage.show();
     }
@@ -313,6 +326,8 @@ public class GameIDE extends Application {
                         recentDirs.add(path);
                 } else if (line.startsWith("openDocOnStart=")) {
                     openDocOnStart = Boolean.parseBoolean(line.substring("openDocOnStart=".length()).trim());
+                } else if (line.startsWith("reopenLastProject=")) {
+                    reopenLastProject = Boolean.parseBoolean(line.substring("reopenLastProject=".length()).trim());
                 }
             }
         } catch (IOException ignored) {
@@ -324,6 +339,7 @@ public class GameIDE extends Application {
             List<String> lines = new ArrayList<>();
             lines.add("maxRecentItems=" + maxRecentItems);
             lines.add("openDocOnStart=" + openDocOnStart);
+            lines.add("reopenLastProject=" + reopenLastProject);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -469,6 +485,12 @@ public class GameIDE extends Application {
         miscGrid.add(openDocLabel, 0, 1);
         miscGrid.add(openDocCheck, 1, 1);
 
+        Label reopenLabel = new Label("Rouvrir le dernier projet au démarrage :");
+        CheckBox reopenCheck = new CheckBox();
+        reopenCheck.setSelected(reopenLastProject);
+        miscGrid.add(reopenLabel, 0, 2);
+        miscGrid.add(reopenCheck, 1, 2);
+
         miscTab.setContent(miscGrid);
         optionsTabs.getTabs().add(miscTab);
 
@@ -482,6 +504,7 @@ public class GameIDE extends Application {
         okBtn.setOnAction(e -> {
             maxRecentItems = recentSpinner.getValue();
             openDocOnStart = openDocCheck.isSelected();
+            reopenLastProject = reopenCheck.isSelected();
             // Tronquer les listes si nécessaire
             while (recentFiles.size() > maxRecentItems)
                 recentFiles.removeLast();
