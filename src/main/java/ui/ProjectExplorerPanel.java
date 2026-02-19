@@ -24,7 +24,6 @@ import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.DataFormat;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseButton;
@@ -301,8 +300,6 @@ public class ProjectExplorerPanel extends BasePanel {
      * Cellule personnalisée pour afficher les fichiers avec des icônes et support du drag & drop.
      */
     private class FileTreeCell extends TreeCell<File> {
-        
-        private static final DataFormat FILE_LIST_FORMAT = new DataFormat("application/x-java-file-list");
         
         public FileTreeCell() {
             // Drag detected - début du drag
