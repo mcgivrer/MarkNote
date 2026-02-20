@@ -1,10 +1,10 @@
 package ui;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 import config.AppConfig;
 import config.ThemeManager;
@@ -41,6 +41,7 @@ public class OptionsDialog {
     private final Stage dialog;
     private final AppConfig config;
     private boolean saved = false;
+    private Consumer<File> onOpenThemeFile;
 
     /**
      * Crée le dialogue d'options.
@@ -130,13 +131,17 @@ public class OptionsDialog {
                     if (baseTheme == null) baseTheme = "light";
                     
                     try {
-                        File cssFile = themeManager.createCustomTheme(themeName, baseTheme);
+                        File cssFile = themeManager.createCustomTheme(baseTheme, themeName);
+                        if (cssFile == null) {
+                            throw new IOException("Failed to create theme file");
+                        }
                         themeList.setItems(FXCollections.observableArrayList(themeManager.getAvailableThemes()));
                         themeList.getSelectionModel().select(themeName);
                         
-                        // Open the CSS file for editing
-                        if (Desktop.isDesktopSupported()) {
-                            Desktop.getDesktop().edit(cssFile);
+                        // Open the CSS file in ThemeTab
+                        if (cssFile.exists() && onOpenThemeFile != null) {
+                            dialog.close();
+                            onOpenThemeFile.accept(cssFile);
                         }
                     } catch (IOException ex) {
                         Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -221,5 +226,13 @@ public class OptionsDialog {
     public boolean showAndWait() {
         dialog.showAndWait();
         return saved;
+    }
+
+    /**
+     * Définit le callback appelé lors de la création d'un nouveau thème.
+     * Le callback reçoit le fichier CSS à ouvrir dans un ThemeTab.
+     */
+    public void setOnOpenThemeFile(Consumer<File> callback) {
+        this.onOpenThemeFile = callback;
     }
 }

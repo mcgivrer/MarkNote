@@ -11,6 +11,7 @@ import ui.ImagePreviewTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
+import ui.ThemeTab;
 import ui.WelcomeTab;
 import utils.DocumentService;
 
@@ -470,12 +471,46 @@ public class MarkNote extends Application {
     private void showOptionsDialog() {
         String previousTheme = config.getCurrentTheme();
         OptionsDialog dialog = new OptionsDialog(primaryStage, config);
+        dialog.setOnOpenThemeFile(this::openThemeFile);
         if (dialog.showAndWait()) {
             refreshRecentMenu();
             // Apply theme if it changed
             if (!previousTheme.equals(config.getCurrentTheme())) {
                 applyTheme(primaryStage.getScene());
             }
+        }
+    }
+
+    /**
+     * Ouvre un fichier CSS de thème dans un ThemeTab.
+     */
+    private void openThemeFile(File file) {
+        // Vérifier si le fichier est déjà ouvert
+        for (var tab : tabPane.getTabs()) {
+            if (tab instanceof ThemeTab themeTab) {
+                if (file.equals(themeTab.getFile())) {
+                    tabPane.getSelectionModel().select(tab);
+                    return;
+                }
+            }
+        }
+        
+        // Charger le contenu
+        Optional<String> content = DocumentService.readFile(file);
+        if (content.isPresent()) {
+            ThemeTab themeTab = new ThemeTab(file, content.get());
+            themeTab.setOnSaveCallback(v -> {
+                // Rafraîchir le thème si c'est le thème courant
+                ThemeManager themeManager = ThemeManager.getInstance();
+                String themeName = file.getName().replace(".css", "");
+                if (themeName.equals(config.getCurrentTheme())) {
+                    applyTheme(primaryStage.getScene());
+                }
+            });
+            tabPane.getTabs().add(themeTab);
+            tabPane.getSelectionModel().select(themeTab);
+        } else {
+            showError(messages.getString("error.read.title"), file.getAbsolutePath());
         }
     }
 

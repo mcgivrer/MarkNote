@@ -14,3 +14,5 @@
 - [ ] Ajouter un panel "Assistant" permettant la connexion à un LLM via un MCP agent (ajouter un onlget "MCP agent" dans le dialogue "Options" pour configurer url, parameètres et clé d'API).
 
 - [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options. 
+- [ ] Ajouter le support de template de pages
+ 
