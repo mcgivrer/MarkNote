@@ -21,6 +21,7 @@ public class AppConfig {
     private boolean openDocOnStart = true;
     private boolean reopenLastProject = false;
     private boolean showWelcomePage = true;
+    private String currentTheme = "light";
 
     /**
      * Charge la configuration depuis le fichier.
@@ -55,6 +56,8 @@ public class AppConfig {
                     reopenLastProject = Boolean.parseBoolean(line.substring("reopenLastProject=".length()).trim());
                 } else if (line.startsWith("showWelcomePage=")) {
                     showWelcomePage = Boolean.parseBoolean(line.substring("showWelcomePage=".length()).trim());
+                } else if (line.startsWith("currentTheme=")) {
+                    currentTheme = line.substring("currentTheme=".length()).trim();
                 }
             }
         } catch (IOException ignored) {
@@ -71,6 +74,7 @@ public class AppConfig {
             lines.add("openDocOnStart=" + openDocOnStart);
             lines.add("reopenLastProject=" + reopenLastProject);
             lines.add("showWelcomePage=" + showWelcomePage);
+            lines.add("currentTheme=" + currentTheme);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -147,6 +151,10 @@ public class AppConfig {
         return showWelcomePage;
     }
 
+    public String getCurrentTheme() {
+        return currentTheme;
+    }
+
     // --- Setters ---
 
     public void setMaxRecentItems(int maxRecentItems) {
@@ -170,6 +178,10 @@ public class AppConfig {
 
     public void setShowWelcomePage(boolean showWelcomePage) {
         this.showWelcomePage = showWelcomePage;
+    }
+
+    public void setCurrentTheme(String currentTheme) {
+        this.currentTheme = currentTheme;
     }
 
     /**

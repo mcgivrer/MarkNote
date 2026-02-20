@@ -54,7 +54,7 @@ public class WelcomeTab extends Tab {
         // Sous-titre
         Label subtitleLabel = new Label(messages.getString("welcome.subtitle"));
         subtitleLabel.setFont(Font.font("System", 14));
-        subtitleLabel.setStyle("-fx-text-fill: #666;");
+        subtitleLabel.getStyleClass().add("welcome-subtitle");
 
         content.getChildren().addAll(titleLabel, subtitleLabel);
 
@@ -83,14 +83,14 @@ public class WelcomeTab extends Tab {
 
             if (projectsList.getChildren().isEmpty()) {
                 Label noProjectLabel = new Label(messages.getString("welcome.noRecentProjects"));
-                noProjectLabel.setStyle("-fx-text-fill: #999;");
+                noProjectLabel.getStyleClass().add("welcome-no-projects");
                 projectsList.getChildren().add(noProjectLabel);
             }
 
             content.getChildren().add(projectsList);
         } else {
             Label noProjectLabel = new Label(messages.getString("welcome.noRecentProjects"));
-            noProjectLabel.setStyle("-fx-text-fill: #999;");
+            noProjectLabel.getStyleClass().add("welcome-no-projects");
             noProjectLabel.setPadding(new Insets(20, 0, 0, 0));
             content.getChildren().add(noProjectLabel);
         }

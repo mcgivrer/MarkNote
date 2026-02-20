@@ -1,0 +1,302 @@
+/*
+ * MarkNote Theme: High Contrast
+ * Accessibility-focused high contrast theme
+ */
+
+/* === Application Root === */
+.root {
+    -fx-base: #000000;
+    -fx-background: #000000;
+    -fx-control-inner-background: #000000;
+    -fx-accent: #ffff00;
+    -fx-focus-color: #ffff00;
+    -fx-faint-focus-color: rgba(255, 255, 0, 0.5);
+    -fx-dark: true;
+}
+
+/* === Menu Bar === */
+.menu-bar {
+    -fx-background-color: #000000;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 0 0 2 0;
+}
+
+.menu-bar .menu .label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.menu-bar .menu:hover,
+.menu-bar .menu:showing {
+    -fx-background-color: #ffff00;
+}
+
+.menu-bar .menu:hover .label,
+.menu-bar .menu:showing .label {
+    -fx-text-fill: #000000;
+}
+
+.context-menu {
+    -fx-background-color: #000000;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+}
+
+.menu-item {
+    -fx-background-color: #000000;
+}
+
+.menu-item .label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.menu-item:hover,
+.menu-item:focused {
+    -fx-background-color: #ffff00;
+}
+
+.menu-item:hover .label,
+.menu-item:focused .label {
+    -fx-text-fill: #000000;
+}
+
+/* === Tab Pane === */
+.tab-pane .tab-header-area {
+    -fx-background-color: #000000;
+}
+
+.tab-pane .tab-header-background {
+    -fx-background-color: #000000;
+}
+
+.tab {
+    -fx-background-color: #000000;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2 2 0 2;
+}
+
+.tab:selected {
+    -fx-background-color: #333333;
+    -fx-border-color: #ffff00;
+}
+
+.tab .tab-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.tab:selected .tab-label {
+    -fx-text-fill: #ffff00;
+}
+
+/* === Split Pane === */
+.split-pane {
+    -fx-background-color: #000000;
+}
+
+.split-pane-divider {
+    -fx-background-color: #ffffff;
+    -fx-padding: 3;
+}
+
+/* === Tree View === */
+.tree-view {
+    -fx-background-color: #000000;
+    -fx-control-inner-background: #000000;
+}
+
+.tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.tree-cell:selected {
+    -fx-background-color: #ffff00;
+    -fx-text-fill: #000000;
+}
+
+.tree-cell:hover:filled {
+    -fx-background-color: #333333;
+}
+
+/* === Text Area / Editor === */
+.text-area, .styled-text-area, .code-area {
+    -fx-background-color: #000000;
+    -fx-text-fill: #ffffff;
+    -fx-control-inner-background: #000000;
+    -fx-font-size: 16px;
+}
+
+.text-area .content {
+    -fx-background-color: #000000;
+}
+
+.virtual-flow .clipped-container .sheet .cell {
+    -fx-background-color: #000000;
+}
+
+/* === Buttons === */
+.button {
+    -fx-background-color: #000000;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+    -fx-font-weight: bold;
+}
+
+.button:hover {
+    -fx-background-color: #ffff00;
+    -fx-text-fill: #000000;
+    -fx-border-color: #ffff00;
+}
+
+.button:default {
+    -fx-background-color: #ffff00;
+    -fx-text-fill: #000000;
+    -fx-border-color: #ffffff;
+}
+
+/* === Scroll Bars === */
+.scroll-bar {
+    -fx-background-color: #000000;
+}
+
+.scroll-bar .track {
+    -fx-background-color: #333333;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #ffffff;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #ffff00;
+}
+
+/* === Labels === */
+.label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+/* === Hyperlinks === */
+.hyperlink {
+    -fx-text-fill: #00ffff;
+    -fx-font-weight: bold;
+}
+
+.hyperlink:hover {
+    -fx-text-fill: #ffff00;
+}
+
+/* === Check Box === */
+.check-box .box {
+    -fx-background-color: #000000;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #ffff00;
+    -fx-border-color: #ffff00;
+}
+
+.check-box .mark {
+    -fx-background-color: #000000;
+}
+
+.check-box {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+/* === List View === */
+.list-view {
+    -fx-background-color: #000000;
+    -fx-control-inner-background: #000000;
+    -fx-border-color: #ffffff;
+}
+
+.list-cell {
+    -fx-background-color: #000000;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.list-cell:selected {
+    -fx-background-color: #ffff00;
+    -fx-text-fill: #000000;
+}
+
+/* === Text Fields === */
+.text-field {
+    -fx-background-color: #000000;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+    -fx-font-weight: bold;
+}
+
+/* === Spinner === */
+.spinner {
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+}
+
+.spinner .text-field {
+    -fx-background-color: #000000;
+    -fx-text-fill: #ffffff;
+}
+
+/* === Dialogs === */
+.dialog-pane {
+    -fx-background-color: #000000;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #333333;
+}
+
+/* === Tooltips === */
+.tooltip {
+    -fx-background-color: #ffff00;
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+}
+
+/* === Panel Header === */
+.panel-header {
+    -fx-background-color: #333333;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 0 0 2 0;
+}
+
+.panel-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffff00;
+}
+
+.panel-close-button {
+    -fx-font-size: 10;
+    -fx-padding: 0 4 0 4;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-text-fill: #ffff00;
+}
+
+.panel-close-button:hover {
+    -fx-background-color: #555555;
+}
+
+/* === Welcome Page === */
+.welcome-subtitle {
+    -fx-text-fill: #ffffff;
+}
+
+.welcome-no-projects {
+    -fx-text-fill: #ffff00;
+}

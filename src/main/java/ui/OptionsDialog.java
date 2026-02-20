@@ -1,22 +1,33 @@
 package ui;
 
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
 import config.AppConfig;
+import config.ThemeManager;
 
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -88,6 +99,85 @@ public class OptionsDialog {
         miscTab.setContent(miscGrid);
         optionsTabs.getTabs().add(miscTab);
 
+        // --- Onglet Themes ---
+        Tab themesTab = new Tab(messages.getString("options.tab.themes"));
+        
+        ThemeManager themeManager = ThemeManager.getInstance();
+        ListView<String> themeList = new ListView<>(FXCollections.observableArrayList(themeManager.getAvailableThemes()));
+        themeList.getSelectionModel().select(config.getCurrentTheme());
+        VBox.setVgrow(themeList, Priority.ALWAYS);
+        
+        Button createThemeBtn = new Button(messages.getString("options.theme.create"));
+        Button deleteThemeBtn = new Button(messages.getString("options.theme.delete"));
+        
+        // Update delete button state based on selection
+        deleteThemeBtn.setDisable(true);
+        themeList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            deleteThemeBtn.setDisable(newVal == null || themeManager.isBuiltinTheme(newVal));
+        });
+        
+        createThemeBtn.setOnAction(e -> {
+            TextInputDialog nameDialog = new TextInputDialog();
+            nameDialog.setTitle(messages.getString("options.theme.create.title"));
+            nameDialog.setHeaderText(messages.getString("options.theme.create.header"));
+            nameDialog.setContentText(messages.getString("options.theme.create.prompt"));
+            nameDialog.initOwner(dialog);
+            
+            nameDialog.showAndWait().ifPresent(name -> {
+                if (name != null && !name.isBlank()) {
+                    String themeName = name.trim().toLowerCase().replaceAll("[^a-z0-9-]", "-");
+                    String baseTheme = themeList.getSelectionModel().getSelectedItem();
+                    if (baseTheme == null) baseTheme = "light";
+                    
+                    try {
+                        File cssFile = themeManager.createCustomTheme(themeName, baseTheme);
+                        themeList.setItems(FXCollections.observableArrayList(themeManager.getAvailableThemes()));
+                        themeList.getSelectionModel().select(themeName);
+                        
+                        // Open the CSS file for editing
+                        if (Desktop.isDesktopSupported()) {
+                            Desktop.getDesktop().edit(cssFile);
+                        }
+                    } catch (IOException ex) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle(messages.getString("options.theme.error.title"));
+                        alert.setHeaderText(messages.getString("options.theme.error.create"));
+                        alert.setContentText(ex.getMessage());
+                        alert.initOwner(dialog);
+                        alert.showAndWait();
+                    }
+                }
+            });
+        });
+        
+        deleteThemeBtn.setOnAction(e -> {
+            String selected = themeList.getSelectionModel().getSelectedItem();
+            if (selected != null && !themeManager.isBuiltinTheme(selected)) {
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.setTitle(messages.getString("options.theme.delete.title"));
+                confirm.setHeaderText(messages.getString("options.theme.delete.header"));
+                confirm.setContentText(messages.getString("options.theme.delete.content"));
+                confirm.initOwner(dialog);
+                
+                confirm.showAndWait().ifPresent(result -> {
+                    if (result == ButtonType.OK) {
+                        themeManager.deleteCustomTheme(selected);
+                        themeList.setItems(FXCollections.observableArrayList(themeManager.getAvailableThemes()));
+                        themeList.getSelectionModel().select("light");
+                    }
+                });
+            }
+        });
+        
+        HBox themeButtons = new HBox(10, createThemeBtn, deleteThemeBtn);
+        themeButtons.setPadding(new Insets(10, 0, 0, 0));
+        
+        VBox themesBox = new VBox(10, themeList, themeButtons);
+        themesBox.setPadding(new Insets(20));
+        
+        themesTab.setContent(themesBox);
+        optionsTabs.getTabs().add(themesTab);
+
         // --- Boutons OK / Annuler ---
         Button okBtn = new Button(messages.getString("options.ok"));
         Button cancelBtn = new Button(messages.getString("options.cancel"));
@@ -100,6 +190,10 @@ public class OptionsDialog {
             config.setOpenDocOnStart(openDocCheck.isSelected());
             config.setReopenLastProject(reopenCheck.isSelected());
             config.setShowWelcomePage(welcomeCheck.isSelected());
+            String selectedTheme = themeList.getSelectionModel().getSelectedItem();
+            if (selectedTheme != null) {
+                config.setCurrentTheme(selectedTheme);
+            }
             config.save();
             saved = true;
             dialog.close();
@@ -115,7 +209,7 @@ public class OptionsDialog {
         dialogRoot.setCenter(optionsTabs);
         dialogRoot.setBottom(buttonBar);
 
-        Scene dialogScene = new Scene(dialogRoot, 450, 250);
+        Scene dialogScene = new Scene(dialogRoot, 500, 350);
         dialog.setScene(dialogScene);
     }
 

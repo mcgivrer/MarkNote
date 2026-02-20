@@ -36,7 +36,7 @@ public abstract class BasePanel extends BorderPane {
     protected BasePanel(String titleKey, String closeTooltipKey) {
         // Titre
         titleLabel = new Label(messages.getString(titleKey));
-        titleLabel.setStyle("-fx-font-weight: bold;");
+        titleLabel.getStyleClass().add("panel-title");
 
         // Espaceur
         Region spacer = new Region();
@@ -44,8 +44,7 @@ public abstract class BasePanel extends BorderPane {
 
         // Bouton de fermeture
         closeButton = new Button("\u00D7");
-        closeButton.setStyle(
-                "-fx-font-size: 10; -fx-padding: 0 4 0 4; -fx-background-color: transparent; -fx-cursor: hand;");
+        closeButton.getStyleClass().add("panel-close-button");
         closeButton.setTooltip(new Tooltip(messages.getString(closeTooltipKey)));
         closeButton.setOnAction(e -> {
             if (onCloseAction != null) {
@@ -57,7 +56,7 @@ public abstract class BasePanel extends BorderPane {
         header = new HBox(titleLabel, spacer, closeButton);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(4));
-        header.setStyle("-fx-background-color: #e0e0e0;");
+        header.getStyleClass().add("panel-header");
 
         setTop(header);
     }

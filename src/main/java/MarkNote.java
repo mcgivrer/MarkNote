@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 
 import config.AppConfig;
+import config.ThemeManager;
 import ui.DocumentTab;
 import ui.ImagePreviewTab;
 import ui.OptionsDialog;
@@ -105,6 +106,7 @@ public class MarkNote extends Application {
         }
 
         Scene scene = new Scene(root, 1200, 700);
+        applyTheme(scene);
         if (projectExplorerPanel.getProjectDirectory() == null) {
             stage.setTitle(messages.getString("app.title.editor"));
         }
@@ -466,9 +468,28 @@ public class MarkNote extends Application {
      * Affiche le dialogue d'options.
      */
     private void showOptionsDialog() {
+        String previousTheme = config.getCurrentTheme();
         OptionsDialog dialog = new OptionsDialog(primaryStage, config);
         if (dialog.showAndWait()) {
             refreshRecentMenu();
+            // Apply theme if it changed
+            if (!previousTheme.equals(config.getCurrentTheme())) {
+                applyTheme(primaryStage.getScene());
+            }
+        }
+    }
+
+    /**
+     * Applique le thème courant à la scène.
+     */
+    private void applyTheme(Scene scene) {
+        ThemeManager themeManager = ThemeManager.getInstance();
+        String currentTheme = config.getCurrentTheme();
+        String themeCssUrl = themeManager.getThemeCssUrl(currentTheme);
+        
+        scene.getStylesheets().clear();
+        if (themeCssUrl != null) {
+            scene.getStylesheets().add(themeCssUrl);
         }
     }
 

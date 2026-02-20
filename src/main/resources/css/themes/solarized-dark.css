@@ -1,0 +1,234 @@
+/*
+ * MarkNote Theme: Solarized Dark
+ * Based on Ethan Schoonover's Solarized color palette
+ */
+
+/* === Application Root === */
+.root {
+    -fx-base: #073642;
+    -fx-background: #002b36;
+    -fx-control-inner-background: #073642;
+    -fx-accent: #268bd2;
+    -fx-focus-color: #268bd2;
+    -fx-faint-focus-color: rgba(38, 139, 210, 0.3);
+    -fx-dark: true;
+}
+
+/* === Menu Bar === */
+.menu-bar {
+    -fx-background-color: #073642;
+    -fx-border-color: #002b36;
+    -fx-border-width: 0 0 1 0;
+}
+
+.menu-bar .menu .label {
+    -fx-text-fill: #839496;
+}
+
+.menu-bar .menu:hover {
+    -fx-background-color: #002b36;
+}
+
+.context-menu {
+    -fx-background-color: #073642;
+}
+
+.menu-item {
+    -fx-background-color: #073642;
+}
+
+.menu-item .label {
+    -fx-text-fill: #839496;
+}
+
+.menu-item:hover {
+    -fx-background-color: #268bd2;
+}
+
+.menu-item:hover .label {
+    -fx-text-fill: #fdf6e3;
+}
+
+/* === Tab Pane === */
+.tab-pane .tab-header-area {
+    -fx-background-color: #073642;
+}
+
+.tab-pane .tab-header-background {
+    -fx-background-color: #073642;
+}
+
+.tab {
+    -fx-background-color: #002b36;
+    -fx-background-radius: 4 4 0 0;
+}
+
+.tab:selected {
+    -fx-background-color: #073642;
+}
+
+.tab .tab-label {
+    -fx-text-fill: #839496;
+}
+
+/* === Split Pane === */
+.split-pane {
+    -fx-background-color: #002b36;
+}
+
+.split-pane-divider {
+    -fx-background-color: #073642;
+}
+
+/* === Tree View === */
+.tree-view {
+    -fx-background-color: #002b36;
+    -fx-control-inner-background: #002b36;
+}
+
+.tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #839496;
+}
+
+.tree-cell:selected {
+    -fx-background-color: #268bd2;
+    -fx-text-fill: #fdf6e3;
+}
+
+.tree-cell:hover:filled {
+    -fx-background-color: #073642;
+}
+
+/* === Text Area / Editor === */
+.text-area, .styled-text-area, .code-area {
+    -fx-background-color: #002b36;
+    -fx-text-fill: #839496;
+    -fx-control-inner-background: #002b36;
+}
+
+.text-area .content {
+    -fx-background-color: #002b36;
+}
+
+.virtual-flow .clipped-container .sheet .cell {
+    -fx-background-color: #002b36;
+}
+
+/* === Buttons === */
+.button {
+    -fx-background-color: #073642;
+    -fx-text-fill: #839496;
+}
+
+.button:hover {
+    -fx-background-color: #586e75;
+}
+
+.button:default {
+    -fx-background-color: #268bd2;
+    -fx-text-fill: #fdf6e3;
+}
+
+/* === Scroll Bars === */
+.scroll-bar {
+    -fx-background-color: #073642;
+}
+
+.scroll-bar .track {
+    -fx-background-color: #073642;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #586e75;
+}
+
+/* === Labels === */
+.label {
+    -fx-text-fill: #839496;
+}
+
+/* === Hyperlinks === */
+.hyperlink {
+    -fx-text-fill: #268bd2;
+}
+
+/* === Check Box === */
+.check-box .box {
+    -fx-background-color: #073642;
+    -fx-border-color: #586e75;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #268bd2;
+    -fx-border-color: #268bd2;
+}
+
+.check-box {
+    -fx-text-fill: #839496;
+}
+
+/* === List View === */
+.list-view {
+    -fx-background-color: #002b36;
+    -fx-control-inner-background: #002b36;
+}
+
+.list-cell {
+    -fx-background-color: #002b36;
+    -fx-text-fill: #839496;
+}
+
+.list-cell:selected {
+    -fx-background-color: #268bd2;
+    -fx-text-fill: #fdf6e3;
+}
+
+/* === Text Fields === */
+.text-field {
+    -fx-background-color: #073642;
+    -fx-text-fill: #839496;
+    -fx-border-color: #586e75;
+}
+
+/* === Dialogs === */
+.dialog-pane {
+    -fx-background-color: #073642;
+}
+
+/* === Tooltips === */
+.tooltip {
+    -fx-background-color: #073642;
+    -fx-text-fill: #839496;
+}
+
+/* === Panel Header === */
+.panel-header {
+    -fx-background-color: #073642;
+}
+
+.panel-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: #93a1a1;
+}
+
+.panel-close-button {
+    -fx-font-size: 10;
+    -fx-padding: 0 4 0 4;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-text-fill: #93a1a1;
+}
+
+.panel-close-button:hover {
+    -fx-background-color: #094959;
+}
+
+/* === Welcome Page === */
+.welcome-subtitle {
+    -fx-text-fill: #586e75;
+}
+
+.welcome-no-projects {
+    -fx-text-fill: #586e75;
+}
