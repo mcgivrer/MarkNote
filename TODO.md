@@ -9,6 +9,7 @@
 - [x] Ajouter un onglet Welcome présentant la liste des derniers projets ouverts. (Options Misc. -> Display the "Welcome" page)  the number of proposed project il the list is defined by the number of item in menu "last project(s)..." parameter in Options.
 - [x] Ajouter une syntax Highlighter,
 - [x] Ajouter la notion de theme pour toute l'application et fournir un set de themes par defaut inspires de gnome-edit avec la gestion des themes dans les options sous un nouvel onglet "Themes". Une liste de theme est affiches, et il est possible d'en creer de nouveau : le theme de base est copie et ouvert en tant que document CSS (avec coloration syntaxique). les themes customs seront sauves dans un repertoir ~/.marknote/themes. Biensur, tous les themes apparaiteront dans la liste.
+- [x] Ajouter un SpashScreen avec Nom de l'application, version, auteur, contact et copyright ( command dans "about")
 - [ ] Ajouter le support de plantuml et de mermaid,
 - [ ] Ajouter un editeur de "Front Matter" pour les docs Markdown.
 - [ ] Ajouter un panel "Assistant" permettant la connexion à un LLM via un MCP agent (ajouter un onlget "MCP agent" dans le dialogue "Options" pour configurer url, parameètres et clé d'API).

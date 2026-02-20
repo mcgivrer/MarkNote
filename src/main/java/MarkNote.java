@@ -11,6 +11,7 @@ import ui.ImagePreviewTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
+import ui.SplashScreen;
 import ui.ThemeTab;
 import ui.WelcomeTab;
 import utils.DocumentService;
@@ -106,26 +107,30 @@ public class MarkNote extends Application {
         MenuBar menuBar = createMenuBar();
         root.setTop(menuBar);
 
-        // Rouvrir le dernier projet si l'option est activée
-        handleReopenLastProject();
-
-        // Afficher l'onglet Welcome si l'option est activée
-        if (config.isShowWelcomePage()) {
-            showWelcomeTab();
-        }
-
-        // Premier onglet (optionnel)
-        if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
-            addNewDocument();
-        }
-
         Scene scene = new Scene(root, 1200, 700);
         applyTheme(scene);
         if (projectExplorerPanel.getProjectDirectory() == null) {
             stage.setTitle(messages.getString("app.title.editor"));
         }
         stage.setScene(scene);
-        stage.show();
+
+        // Afficher le splash screen ; la fenêtre principale et la logique de
+        // démarrage s'exécutent une fois le splash fermé.
+        SplashScreen splash = new SplashScreen(messages);
+        splash.setOnClosed(() -> {
+            stage.show();
+            // Rouvrir le dernier projet si l'option est activée
+            handleReopenLastProject();
+            // Afficher l'onglet Welcome si l'option est activée
+            if (config.isShowWelcomePage()) {
+                showWelcomeTab();
+            }
+            // Premier onglet (optionnel)
+            if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
+                addNewDocument();
+            }
+        });
+        splash.show();
     }
 
     /**
@@ -522,22 +527,10 @@ public class MarkNote extends Application {
     }
 
     /**
-     * Affiche le dialogue À propos.
+     * Affiche le dialogue À propos (réutilise la mise en page du SplashScreen).
      */
     private void showAboutDialog() {
-        Alert about = new Alert(Alert.AlertType.INFORMATION);
-        about.initOwner(primaryStage);
-        about.setTitle(messages.getString("about.title"));
-        about.setHeaderText("MarkNote");
-        
-        String version = MessageFormat.format(messages.getString("about.version"), "0.0.1");
-        String content = version + "\n\n" +
-                messages.getString("about.copyright") + "\n\n" +
-                messages.getString("about.author") + "\n" +
-                messages.getString("about.contact") + "\n\n" +
-                messages.getString("about.repository");
-        
-        about.setContentText(content);
+        SplashScreen about = new SplashScreen(messages, primaryStage, true);
         about.showAndWait();
     }
 
