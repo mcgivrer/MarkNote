@@ -3,13 +3,16 @@ package ui;
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.data.MutableDataSet;
 
 import config.ThemeManager;
 import config.ThemeManager.SyntaxTheme;
@@ -53,9 +56,11 @@ public class PreviewPanel extends BasePanel {
     public PreviewPanel() {
         super("preview.title", "preview.close.tooltip");
 
-        // Initialiser Flexmark
-        markdownParser = Parser.builder().build();
-        htmlRenderer = HtmlRenderer.builder().build();
+        // Initialiser Flexmark avec l'extension Tables
+        MutableDataSet options = new MutableDataSet();
+        options.set(Parser.EXTENSIONS, Arrays.asList(TablesExtension.create()));
+        markdownParser = Parser.builder(options).build();
+        htmlRenderer = HtmlRenderer.builder(options).build();
 
         // Créer le WebView
         webView = new WebView();
@@ -194,6 +199,11 @@ public class PreviewPanel extends BasePanel {
                     .plantuml-diagram img { max-width: 100%%%%; height: auto; }
                     /* Mermaid diagrams */
                     .mermaid { text-align: center; margin: 1em 0; }
+                    /* Tables */
+                    table { border-collapse: collapse; width: auto; margin: 1em 0; }
+                    th, td { border: 1px solid #888; padding: 6px 12px; text-align: left; }
+                    th { background: rgba(128,128,128,0.15); font-weight: bold; }
+                    tr:nth-child(even) { background: rgba(128,128,128,0.06); }
                   </style>
                 </head>
                 <body>%s
