@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Gestionnaire de thèmes pour l'application.
@@ -29,6 +30,32 @@ public class ThemeManager {
 
     private static ThemeManager instance;
     private String currentTheme = "light";
+
+    /**
+     * Correspondance entre les thèmes applicatifs et les thèmes highlight.js.
+     * Les noms correspondent aux fichiers CSS disponibles sur le CDN highlight.js.
+     */
+    private static final Map<String, SyntaxTheme> SYNTAX_THEME_MAP = Map.of(
+        "light",           new SyntaxTheme("github",               "#f6f8fa", "#24292e"),
+        "dark",            new SyntaxTheme("github-dark",           "#282c34", "#e6e6e6"),
+        "solarized-light", new SyntaxTheme("stackoverflow-light",   "#fdf6e3", "#657b83"),
+        "solarized-dark",  new SyntaxTheme("stackoverflow-dark",    "#002b36", "#93a1a1"),
+        "high-contrast",   new SyntaxTheme("a11y-dark",             "#1a1a1a", "#f8f8f2")
+    );
+
+    /** Thème de coloration syntaxique par défaut pour les thèmes personnalisés. */
+    private static final SyntaxTheme DEFAULT_SYNTAX_THEME =
+            new SyntaxTheme("github", "#f6f8fa", "#24292e");
+
+    /**
+     * Informations sur le thème de coloration syntaxique à utiliser dans la preview.
+     *
+     * @param highlightStyle nom du style highlight.js (ex. "github-dark")
+     * @param preBackground  couleur CSS de fond des blocs {@code <pre>}
+     * @param codeForeground couleur CSS du texte par défaut dans les blocs {@code <code>}
+     */
+    public record SyntaxTheme(String highlightStyle, String preBackground, String codeForeground) {}
+
 
     private ThemeManager() {
         ensureThemesDirExists();
@@ -191,5 +218,56 @@ public class ThemeManager {
 
     public void setCurrentTheme(String theme) {
         this.currentTheme = theme;
+    }
+
+    /**
+     * Retourne le thème de coloration syntaxique correspondant au thème applicatif donné.
+     * Pour les thèmes personnalisés, tente de détecter le thème de base (via le commentaire
+     * "Based on:" dans le CSS) ; sinon retourne le thème par défaut.
+     *
+     * @param appTheme nom du thème applicatif
+     * @return le {@link SyntaxTheme} à utiliser
+     */
+    public SyntaxTheme getSyntaxTheme(String appTheme) {
+        // Thème intégré → correspondance directe
+        SyntaxTheme st = SYNTAX_THEME_MAP.get(appTheme);
+        if (st != null) {
+            return st;
+        }
+
+        // Thème personnalisé → rechercher le thème de base dans l'en-tête du fichier
+        File customFile = new File(THEMES_DIR, appTheme + ".css");
+        if (customFile.exists()) {
+            try {
+                String head = Files.readString(customFile.toPath());
+                // Chercher "Based on: xxx"
+                int idx = head.indexOf("Based on:");
+                if (idx >= 0) {
+                    String after = head.substring(idx + "Based on:".length()).trim();
+                    // Prendre jusqu'au prochain saut de ligne ou fin de commentaire
+                    int end = after.indexOf('\n');
+                    int end2 = after.indexOf('*');
+                    if (end2 >= 0 && (end < 0 || end2 < end)) {
+                        end = end2;
+                    }
+                    String basedOn = (end >= 0 ? after.substring(0, end) : after).trim();
+                    SyntaxTheme baseSt = SYNTAX_THEME_MAP.get(basedOn);
+                    if (baseSt != null) {
+                        return baseSt;
+                    }
+                }
+
+                // Fallback heuristique : si le CSS contient des couleurs sombres de fond,
+                // utiliser un thème sombre ; sinon clair.
+                if (head.contains("-fx-background: #2") || head.contains("-fx-background: #1")
+                        || head.contains("-fx-background: #0") || head.contains("-fx-background: #3")) {
+                    return SYNTAX_THEME_MAP.get("dark");
+                }
+            } catch (IOException ignored) {
+                // tomber dans le défaut
+            }
+        }
+
+        return DEFAULT_SYNTAX_THEME;
     }
 }

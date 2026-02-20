@@ -5,9 +5,15 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
+
+import config.ThemeManager;
+import config.ThemeManager.SyntaxTheme;
+import utils.PlantUmlEncoder;
 
 import javafx.concurrent.Worker;
 import javafx.scene.control.Button;
@@ -35,6 +41,14 @@ public class PreviewPanel extends BasePanel {
     
     private final Button prevButton;
     private final Button nextButton;
+
+    /** Thème highlight.js courant, synchronisé avec le thème applicatif. */
+    private SyntaxTheme syntaxTheme = new SyntaxTheme("github", "#f6f8fa", "#24292e");
+
+    /** Pattern pour détecter les blocs PlantUML dans le HTML généré par Flexmark. */
+    private static final Pattern PLANTUML_BLOCK = Pattern.compile(
+            "<pre><code\\s+class=\"language-plantuml\">(.*?)</code></pre>",
+            Pattern.DOTALL);
 
     public PreviewPanel() {
         super("preview.title", "preview.close.tooltip");
@@ -138,7 +152,11 @@ public class PreviewPanel extends BasePanel {
         currentMarkdown = markdown;
         
         String html = htmlRenderer.render(markdownParser.parse(markdown));
-        
+
+        // ── PlantUML : remplacer les blocs <pre><code class="language-plantuml">
+        //    par des <img> pointant vers le serveur PlantUML en ligne.
+        html = processPlantUmlBlocks(html);
+
         // Construire le tag base si un répertoire de base est défini
         String baseTag = "";
         if (baseDirectory != null && baseDirectory.exists()) {
@@ -146,22 +164,88 @@ public class PreviewPanel extends BasePanel {
             baseTag = "<base href=\"" + baseUrl + "\">";
         }
         
+        String hljsStyle = syntaxTheme.highlightStyle();
+        String preBg = syntaxTheme.preBackground();
+        String codeFg = syntaxTheme.codeForeground();
+
+        // Choisir le thème Mermaid en fonction du thème applicatif
+        String mermaidTheme = syntaxTheme.highlightStyle().contains("dark")
+                || syntaxTheme.highlightStyle().contains("a11y-dark")
+                ? "dark" : "default";
+
         String htmlPage = """
                 <html>
                 <head>
                   <meta charset="UTF-8">
                   %s
+                  <link rel="stylesheet"
+                        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/%s.min.css">
+                  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+                  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
                   <style>
                     body { font-family: sans-serif; margin: 1em; }
-                    pre { background: #f0f0f0; padding: 0.5em; }
+                    pre { background: %s; padding: 0.8em; border-radius: 6px; overflow-x: auto; }
+                    pre code { font-family: 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
+                               font-size: 0.9em; color: %s; }
                     code { font-family: monospace; }
-                    img { max-width: 100%%; height: auto; }
+                    img { max-width: 100%%%%; height: auto; }
+                    /* PlantUML diagrams */
+                    .plantuml-diagram { text-align: center; margin: 1em 0; }
+                    .plantuml-diagram img { max-width: 100%%%%; height: auto; }
+                    /* Mermaid diagrams */
+                    .mermaid { text-align: center; margin: 1em 0; }
                   </style>
                 </head>
-                <body>%s</body>
+                <body>%s
+                <script>
+                  // highlight.js
+                  hljs.highlightAll();
+                  // Mermaid : transformer les blocs <pre><code class="language-mermaid">
+                  // en <div class="mermaid"> puis initialiser.
+                  document.querySelectorAll('pre code.language-mermaid').forEach(function(block) {
+                    var pre = block.parentElement;
+                    var div = document.createElement('div');
+                    div.className = 'mermaid';
+                    div.textContent = block.textContent;
+                    pre.parentNode.replaceChild(div, pre);
+                  });
+                  mermaid.initialize({ startOnLoad: true, theme: '%s' });
+                </script>
+                </body>
                 </html>
-                """.formatted(baseTag, html);
+                """.formatted(baseTag, hljsStyle, preBg, codeFg, html, mermaidTheme);
         webView.getEngine().loadContent(htmlPage);
+    }
+
+    /**
+     * Remplace les blocs {@code <pre><code class="language-plantuml">...}
+     * par des balises {@code <img>} pointant vers le serveur PlantUML en ligne.
+     * Le texte est décodé des entités HTML avant l'encodage.
+     */
+    private String processPlantUmlBlocks(String html) {
+        Matcher m = PLANTUML_BLOCK.matcher(html);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String raw = m.group(1);
+            // Décoder les entités HTML courantes produites par Flexmark
+            String puml = raw
+                    .replace("&amp;", "&")
+                    .replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&quot;", "\"")
+                    .replace("&#39;", "'")
+                    .trim();
+            // Si le texte ne commence pas par @startuml, l'ajouter
+            if (!puml.startsWith("@start")) {
+                puml = "@startuml\n" + puml + "\n@enduml";
+            }
+            String url = PlantUmlEncoder.toSvgUrl(puml);
+            m.appendReplacement(sb,
+                    Matcher.quoteReplacement(
+                            "<div class=\"plantuml-diagram\"><img src=\"" + url + "\" alt=\"PlantUML diagram\"></div>"));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     /**
@@ -205,6 +289,17 @@ public class PreviewPanel extends BasePanel {
      */
     public void setOnMarkdownLinkClick(Consumer<File> callback) {
         this.onMarkdownLinkClick = callback;
+    }
+
+    /**
+     * Met à jour le thème de coloration syntaxique utilisé dans la preview.
+     * La preview est automatiquement rafraîchie.
+     *
+     * @param appTheme nom du thème applicatif courant (ex. "dark", "solarized-light")
+     */
+    public void applySyntaxTheme(String appTheme) {
+        this.syntaxTheme = ThemeManager.getInstance().getSyntaxTheme(appTheme);
+        refresh();
     }
     
     /**
