@@ -9,6 +9,9 @@ import java.util.function.Consumer;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 
+import config.ThemeManager;
+import config.ThemeManager.SyntaxTheme;
+
 import javafx.concurrent.Worker;
 import javafx.scene.control.Button;
 import javafx.scene.control.Tooltip;
@@ -35,6 +38,9 @@ public class PreviewPanel extends BasePanel {
     
     private final Button prevButton;
     private final Button nextButton;
+
+    /** Thème highlight.js courant, synchronisé avec le thème applicatif. */
+    private SyntaxTheme syntaxTheme = new SyntaxTheme("github", "#f6f8fa", "#24292e");
 
     public PreviewPanel() {
         super("preview.title", "preview.close.tooltip");
@@ -146,21 +152,32 @@ public class PreviewPanel extends BasePanel {
             baseTag = "<base href=\"" + baseUrl + "\">";
         }
         
+        String hljsStyle = syntaxTheme.highlightStyle();
+        String preBg = syntaxTheme.preBackground();
+        String codeFg = syntaxTheme.codeForeground();
+
         String htmlPage = """
                 <html>
                 <head>
                   <meta charset="UTF-8">
                   %s
+                  <link rel="stylesheet"
+                        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/%s.min.css">
+                  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
                   <style>
                     body { font-family: sans-serif; margin: 1em; }
-                    pre { background: #f0f0f0; padding: 0.5em; }
+                    pre { background: %s; padding: 0.8em; border-radius: 6px; overflow-x: auto; }
+                    pre code { font-family: 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
+                               font-size: 0.9em; color: %s; }
                     code { font-family: monospace; }
-                    img { max-width: 100%%; height: auto; }
+                    img { max-width: 100%%%%; height: auto; }
                   </style>
                 </head>
-                <body>%s</body>
+                <body>%s
+                <script>hljs.highlightAll();</script>
+                </body>
                 </html>
-                """.formatted(baseTag, html);
+                """.formatted(baseTag, hljsStyle, preBg, codeFg, html);
         webView.getEngine().loadContent(htmlPage);
     }
 
@@ -205,6 +222,17 @@ public class PreviewPanel extends BasePanel {
      */
     public void setOnMarkdownLinkClick(Consumer<File> callback) {
         this.onMarkdownLinkClick = callback;
+    }
+
+    /**
+     * Met à jour le thème de coloration syntaxique utilisé dans la preview.
+     * La preview est automatiquement rafraîchie.
+     *
+     * @param appTheme nom du thème applicatif courant (ex. "dark", "solarized-light")
+     */
+    public void applySyntaxTheme(String appTheme) {
+        this.syntaxTheme = ThemeManager.getInstance().getSyntaxTheme(appTheme);
+        refresh();
     }
     
     /**

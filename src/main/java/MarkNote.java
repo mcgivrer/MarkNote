@@ -579,6 +579,9 @@ public class MarkNote extends Application {
         if (themeCssUrl != null) {
             scene.getStylesheets().add(themeCssUrl);
         }
+
+        // Synchroniser le thème de coloration syntaxique dans la preview
+        previewPanel.applySyntaxTheme(currentTheme);
     }
 
     /**
