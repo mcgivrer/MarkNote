@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 280" width="450" height="280">
+  <!-- Background -->
+  <rect width="450" height="280" fill="#f5f5f5"/>
+  
+  <!-- Title -->
+  <text x="225" y="30" font-family="Arial, sans-serif" font-size="18" fill="#333" text-anchor="middle" font-weight="bold">Keyboard Shortcuts</text>
+  
+  <!-- Shortcut cards -->
+  <g transform="translate(20, 50)">
+    <!-- Row 1 -->
+    <g>
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">Ctrl+N</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="11" fill="#666">New doc</text>
+    </g>
+    
+    <g transform="translate(140, 0)">
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">Ctrl+O</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="11" fill="#666">Open file</text>
+    </g>
+    
+    <g transform="translate(280, 0)">
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">Ctrl+S</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="11" fill="#666">Save</text>
+    </g>
+  </g>
+  
+  <g transform="translate(20, 105)">
+    <!-- Row 2 -->
+    <g>
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="65" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="40" y="28" font-family="monospace" font-size="10" fill="#333" text-anchor="middle">Ctrl+Shift+S</text>
+      <text x="83" y="28" font-family="Arial, sans-serif" font-size="10" fill="#666">Save as</text>
+    </g>
+    
+    <g transform="translate(140, 0)">
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">Ctrl+Q</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="11" fill="#666">Quit</text>
+    </g>
+    
+    <g transform="translate(280, 0)">
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">Ctrl+Z</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="11" fill="#666">Undo</text>
+    </g>
+  </g>
+  
+  <g transform="translate(20, 160)">
+    <!-- Row 3 -->
+    <g>
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">Ctrl+Y</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="11" fill="#666">Redo</text>
+    </g>
+    
+    <g transform="translate(140, 0)">
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">Ctrl+W</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="10" fill="#666">Close tab</text>
+    </g>
+    
+    <g transform="translate(280, 0)">
+      <rect width="130" height="45" rx="6" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
+      <rect x="8" y="10" width="50" height="25" rx="4" fill="#e8e8e8" stroke="#ccc" stroke-width="1"/>
+      <text x="33" y="28" font-family="monospace" font-size="11" fill="#333" text-anchor="middle">F5</text>
+      <text x="70" y="28" font-family="Arial, sans-serif" font-size="10" fill="#666">Refresh</text>
+    </g>
+  </g>
+  
+  <!-- Tip -->
+  <rect x="20" y="220" width="410" height="45" rx="8" fill="#e8f4fd" stroke="#4a90d9" stroke-width="1"/>
+  <text x="35" y="242" font-family="Arial, sans-serif" font-size="11" fill="#4a90d9" font-weight="bold">💡 Tip:</text>
+  <text x="80" y="242" font-family="Arial, sans-serif" font-size="11" fill="#333">Hover over menu items to see their keyboard shortcuts</text>
+  <text x="35" y="257" font-family="Arial, sans-serif" font-size="10" fill="#666">On macOS, use Cmd instead of Ctrl</text>
+</svg>

@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f5f5f5"/>
+  
+  <!-- Window frame -->
+  <rect x="20" y="20" width="760" height="460" rx="8" fill="#2d2d2d" stroke="#1a1a1a" stroke-width="2"/>
+  
+  <!-- Title bar -->
+  <rect x="20" y="20" width="760" height="35" rx="8" fill="#3d3d3d"/>
+  <rect x="20" y="45" width="760" height="10" fill="#3d3d3d"/>
+  
+  <!-- Window controls -->
+  <circle cx="45" cy="37" r="7" fill="#ff5f56"/>
+  <circle cx="70" cy="37" r="7" fill="#ffbd2e"/>
+  <circle cx="95" cy="37" r="7" fill="#27ca40"/>
+  
+  <!-- Title -->
+  <text x="400" y="42" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle">MarkNote - Markdown Editor</text>
+  
+  <!-- Menu bar -->
+  <rect x="20" y="55" width="760" height="30" fill="#404040"/>
+  <text x="40" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">File</text>
+  <text x="85" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">View</text>
+  <text x="130" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Help</text>
+  
+  <!-- Project Explorer Panel -->
+  <rect x="20" y="85" width="200" height="395" fill="#2a2a2a"/>
+  <rect x="20" y="85" width="200" height="25" fill="#383838"/>
+  <text x="30" y="102" font-family="Arial, sans-serif" font-size="11" fill="#cccccc">Project Explorer</text>
+  <text x="205" y="102" font-family="Arial, sans-serif" font-size="14" fill="#888888" text-anchor="end">×</text>
+  
+  <!-- Project tree -->
+  <text x="35" y="130" font-family="monospace" font-size="11" fill="#e5c07b">📁 my-project</text>
+  <text x="50" y="150" font-family="monospace" font-size="11" fill="#61afef">📄 README.md</text>
+  <text x="50" y="170" font-family="monospace" font-size="11" fill="#61afef">📄 notes.md</text>
+  <text x="50" y="190" font-family="monospace" font-size="11" fill="#e5c07b">📁 docs</text>
+  <text x="65" y="210" font-family="monospace" font-size="11" fill="#61afef">📄 guide.md</text>
+  
+  <!-- Editor area -->
+  <rect x="220" y="85" width="280" height="395" fill="#1e1e1e"/>
+  
+  <!-- Tab bar -->
+  <rect x="220" y="85" width="280" height="30" fill="#2d2d2d"/>
+  <rect x="220" y="85" width="100" height="30" fill="#1e1e1e"/>
+  <text x="240" y="105" font-family="Arial, sans-serif" font-size="11" fill="#ffffff">README.md</text>
+  <text x="310" y="105" font-family="Arial, sans-serif" font-size="11" fill="#888888">×</text>
+  
+  <!-- Markdown content -->
+  <text x="235" y="140" font-family="monospace" font-size="12" fill="#c678dd"># Welcome</text>
+  <text x="235" y="165" font-family="monospace" font-size="12" fill="#abb2bf"></text>
+  <text x="235" y="190" font-family="monospace" font-size="12" fill="#abb2bf">This is a **Markdown**</text>
+  <text x="235" y="215" font-family="monospace" font-size="12" fill="#abb2bf">document with *italic*</text>
+  <text x="235" y="240" font-family="monospace" font-size="12" fill="#abb2bf">and `code` formatting.</text>
+  <text x="235" y="290" font-family="monospace" font-size="12" fill="#c678dd">## Features</text>
+  <text x="235" y="315" font-family="monospace" font-size="12" fill="#abb2bf">- Live preview</text>
+  <text x="235" y="340" font-family="monospace" font-size="12" fill="#abb2bf">- Syntax highlighting</text>
+  <text x="235" y="365" font-family="monospace" font-size="12" fill="#abb2bf">- Multiple themes</text>
+  
+  <!-- Preview panel -->
+  <rect x="500" y="85" width="280" height="395" fill="#ffffff"/>
+  
+  <!-- Preview header -->
+  <rect x="500" y="85" width="280" height="25" fill="#f0f0f0"/>
+  <text x="510" y="102" font-family="Arial, sans-serif" font-size="11" fill="#333333">Preview</text>
+  <text x="765" y="102" font-family="Arial, sans-serif" font-size="14" fill="#888888" text-anchor="end">×</text>
+  
+  <!-- Preview navigation -->
+  <text x="700" y="102" font-family="Arial, sans-serif" font-size="11" fill="#666666">◀ ▶ ↻</text>
+  
+  <!-- Preview content -->
+  <text x="520" y="145" font-family="Georgia, serif" font-size="22" fill="#333333" font-weight="bold">Welcome</text>
+  <text x="520" y="180" font-family="Georgia, serif" font-size="14" fill="#333333">This is a </text>
+  <text x="590" y="180" font-family="Georgia, serif" font-size="14" fill="#333333" font-weight="bold">Markdown</text>
+  <text x="520" y="200" font-family="Georgia, serif" font-size="14" fill="#333333">document with </text>
+  <text x="630" y="200" font-family="Georgia, serif" font-size="14" fill="#333333" font-style="italic">italic</text>
+  <text x="520" y="220" font-family="Georgia, serif" font-size="14" fill="#333333">and </text>
+  <text x="555" y="220" font-family="monospace" font-size="13" fill="#333333" fill-opacity="0.9">code</text>
+  <text x="595" y="220" font-family="Georgia, serif" font-size="14" fill="#333333"> formatting.</text>
+  
+  <text x="520" y="270" font-family="Georgia, serif" font-size="18" fill="#333333" font-weight="bold">Features</text>
+  <text x="530" y="300" font-family="Georgia, serif" font-size="14" fill="#333333">• Live preview</text>
+  <text x="530" y="325" font-family="Georgia, serif" font-size="14" fill="#333333">• Syntax highlighting</text>
+  <text x="530" y="350" font-family="Georgia, serif" font-size="14" fill="#333333">• Multiple themes</text>
+  
+  <!-- Labels -->
+  <rect x="70" y="430" width="100" height="25" rx="4" fill="#4a90d9" opacity="0.9"/>
+  <text x="120" y="447" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Project Explorer</text>
+  
+  <rect x="310" y="430" width="80" height="25" rx="4" fill="#4a90d9" opacity="0.9"/>
+  <text x="350" y="447" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Editor</text>
+  
+  <rect x="590" y="430" width="80" height="25" rx="4" fill="#4a90d9" opacity="0.9"/>
+  <text x="630" y="447" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Preview</text>
+</svg>
