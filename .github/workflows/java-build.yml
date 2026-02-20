@@ -1,0 +1,30 @@
+name: Java CI with build script
+
+on:
+  push:
+    branches: [ develop, feature/, main ]
+  pull_request:
+    branches: [ develop, feature/, main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 25
+      uses: actions/setup-java@v3
+      with:
+        java-version: '25'
+        distribution: 'zulu'
+    - name: Java build script with Xvfb
+      run: |
+       sudo apt-get install xvfb
+       export DISPLAY=":1"
+       export AUDIODEV=null
+       xvfb-run :1 -screen 0 1024x768x24 > /dev/null 2>&1 &
+       chmod +x ./build
+       ./build
+      env:
+       DISPLAY: :1
