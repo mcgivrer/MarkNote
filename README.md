@@ -2,7 +2,7 @@
 
 [![Java build](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml)
 ![Java](https://img.shields.io/badge/Java-25-orange)
-![JavaFX](https://img.shields.io/badge/JavaFX-25-blue)
+![JavaFX](https://img.shields.io/badge/JavaFX-24-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 A lightweight and modern Markdown editor built with JavaFX.
@@ -42,7 +42,7 @@ The application automatically uses your system's locale.
 ## Requirements
 
 - **Java 25** or higher
-- **JavaFX 25** (included in libs folder)
+- **JavaFX 24** (included in libs folder)
 
 ## Building
 
