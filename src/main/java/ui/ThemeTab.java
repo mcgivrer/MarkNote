@@ -34,7 +34,10 @@ import javafx.stage.Stage;
  */
 public class ThemeTab extends Tab {
 
-    private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    private static ResourceBundle getMessages() {
+        return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    }
+
     private static final int MAX_TAB_NAME_LENGTH = 15;
 
     // Patterns pour la coloration syntaxique CSS
@@ -201,7 +204,7 @@ public class ThemeTab extends Tab {
             }
             return true;
         } else {
-            showError(messages.getString("error.save.title"), file.getAbsolutePath());
+            showError(getMessages().getString("error.save.title"), file.getAbsolutePath());
             return false;
         }
     }
@@ -228,13 +231,13 @@ public class ThemeTab extends Tab {
     private void handleCloseConfirmation() {
         String docName = getText().replaceFirst("^\\*", "");
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(messages.getString("modified.title"));
-        alert.setHeaderText(MessageFormat.format(messages.getString("modified.header"), docName));
-        alert.setContentText(messages.getString("modified.content"));
+        alert.setTitle(getMessages().getString("modified.title"));
+        alert.setHeaderText(MessageFormat.format(getMessages().getString("modified.header"), docName));
+        alert.setContentText(getMessages().getString("modified.content"));
 
-        ButtonType saveBtn = new ButtonType(messages.getString("modified.save"));
-        ButtonType discardBtn = new ButtonType(messages.getString("modified.discard"));
-        ButtonType cancelBtn = new ButtonType(messages.getString("modified.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType saveBtn = new ButtonType(getMessages().getString("modified.save"));
+        ButtonType discardBtn = new ButtonType(getMessages().getString("modified.discard"));
+        ButtonType cancelBtn = new ButtonType(getMessages().getString("modified.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
         alert.getButtonTypes().setAll(saveBtn, discardBtn, cancelBtn);
 
         Optional<ButtonType> result = alert.showAndWait();

@@ -23,6 +23,7 @@ public class AppConfig {
     private boolean reopenLastProject = false;
     private boolean showWelcomePage = true;
     private String currentTheme = "light";
+    private String language = "system";
 
     /**
      * Charge la configuration depuis le fichier.
@@ -59,6 +60,8 @@ public class AppConfig {
                     showWelcomePage = Boolean.parseBoolean(line.substring("showWelcomePage=".length()).trim());
                 } else if (line.startsWith("currentTheme=")) {
                     currentTheme = line.substring("currentTheme=".length()).trim();
+                } else if (line.startsWith("language=")) {
+                    language = line.substring("language=".length()).trim();
                 }
             }
         } catch (IOException ignored) {
@@ -82,6 +85,7 @@ public class AppConfig {
             lines.add("reopenLastProject=" + reopenLastProject);
             lines.add("showWelcomePage=" + showWelcomePage);
             lines.add("currentTheme=" + currentTheme);
+            lines.add("language=" + language);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -189,6 +193,14 @@ public class AppConfig {
 
     public void setCurrentTheme(String currentTheme) {
         this.currentTheme = currentTheme;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 
     /**

@@ -39,7 +39,7 @@ import javafx.stage.Stage;
  */
 public class MarkNote extends Application {
 
-    private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    private static ResourceBundle messages;
 
     private Stage primaryStage;
     private TabPane mainTabPane;
@@ -57,12 +57,24 @@ public class MarkNote extends Application {
     }
 
     @Override
-    public void start(Stage stage) {
-        this.primaryStage = stage;
-
-        // Charger la configuration
+    public void init() {
+        // Charger la configuration avant tout pour définir la locale
         config = new AppConfig();
         config.load();
+
+        // Appliquer la langue configurée
+        String language = config.getLanguage();
+        if (language != null && !language.equals("system")) {
+            Locale.setDefault(Locale.of(language));
+        }
+
+        // Charger les messages avec la locale configurée
+        messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    }
+
+    @Override
+    public void start(Stage stage) {
+        this.primaryStage = stage;
 
         BorderPane root = new BorderPane();
 
@@ -476,6 +488,7 @@ public class MarkNote extends Application {
         String previousTheme = config.getCurrentTheme();
         OptionsDialog dialog = new OptionsDialog(primaryStage, config);
         dialog.setOnOpenThemeFile(this::openThemeFile);
+        dialog.setOnLanguageChanged(this::restartApplication);
         if (dialog.showAndWait()) {
             refreshRecentMenu();
             // Apply theme if it changed
@@ -483,6 +496,29 @@ public class MarkNote extends Application {
                 applyTheme(primaryStage.getScene());
             }
         }
+    }
+
+    /**
+     * Redémarre l'application pour appliquer un changement de langue.
+     */
+    private void restartApplication() {
+        // Clear ResourceBundle cache
+        ResourceBundle.clearCache();
+        
+        // Close current stage
+        primaryStage.close();
+        
+        // Start a new instance
+        Platform.runLater(() -> {
+            try {
+                MarkNote newApp = new MarkNote();
+                Stage newStage = new Stage();
+                newApp.init();
+                newApp.start(newStage);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     /**

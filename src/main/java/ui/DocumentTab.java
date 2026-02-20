@@ -34,7 +34,10 @@ import javafx.stage.Stage;
  */
 public class DocumentTab extends Tab {
 
-    private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    private static ResourceBundle getMessages() {
+        return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    }
+
     private static final int MAX_TAB_NAME_LENGTH = 15;
 
     // Patterns pour la coloration syntaxique Markdown
@@ -163,8 +166,8 @@ public class DocumentTab extends Tab {
      * @param tabNumber Le numéro de l'onglet (pour le titre)
      */
     public DocumentTab(int tabNumber) {
-        this(MessageFormat.format(messages.getString("newdoc.title"), tabNumber),
-             messages.getString("newdoc.content"),
+        this(MessageFormat.format(getMessages().getString("newdoc.title"), tabNumber),
+             getMessages().getString("newdoc.content"),
              null);
     }
 
@@ -235,11 +238,11 @@ public class DocumentTab extends Tab {
 
         if (targetFile == null || forceChoose) {
             FileChooser chooser = new FileChooser();
-            chooser.setTitle(messages.getString("chooser.saveFile"));
+            chooser.setTitle(getMessages().getString("chooser.saveFile"));
             chooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter(messages.getString("chooser.filter.markdown"), "*.md", "*.markdown"),
-                    new FileChooser.ExtensionFilter(messages.getString("chooser.filter.text"), "*.txt"),
-                    new FileChooser.ExtensionFilter(messages.getString("chooser.filter.all"), "*.*"));
+                    new FileChooser.ExtensionFilter(getMessages().getString("chooser.filter.markdown"), "*.md", "*.markdown"),
+                    new FileChooser.ExtensionFilter(getMessages().getString("chooser.filter.text"), "*.txt"),
+                    new FileChooser.ExtensionFilter(getMessages().getString("chooser.filter.all"), "*.*"));
             
             if (targetFile != null) {
                 chooser.setInitialDirectory(targetFile.getParentFile());
@@ -261,7 +264,7 @@ public class DocumentTab extends Tab {
             setTooltip(new Tooltip(targetFile.getName()));
             return true;
         } else {
-            showError(messages.getString("error.save.title"), targetFile.getAbsolutePath());
+            showError(getMessages().getString("error.save.title"), targetFile.getAbsolutePath());
             return false;
         }
     }
@@ -282,7 +285,7 @@ public class DocumentTab extends Tab {
             setTooltip(new Tooltip(file.getName()));
             return true;
         } else {
-            showError(messages.getString("error.read.title"), file.getAbsolutePath());
+            showError(getMessages().getString("error.read.title"), file.getAbsolutePath());
             return false;
         }
     }
@@ -309,13 +312,13 @@ public class DocumentTab extends Tab {
     private void handleCloseConfirmation() {
         String docName = getText().replaceFirst("^\\*", "");
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(messages.getString("modified.title"));
-        alert.setHeaderText(MessageFormat.format(messages.getString("modified.header"), docName));
-        alert.setContentText(messages.getString("modified.content"));
+        alert.setTitle(getMessages().getString("modified.title"));
+        alert.setHeaderText(MessageFormat.format(getMessages().getString("modified.header"), docName));
+        alert.setContentText(getMessages().getString("modified.content"));
 
-        ButtonType saveBtn = new ButtonType(messages.getString("modified.save"));
-        ButtonType discardBtn = new ButtonType(messages.getString("modified.discard"));
-        ButtonType cancelBtn = new ButtonType(messages.getString("modified.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
+        ButtonType saveBtn = new ButtonType(getMessages().getString("modified.save"));
+        ButtonType discardBtn = new ButtonType(getMessages().getString("modified.discard"));
+        ButtonType cancelBtn = new ButtonType(getMessages().getString("modified.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
         alert.getButtonTypes().setAll(saveBtn, discardBtn, cancelBtn);
 
         Optional<ButtonType> result = alert.showAndWait();

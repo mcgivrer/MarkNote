@@ -49,19 +49,19 @@ public class PreviewPanel extends BasePanel {
         // Ajouter les boutons de navigation dans le header
         prevButton = new Button("\u00AB");
         prevButton.getStyleClass().add("panel-nav-button");
-        prevButton.setTooltip(new Tooltip(messages.getString("preview.prev.tooltip")));
+        prevButton.setTooltip(new Tooltip(getMessages().getString("preview.prev.tooltip")));
         prevButton.setDisable(true);
         prevButton.setOnAction(e -> navigateBack());
         
         nextButton = new Button("\u00BB");
         nextButton.getStyleClass().add("panel-nav-button");
-        nextButton.setTooltip(new Tooltip(messages.getString("preview.next.tooltip")));
+        nextButton.setTooltip(new Tooltip(getMessages().getString("preview.next.tooltip")));
         nextButton.setDisable(true);
         nextButton.setOnAction(e -> navigateForward());
         
         Button refreshButton = new Button("\u21BB");
         refreshButton.getStyleClass().add("panel-nav-button");
-        refreshButton.setTooltip(new Tooltip(messages.getString("preview.refresh.tooltip")));
+        refreshButton.setTooltip(new Tooltip(getMessages().getString("preview.refresh.tooltip")));
         refreshButton.setOnAction(e -> refresh());
         
         // Insérer les boutons avant le bouton de fermeture

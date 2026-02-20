@@ -27,7 +27,10 @@ import javafx.util.Duration;
  */
 public class ImagePreviewTab extends Tab {
 
-    private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    private static ResourceBundle getMessages() {
+        return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    }
+
     private static final int MAX_TAB_NAME_LENGTH = 15;
     
     /** Extensions de fichiers image supportées */
@@ -57,7 +60,7 @@ public class ImagePreviewTab extends Tab {
      * @param file Le fichier image à afficher
      */
     public ImagePreviewTab(File file) {
-        super(truncateTabName(messages.getString("image.preview.title") + " " + file.getName()));
+        super(truncateTabName(getMessages().getString("image.preview.title") + " " + file.getName()));
         setTooltip(new Tooltip(file.getAbsolutePath()));
         
         this.file = file;

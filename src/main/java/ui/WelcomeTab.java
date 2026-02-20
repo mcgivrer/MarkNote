@@ -25,7 +25,9 @@ import javafx.scene.text.FontWeight;
  */
 public class WelcomeTab extends Tab {
 
-    private static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    private static ResourceBundle getMessages() {
+        return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    }
 
     private Consumer<File> onProjectSelected;
 
@@ -37,7 +39,7 @@ public class WelcomeTab extends Tab {
      * @param config La configuration de l'application
      */
     public WelcomeTab(List<String> recentProjects, int maxItems, AppConfig config) {
-        super(messages.getString("welcome.tab.title"));
+        super(getMessages().getString("welcome.tab.title"));
         setClosable(true);
 
         BorderPane root = new BorderPane();
@@ -48,11 +50,11 @@ public class WelcomeTab extends Tab {
         content.setAlignment(Pos.TOP_CENTER);
 
         // Titre
-        Label titleLabel = new Label(messages.getString("welcome.title"));
+        Label titleLabel = new Label(getMessages().getString("welcome.title"));
         titleLabel.setFont(Font.font("System", FontWeight.BOLD, 28));
 
         // Sous-titre
-        Label subtitleLabel = new Label(messages.getString("welcome.subtitle"));
+        Label subtitleLabel = new Label(getMessages().getString("welcome.subtitle"));
         subtitleLabel.setFont(Font.font("System", 14));
         subtitleLabel.getStyleClass().add("welcome-subtitle");
 
@@ -60,7 +62,7 @@ public class WelcomeTab extends Tab {
 
         // Section projets récents
         if (!recentProjects.isEmpty()) {
-            Label recentLabel = new Label(messages.getString("welcome.recentProjects"));
+            Label recentLabel = new Label(getMessages().getString("welcome.recentProjects"));
             recentLabel.setFont(Font.font("System", FontWeight.SEMI_BOLD, 16));
             recentLabel.setPadding(new Insets(20, 0, 10, 0));
             content.getChildren().add(recentLabel);
@@ -82,14 +84,14 @@ public class WelcomeTab extends Tab {
             }
 
             if (projectsList.getChildren().isEmpty()) {
-                Label noProjectLabel = new Label(messages.getString("welcome.noRecentProjects"));
+                Label noProjectLabel = new Label(getMessages().getString("welcome.noRecentProjects"));
                 noProjectLabel.getStyleClass().add("welcome-no-projects");
                 projectsList.getChildren().add(noProjectLabel);
             }
 
             content.getChildren().add(projectsList);
         } else {
-            Label noProjectLabel = new Label(messages.getString("welcome.noRecentProjects"));
+            Label noProjectLabel = new Label(getMessages().getString("welcome.noRecentProjects"));
             noProjectLabel.getStyleClass().add("welcome-no-projects");
             noProjectLabel.setPadding(new Insets(20, 0, 0, 0));
             content.getChildren().add(noProjectLabel);
@@ -98,7 +100,7 @@ public class WelcomeTab extends Tab {
         root.setCenter(content);
 
         // Checkbox en bas à droite
-        CheckBox showOnStartupCheck = new CheckBox(messages.getString("welcome.showOnStartup"));
+        CheckBox showOnStartupCheck = new CheckBox(getMessages().getString("welcome.showOnStartup"));
         showOnStartupCheck.setSelected(config.isShowWelcomePage());
         showOnStartupCheck.selectedProperty().addListener((obs, oldVal, newVal) -> {
             config.setShowWelcomePage(newVal);

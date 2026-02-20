@@ -19,7 +19,9 @@ import javafx.scene.layout.Region;
  */
 public abstract class BasePanel extends BorderPane {
 
-    protected static final ResourceBundle messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    protected static ResourceBundle getMessages() {
+        return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    }
 
     private final Label titleLabel;
     private final Button closeButton;
@@ -35,7 +37,7 @@ public abstract class BasePanel extends BorderPane {
      */
     protected BasePanel(String titleKey, String closeTooltipKey) {
         // Titre
-        titleLabel = new Label(messages.getString(titleKey));
+        titleLabel = new Label(getMessages().getString(titleKey));
         titleLabel.getStyleClass().add("panel-title");
 
         // Espaceur
@@ -45,7 +47,7 @@ public abstract class BasePanel extends BorderPane {
         // Bouton de fermeture
         closeButton = new Button("\u00D7");
         closeButton.getStyleClass().add("panel-close-button");
-        closeButton.setTooltip(new Tooltip(messages.getString(closeTooltipKey)));
+        closeButton.setTooltip(new Tooltip(getMessages().getString(closeTooltipKey)));
         closeButton.setOnAction(e -> {
             if (onCloseAction != null) {
                 onCloseAction.run();
