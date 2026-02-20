@@ -204,7 +204,10 @@ public class MarkNote extends Application {
         MenuItem optionsItem = new MenuItem(messages.getString("menu.help.options"));
         optionsItem.setOnAction(e -> showOptionsDialog());
 
-        helpMenu.getItems().add(optionsItem);
+        MenuItem aboutItem = new MenuItem(messages.getString("menu.help.about"));
+        aboutItem.setOnAction(e -> showAboutDialog());
+
+        helpMenu.getItems().addAll(optionsItem, new SeparatorMenuItem(), aboutItem);
 
         menuBar.getMenus().addAll(fileMenu, viewMenu, helpMenu);
 
@@ -480,6 +483,26 @@ public class MarkNote extends Application {
                 applyTheme(primaryStage.getScene());
             }
         }
+    }
+
+    /**
+     * Affiche le dialogue À propos.
+     */
+    private void showAboutDialog() {
+        Alert about = new Alert(Alert.AlertType.INFORMATION);
+        about.initOwner(primaryStage);
+        about.setTitle(messages.getString("about.title"));
+        about.setHeaderText("MarkNote");
+        
+        String version = MessageFormat.format(messages.getString("about.version"), "0.0.1");
+        String content = version + "\n\n" +
+                messages.getString("about.copyright") + "\n\n" +
+                messages.getString("about.author") + "\n" +
+                messages.getString("about.contact") + "\n\n" +
+                messages.getString("about.repository");
+        
+        about.setContentText(content);
+        about.showAndWait();
     }
 
     /**
