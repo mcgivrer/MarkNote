@@ -18,6 +18,7 @@ import org.fxmisc.richtext.model.StyleSpansBuilder;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 
 import utils.DocumentService;
+import utils.FrontMatter;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
@@ -69,6 +70,7 @@ public class DocumentTab extends Tab {
     );
 
     private final StyleClassedTextArea editor;
+    private final FrontMatterPanel frontMatterPanel;
     private File file;
     private String savedContent;
     private Consumer<String> onTextChanged;
@@ -87,9 +89,22 @@ public class DocumentTab extends Tab {
         this.file = file;
         this.savedContent = content;
 
+        // Parser le front matter s'il existe
+        FrontMatter fm = FrontMatter.parse(content);
+        String bodyContent = fm != null ? FrontMatter.stripFrontMatter(content) : content;
+
+        // Panneau Front Matter (repliable)
+        frontMatterPanel = new FrontMatterPanel();
+        if (fm != null) {
+            frontMatterPanel.setFrontMatter(fm);
+            frontMatterPanel.setExpanded(true);
+        } else {
+            frontMatterPanel.setExpanded(false);
+        }
+
         editor = new StyleClassedTextArea();
         editor.setWrapText(true);
-        editor.replaceText(content);
+        editor.replaceText(bodyContent);
         editor.getStyleClass().add("markdown-editor");
         
         // Charger le CSS pour la coloration syntaxique
@@ -105,13 +120,25 @@ public class DocumentTab extends Tab {
               .subscribe(ignore -> applyHighlighting());
         
         VirtualizedScrollPane<StyleClassedTextArea> scrollPane = new VirtualizedScrollPane<>(editor);
-        setContent(scrollPane);
+
+        // Layout : front matter panel au-dessus de l'éditeur
+        javafx.scene.layout.VBox editorBox = new javafx.scene.layout.VBox(frontMatterPanel, scrollPane);
+        javafx.scene.layout.VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
+        setContent(editorBox);
 
         // Listener pour détecter les modifications
         editor.textProperty().addListener((obs, oldText, newText) -> {
             updateTabTitle();
             if (onTextChanged != null) {
-                onTextChanged.accept(newText);
+                onTextChanged.accept(getFullContent());
+            }
+        });
+
+        // Listener pour les modifications dans le front matter
+        frontMatterPanel.setOnChanged(() -> {
+            updateTabTitle();
+            if (onTextChanged != null) {
+                onTextChanged.accept(getFullContent());
             }
         });
 
@@ -177,11 +204,25 @@ public class DocumentTab extends Tab {
      * @return true si le document est modifié
      */
     public boolean isModified() {
-        return savedContent == null || !savedContent.equals(editor.getText());
+        return savedContent == null || !savedContent.equals(getFullContent());
     }
 
     /**
-     * Retourne le contenu actuel du document.
+     * Retourne le contenu complet du document (front matter + corps).
+     *
+     * @return Le contenu complet
+     */
+    public String getFullContent() {
+        FrontMatter fm = frontMatterPanel.getFrontMatter();
+        String body = editor.getText();
+        if (fm != null && !fm.isEmpty()) {
+            return fm.serialize() + body;
+        }
+        return body;
+    }
+
+    /**
+     * Retourne le contenu actuel du document (corps uniquement, sans front matter).
      *
      * @return Le contenu du document
      */
@@ -214,6 +255,15 @@ public class DocumentTab extends Tab {
      */
     public StyleClassedTextArea getEditor() {
         return editor;
+    }
+
+    /**
+     * Retourne le panneau d'édition des métadonnées Front Matter.
+     *
+     * @return Le FrontMatterPanel
+     */
+    public FrontMatterPanel getFrontMatterPanel() {
+        return frontMatterPanel;
     }
 
     /**
@@ -257,9 +307,9 @@ public class DocumentTab extends Tab {
             return false;
         }
 
-        if (DocumentService.writeFile(targetFile, editor.getText())) {
+        if (DocumentService.writeFile(targetFile, getFullContent())) {
             this.file = targetFile;
-            this.savedContent = editor.getText();
+            this.savedContent = getFullContent();
             setText(truncateTabName(targetFile.getName()));
             setTooltip(new Tooltip(targetFile.getName()));
             return true;
@@ -280,7 +330,19 @@ public class DocumentTab extends Tab {
         if (content.isPresent()) {
             this.file = file;
             this.savedContent = content.get();
-            editor.replaceText(content.get());
+
+            // Parser le front matter
+            FrontMatter fm = FrontMatter.parse(content.get());
+            if (fm != null) {
+                frontMatterPanel.setFrontMatter(fm);
+                frontMatterPanel.setExpanded(true);
+                editor.replaceText(FrontMatter.stripFrontMatter(content.get()));
+            } else {
+                frontMatterPanel.clear();
+                frontMatterPanel.setExpanded(false);
+                editor.replaceText(content.get());
+            }
+
             setText(truncateTabName(file.getName()));
             setTooltip(new Tooltip(file.getName()));
             return true;
@@ -354,7 +416,7 @@ public class DocumentTab extends Tab {
      * Marque le contenu actuel comme sauvegardé.
      */
     public void markAsSaved() {
-        this.savedContent = editor.getText();
+        this.savedContent = getFullContent();
         updateTabTitle();
     }
 

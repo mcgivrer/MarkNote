@@ -357,3 +357,33 @@
     -fx-text-fill: #ffff00;
     -fx-font-size: 10px;
 }
+
+/* === Front Matter Panel === */
+.front-matter-panel {
+    -fx-border-color: #ffffff;
+    -fx-border-width: 0 0 2 0;
+}
+
+.front-matter-panel > .title {
+    -fx-background-color: #000000;
+    -fx-text-fill: #ffff00;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.front-matter-panel > .content {
+    -fx-background-color: #000000;
+}
+
+.front-matter-panel .label {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+}
+
+.front-matter-panel .text-field {
+    -fx-background-color: #1a1a1a;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffffff;
+    -fx-border-radius: 3px;
+    -fx-font-size: 12px;
+}

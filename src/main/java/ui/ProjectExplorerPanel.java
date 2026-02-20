@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import utils.DocumentService;
+import utils.FrontMatter;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -416,12 +417,46 @@ public class ProjectExplorerPanel extends BasePanel {
             if (empty || item == null) {
                 setText(null);
                 setGraphic(null);
+                setTooltip(null);
             } else {
-                setText(item.getName().isEmpty() ? item.getPath() : item.getName());
+                String displayName = item.getName().isEmpty() ? item.getPath() : item.getName();
+
+                // Pour les fichiers .md, tenter d'afficher le titre du front matter
+                if (!item.isDirectory() && item.getName().toLowerCase().endsWith(".md")) {
+                    String fmTitle = extractFrontMatterTitle(item);
+                    if (fmTitle != null && !fmTitle.isBlank()) {
+                        displayName = fmTitle;
+                        setTooltip(new javafx.scene.control.Tooltip(item.getName() + " \u2014 " + fmTitle));
+                    }
+                }
+
+                setText(displayName);
                 String iconPath = item.isDirectory() 
                         ? "images/icons/folder-invoices--v1.png" 
                         : "images/icons/file.png";
                 setGraphic(new ImageView(new Image(iconPath)));
+            }
+        }
+
+        /**
+         * Lit uniquement les premières lignes d'un fichier .md pour en extraire
+         * le titre du front matter, sans charger tout le fichier.
+         */
+        private String extractFrontMatterTitle(File file) {
+            try {
+                java.util.List<String> lines = java.nio.file.Files.readAllLines(file.toPath());
+                if (lines.isEmpty() || !lines.get(0).trim().equals("---")) return null;
+
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < lines.size(); i++) {
+                    sb.append(lines.get(i)).append('\n');
+                    // Dès qu'on trouve le second ---, on arrête
+                    if (i > 0 && lines.get(i).trim().equals("---")) break;
+                }
+                FrontMatter fm = FrontMatter.parse(sb.toString());
+                return fm != null ? fm.getTitle() : null;
+            } catch (Exception e) {
+                return null;
             }
         }
     }

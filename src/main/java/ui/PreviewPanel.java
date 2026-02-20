@@ -16,6 +16,7 @@ import com.vladsch.flexmark.util.data.MutableDataSet;
 
 import config.ThemeManager;
 import config.ThemeManager.SyntaxTheme;
+import utils.FrontMatter;
 import utils.PlantUmlEncoder;
 
 import javafx.concurrent.Worker;
@@ -155,8 +156,13 @@ public class PreviewPanel extends BasePanel {
             updateNavigationButtons();
         }
         currentMarkdown = markdown;
+
+        // ── Front Matter : extraire et rendre séparément
+        FrontMatter fm = FrontMatter.parse(markdown);
+        String body = fm != null ? FrontMatter.stripFrontMatter(markdown) : markdown;
+        String frontMatterHtml = fm != null && !fm.isEmpty() ? renderFrontMatterHtml(fm) : "";
         
-        String html = htmlRenderer.render(markdownParser.parse(markdown));
+        String html = htmlRenderer.render(markdownParser.parse(body));
 
         // ── PlantUML : remplacer les blocs <pre><code class="language-plantuml">
         //    par des <img> pointant vers le serveur PlantUML en ligne.
@@ -207,9 +213,20 @@ public class PreviewPanel extends BasePanel {
                     th, td { border: 1px solid #888; padding: 6px 12px; text-align: left; }
                     th { background: rgba(128,128,128,0.15); font-weight: bold; }
                     tr:nth-child(even) { background: rgba(128,128,128,0.06); }
+                    /* Front Matter metadata */
+                    .front-matter { background: rgba(128,128,128,0.08); border: 1px solid rgba(128,128,128,0.25);
+                                    border-radius: 6px; padding: 0.6em 1em; margin-bottom: 1.2em;
+                                    font-size: 0.9em; color: #555; }
+                    .front-matter h1 { font-size: 1.4em; margin: 0 0 0.3em 0; color: #333; }
+                    .front-matter .fm-field { margin: 0.15em 0; }
+                    .front-matter .fm-label { font-weight: bold; }
+                    .front-matter .fm-tag { display: inline-block; background: rgba(0,120,215,0.12);
+                                            border-radius: 3px; padding: 1px 6px; margin: 1px 2px;
+                                            font-size: 0.85em; }
+                    .front-matter .fm-draft { color: #d9534f; font-weight: bold; }
                   </style>
                 </head>
-                <body>%s
+                <body>%s%s
                 <script>
                   // highlight.js
                   hljs.highlightAll();
@@ -247,7 +264,7 @@ public class PreviewPanel extends BasePanel {
                 </script>
                 </body>
                 </html>
-                """.formatted(baseTag, hljsStyle, preBg, codeFg, html, mermaidTheme);
+                """.formatted(baseTag, hljsStyle, preBg, codeFg, frontMatterHtml, html, mermaidTheme);
         webView.getEngine().loadContent(htmlPage);
     }
 
@@ -280,6 +297,49 @@ public class PreviewPanel extends BasePanel {
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+
+    /**
+     * Génère le HTML pour afficher les métadonnées Front Matter sous forme
+     * de bloc stylisé en tête de page.
+     */
+    private String renderFrontMatterHtml(FrontMatter fm) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div class=\"front-matter\">\n");
+        if (!fm.getTitle().isBlank()) {
+            sb.append("  <h1>").append(escapeHtml(fm.getTitle())).append("</h1>\n");
+        }
+        if (fm.isDraft()) {
+            sb.append("  <div class=\"fm-field fm-draft\">\u270E Draft</div>\n");
+        }
+        if (!fm.getAuthors().isEmpty()) {
+            sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">Author: </span>")
+              .append(escapeHtml(fm.getAuthorsAsString())).append("</div>\n");
+        }
+        if (!fm.getCreatedAt().isBlank()) {
+            sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">Date: </span>")
+              .append(escapeHtml(fm.getCreatedAt())).append("</div>\n");
+        }
+        if (!fm.getTags().isEmpty()) {
+            sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">Tags: </span>");
+            for (String tag : fm.getTags()) {
+                sb.append("<span class=\"fm-tag\">").append(escapeHtml(tag)).append("</span>");
+            }
+            sb.append("</div>\n");
+        }
+        if (!fm.getSummary().isBlank()) {
+            sb.append("  <div class=\"fm-field\"><em>").append(escapeHtml(fm.getSummary())).append("</em></div>\n");
+        }
+        sb.append("</div>\n");
+        return sb.toString();
+    }
+
+    /** Échappe les caractères spéciaux HTML. */
+    private static String escapeHtml(String text) {
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;");
     }
 
     /**
