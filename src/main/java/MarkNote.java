@@ -116,21 +116,32 @@ public class MarkNote extends Application {
 
         // Afficher le splash screen ; la fenêtre principale et la logique de
         // démarrage s'exécutent une fois le splash fermé.
-        SplashScreen splash = new SplashScreen(messages);
-        splash.setOnClosed(() -> {
+        if (config.isShowSplashScreen()) {
+            SplashScreen splash = new SplashScreen(messages, config.getCurrentTheme());
+            splash.setOnClosed(() -> {
+                stage.show();
+                // Rouvrir le dernier projet si l'option est activée
+                handleReopenLastProject();
+                // Afficher l'onglet Welcome si l'option est activée
+                if (config.isShowWelcomePage()) {
+                    showWelcomeTab();
+                }
+                // Premier onglet (optionnel)
+                if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
+                    addNewDocument();
+                }
+            });
+            splash.show();
+        } else {
             stage.show();
-            // Rouvrir le dernier projet si l'option est activée
             handleReopenLastProject();
-            // Afficher l'onglet Welcome si l'option est activée
             if (config.isShowWelcomePage()) {
                 showWelcomeTab();
             }
-            // Premier onglet (optionnel)
             if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
                 addNewDocument();
             }
-        });
-        splash.show();
+        }
     }
 
     /**
@@ -530,7 +541,7 @@ public class MarkNote extends Application {
      * Affiche le dialogue À propos (réutilise la mise en page du SplashScreen).
      */
     private void showAboutDialog() {
-        SplashScreen about = new SplashScreen(messages, primaryStage, true);
+        SplashScreen about = new SplashScreen(messages, primaryStage, true, config.getCurrentTheme());
         about.showAndWait();
     }
 

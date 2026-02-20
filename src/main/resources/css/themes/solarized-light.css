@@ -221,3 +221,44 @@
 .welcome-no-projects {
     -fx-text-fill: #93a1a1;
 }
+
+/* === Splash Screen / About === */
+.splash-root {
+    -fx-background-color: #fdf6e3;
+    -fx-border-color: #eee8d5;
+    -fx-border-width: 1px;
+}
+
+.splash-title {
+    -fx-text-fill: #073642;
+}
+
+.splash-subtitle {
+    -fx-text-fill: #586e75;
+    -fx-font-size: 14px;
+}
+
+.splash-version {
+    -fx-text-fill: #657b83;
+    -fx-font-size: 13px;
+}
+
+.splash-info {
+    -fx-text-fill: #657b83;
+    -fx-font-size: 12px;
+}
+
+.splash-info-secondary {
+    -fx-text-fill: #93a1a1;
+    -fx-font-size: 12px;
+}
+
+.splash-footer {
+    -fx-text-fill: #93a1a1;
+    -fx-font-size: 11px;
+}
+
+.splash-hint {
+    -fx-text-fill: #93a1a1;
+    -fx-font-size: 10px;
+}

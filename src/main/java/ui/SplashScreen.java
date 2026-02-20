@@ -3,6 +3,8 @@ package ui;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
+import config.ThemeManager;
+
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -34,7 +36,7 @@ import javafx.util.Duration;
 public class SplashScreen {
 
     /** Version de l'application affichée dans le splash / about. */
-    public static final String APP_VERSION = "1.0.0";
+    public static final String APP_VERSION = "0.0.2";
 
     /** Durée d'affichage automatique du splash en secondes. */
     private static final double SPLASH_DURATION = 3.0;
@@ -50,10 +52,11 @@ public class SplashScreen {
     /**
      * Crée un splash screen en mode démarrage (sans décoration, sans propriétaire).
      *
-     * @param messages bundle de messages i18n
+     * @param messages  bundle de messages i18n
+     * @param themeName nom du thème applicatif courant (ex. "dark", "light")
      */
-    public SplashScreen(ResourceBundle messages) {
-        this(messages, null, false);
+    public SplashScreen(ResourceBundle messages, String themeName) {
+        this(messages, null, false, themeName);
     }
 
     /**
@@ -62,8 +65,9 @@ public class SplashScreen {
      * @param messages   bundle de messages i18n
      * @param owner      fenêtre propriétaire (utilisée en mode about seulement)
      * @param aboutMode  {@code true} pour le mode "À propos" (modal, bouton Fermer)
+     * @param themeName  nom du thème applicatif courant
      */
-    public SplashScreen(ResourceBundle messages, Window owner, boolean aboutMode) {
+    public SplashScreen(ResourceBundle messages, Window owner, boolean aboutMode, String themeName) {
         stage = new Stage();
         if (aboutMode) {
             stage.initModality(Modality.WINDOW_MODAL);
@@ -77,6 +81,15 @@ public class SplashScreen {
 
         VBox root = buildContent(messages, aboutMode);
         Scene scene = new Scene(root);
+
+        // Appliquer le thème applicatif courant à la scène du splash
+        if (themeName != null) {
+            String themeCssUrl = ThemeManager.getInstance().getThemeCssUrl(themeName);
+            if (themeCssUrl != null) {
+                scene.getStylesheets().add(themeCssUrl);
+            }
+        }
+
         stage.setScene(scene);
 
         if (!aboutMode) {
@@ -99,11 +112,11 @@ public class SplashScreen {
         // Titre de l'application
         Label nameLabel = new Label("MarkNote");
         nameLabel.setFont(Font.font("System", FontWeight.BOLD, 42));
-        nameLabel.setStyle("-fx-text-fill: #e8e8e8;");
+        nameLabel.getStyleClass().add("splash-title");
 
         // Sous-titre
         Label subtitleLabel = new Label(messages.getString("welcome.subtitle"));
-        subtitleLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 14px;");
+        subtitleLabel.getStyleClass().add("splash-subtitle");
 
         Separator sep1 = new Separator();
 
@@ -111,34 +124,31 @@ public class SplashScreen {
         String versionText = MessageFormat.format(
                 messages.getString("about.version"), APP_VERSION);
         Label versionLabel = new Label(versionText);
-        versionLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 13px;");
+        versionLabel.getStyleClass().add("splash-version");
 
         // Auteur
         Label authorLabel = new Label(messages.getString("about.author"));
-        authorLabel.setStyle("-fx-text-fill: #cccccc; -fx-font-size: 12px;");
+        authorLabel.getStyleClass().add("splash-info");
 
         // Contact
         Label contactLabel = new Label(messages.getString("about.contact"));
-        contactLabel.setStyle("-fx-text-fill: #aaaaaa; -fx-font-size: 12px;");
+        contactLabel.getStyleClass().add("splash-info-secondary");
 
         Separator sep2 = new Separator();
 
         // Copyright
         Label copyrightLabel = new Label(messages.getString("about.copyright"));
-        copyrightLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 11px;");
+        copyrightLabel.getStyleClass().add("splash-footer");
 
         // Dépôt
         Label repoLabel = new Label(messages.getString("about.repository"));
-        repoLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 11px;");
+        repoLabel.getStyleClass().add("splash-footer");
 
         VBox root = new VBox(10);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(40, 70, 30, 70));
         root.setPrefWidth(480);
-        root.setStyle(
-                "-fx-background-color: #2b2b2b;" +
-                "-fx-border-color: #555555;" +
-                "-fx-border-width: 1px;");
+        root.getStyleClass().add("splash-root");
 
         root.getChildren().addAll(
                 nameLabel,
@@ -159,7 +169,7 @@ public class SplashScreen {
             root.getChildren().add(closeBtn);
         } else {
             Label hintLabel = new Label(messages.getString("splash.click"));
-            hintLabel.setStyle("-fx-text-fill: #555555; -fx-font-size: 10px;");
+            hintLabel.getStyleClass().add("splash-hint");
             VBox.setMargin(hintLabel, new Insets(12, 0, 0, 0));
             root.getChildren().add(hintLabel);
         }

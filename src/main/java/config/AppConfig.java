@@ -22,6 +22,7 @@ public class AppConfig {
     private boolean openDocOnStart = true;
     private boolean reopenLastProject = false;
     private boolean showWelcomePage = true;
+    private boolean showSplashScreen = true;
     private String currentTheme = "light";
     private String language = "system";
 
@@ -58,6 +59,8 @@ public class AppConfig {
                     reopenLastProject = Boolean.parseBoolean(line.substring("reopenLastProject=".length()).trim());
                 } else if (line.startsWith("showWelcomePage=")) {
                     showWelcomePage = Boolean.parseBoolean(line.substring("showWelcomePage=".length()).trim());
+                } else if (line.startsWith("showSplashScreen=")) {
+                    showSplashScreen = Boolean.parseBoolean(line.substring("showSplashScreen=".length()).trim());
                 } else if (line.startsWith("currentTheme=")) {
                     currentTheme = line.substring("currentTheme=".length()).trim();
                 } else if (line.startsWith("language=")) {
@@ -84,6 +87,7 @@ public class AppConfig {
             lines.add("openDocOnStart=" + openDocOnStart);
             lines.add("reopenLastProject=" + reopenLastProject);
             lines.add("showWelcomePage=" + showWelcomePage);
+            lines.add("showSplashScreen=" + showSplashScreen);
             lines.add("currentTheme=" + currentTheme);
             lines.add("language=" + language);
             for (String f : recentFiles) {
@@ -162,6 +166,10 @@ public class AppConfig {
         return showWelcomePage;
     }
 
+    public boolean isShowSplashScreen() {
+        return showSplashScreen;
+    }
+
     public String getCurrentTheme() {
         return currentTheme;
     }
@@ -189,6 +197,10 @@ public class AppConfig {
 
     public void setShowWelcomePage(boolean showWelcomePage) {
         this.showWelcomePage = showWelcomePage;
+    }
+
+    public void setShowSplashScreen(boolean showSplashScreen) {
+        this.showSplashScreen = showSplashScreen;
     }
 
     public void setCurrentTheme(String currentTheme) {

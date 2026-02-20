@@ -113,6 +113,13 @@ public class OptionsDialog {
         miscGrid.add(welcomeLabel, 0, 3);
         miscGrid.add(welcomeCheck, 1, 3);
 
+        // Afficher le splash screen au démarrage
+        Label splashLabel = new Label(getMessages().getString("options.showSplashScreen"));
+        CheckBox splashCheck = new CheckBox();
+        splashCheck.setSelected(config.isShowSplashScreen());
+        miscGrid.add(splashLabel, 0, 4);
+        miscGrid.add(splashCheck, 1, 4);
+
         // Sélecteur de langue
         Label languageLabel = new Label(getMessages().getString("options.language"));
         ComboBox<String> languageCombo = new ComboBox<>();
@@ -162,8 +169,8 @@ public class OptionsDialog {
                 });
             }
         });
-        miscGrid.add(languageLabel, 0, 4);
-        miscGrid.add(languageCombo, 1, 4);
+        miscGrid.add(languageLabel, 0, 5);
+        miscGrid.add(languageCombo, 1, 5);
 
         miscTab.setContent(miscGrid);
         optionsTabs.getTabs().add(miscTab);
@@ -296,6 +303,7 @@ public class OptionsDialog {
             config.setOpenDocOnStart(openDocCheck.isSelected());
             config.setReopenLastProject(reopenCheck.isSelected());
             config.setShowWelcomePage(welcomeCheck.isSelected());
+            config.setShowSplashScreen(splashCheck.isSelected());
             String selectedTheme = themeList.getSelectionModel().getSelectedItem();
             if (selectedTheme != null) {
                 config.setCurrentTheme(selectedTheme);
