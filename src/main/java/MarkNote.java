@@ -486,10 +486,10 @@ public class MarkNote extends Application {
      */
     private void openThemeFile(File file) {
         // Vérifier si le fichier est déjà ouvert
-        for (var tab : tabPane.getTabs()) {
+        for (var tab : mainTabPane.getTabs()) {
             if (tab instanceof ThemeTab themeTab) {
                 if (file.equals(themeTab.getFile())) {
-                    tabPane.getSelectionModel().select(tab);
+                    mainTabPane.getSelectionModel().select(tab);
                     return;
                 }
             }
@@ -507,8 +507,8 @@ public class MarkNote extends Application {
                     applyTheme(primaryStage.getScene());
                 }
             });
-            tabPane.getTabs().add(themeTab);
-            tabPane.getSelectionModel().select(themeTab);
+            mainTabPane.getTabs().add(themeTab);
+            mainTabPane.getSelectionModel().select(themeTab);
         } else {
             showError(messages.getString("error.read.title"), file.getAbsolutePath());
         }

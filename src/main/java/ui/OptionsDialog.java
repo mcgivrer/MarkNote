@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.Tab;
@@ -108,6 +109,25 @@ public class OptionsDialog {
         themeList.getSelectionModel().select(config.getCurrentTheme());
         VBox.setVgrow(themeList, Priority.ALWAYS);
         
+        // Cell factory pour styliser les thèmes (italique pour built-in, gras pour custom)
+        themeList.setCellFactory(listView -> new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if (themeManager.isBuiltinTheme(item)) {
+                        setStyle("-fx-font-style: italic;");
+                    } else {
+                        setStyle("-fx-font-weight: bold;");
+                    }
+                }
+            }
+        });
+        
         Button createThemeBtn = new Button(messages.getString("options.theme.create"));
         Button deleteThemeBtn = new Button(messages.getString("options.theme.delete"));
         
@@ -115,6 +135,20 @@ public class OptionsDialog {
         deleteThemeBtn.setDisable(true);
         themeList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             deleteThemeBtn.setDisable(newVal == null || themeManager.isBuiltinTheme(newVal));
+        });
+        
+        // Double-click to edit custom theme
+        themeList.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                String selected = themeList.getSelectionModel().getSelectedItem();
+                if (selected != null && !themeManager.isBuiltinTheme(selected)) {
+                    File themeFile = themeManager.getCustomThemeFile(selected);
+                    if (themeFile != null && themeFile.exists() && onOpenThemeFile != null) {
+                        dialog.close();
+                        onOpenThemeFile.accept(themeFile);
+                    }
+                }
+            }
         });
         
         createThemeBtn.setOnAction(e -> {
