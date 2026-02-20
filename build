@@ -162,7 +162,7 @@ if( [ "$1" == "package" ] ); then
     # Create minimal JRE with jlink
     echo "Creating minimal JRE with jlink..."
     # Modules required for JavaFX application
-    JRE_MODULES="java.base,java.desktop,java.logging,java.xml,java.scripting,java.sql,java.naming,java.prefs,jdk.unsupported,jdk.jsobject"
+    JRE_MODULES="java.base,java.desktop,java.logging,java.xml,java.net.http,java.scripting,jdk.xml.dom,java.sql,java.naming,java.prefs,jdk.unsupported,jdk.jsobject"
     
     # Add JavaFX modules path for jlink
     jlink --module-path "${TARGET}/jfx-libs" \
