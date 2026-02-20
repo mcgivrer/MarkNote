@@ -187,6 +187,9 @@ public class PreviewPanel extends BasePanel {
                         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/%s.min.css">
                   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
                   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+                  <link rel="stylesheet"
+                        href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+                  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
                   <style>
                     body { font-family: sans-serif; margin: 1em; }
                     pre { background: %s; padding: 0.8em; border-radius: 6px; overflow-x: auto; }
@@ -220,6 +223,27 @@ public class PreviewPanel extends BasePanel {
                     pre.parentNode.replaceChild(div, pre);
                   });
                   mermaid.initialize({ startOnLoad: true, theme: '%s' });
+                  // KaTeX : rendre les expressions mathématiques
+                  // Bloc $$...$$ puis inline $...$
+                  (function() {
+                    function renderMath(el) {
+                      var html = el.innerHTML;
+                      // Bloc : $$...$$
+                      html = html.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g, function(m, tex) {
+                        try {
+                          return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false });
+                        } catch(e) { return m; }
+                      });
+                      // Inline : $...$  (pas précédé de \\, pas suivi de chiffre)
+                      html = html.replace(/(?<!\\\\)\\$([^\\$\\n]+?)\\$/g, function(m, tex) {
+                        try {
+                          return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false });
+                        } catch(e) { return m; }
+                      });
+                      el.innerHTML = html;
+                    }
+                    renderMath(document.body);
+                  })();
                 </script>
                 </body>
                 </html>
