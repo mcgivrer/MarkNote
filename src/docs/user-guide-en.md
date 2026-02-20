@@ -10,10 +10,11 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 4. [Working with Documents](#working-with-documents)
 5. [Project Explorer](#project-explorer)
 6. [Live Preview](#live-preview)
-7. [Themes](#themes)
-8. [Options & Settings](#options--settings)
-9. [Keyboard Shortcuts](#keyboard-shortcuts)
-10. [Troubleshooting](#troubleshooting)
+7. [Splash Screen & About](#splash-screen--about)
+8. [Themes](#themes)
+9. [Options & Settings](#options--settings)
+10. [Keyboard Shortcuts](#keyboard-shortcuts)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -25,10 +26,16 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 
 - **Markdown Editing** - Full-featured editor with syntax highlighting
 - **Live Preview** - Real-time HTML rendering as you type
+- **Syntax Highlighting** - Code blocks with automatic language detection and theme-coordinated coloring
+- **Markdown Tables** - Full GFM table support with styled rendering
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview
+- **Mermaid Diagrams** - Render Mermaid flowcharts, sequences, and more in the preview
+- **Math Equations** - LaTeX/MathML support via KaTeX (`$...$` inline, `$$...$$` block)
 - **Project Explorer** - Browse and manage your project files
 - **Multi-document Tabs** - Work on multiple files simultaneously
 - **Theme Support** - Built-in themes with custom theme creation
-- **Image Preview** - Quick preview for images in your project
+- **Splash Screen** - Themed splash screen at startup (configurable)
+- **Image Preview** - Quick preview for images with zoom and pan
 - **Recent Projects** - Quick access to your recent work
 - **Multi-language Support** - Available in 5 languages
 
@@ -38,7 +45,9 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 
 ### First Launch
 
-When you first launch MarkNote, you'll be greeted with the **Welcome page**:
+When you first launch MarkNote, you'll see the **Splash Screen** displaying the application name, version, author, and copyright. Click anywhere or wait a few seconds to dismiss it.
+
+Then you'll be greeted with the **Welcome page**:
 
 ![Welcome Page](illustrations/welcome-page.svg)
 
@@ -195,7 +204,7 @@ When you click a Markdown link in the preview:
 
 ### Supported Markdown Features
 
-MarkNote supports standard Markdown syntax:
+MarkNote supports standard Markdown syntax plus extensions:
 
 ```markdown
 # Headings (H1 through H6)
@@ -224,6 +233,84 @@ Horizontal rules
 |--------|-----|-----------|
 | Data   | Goes| Here      |
 ```
+
+### Code Syntax Highlighting
+
+Fenced code blocks are automatically highlighted with language detection:
+
+````markdown
+```java
+public class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello, world!");
+    }
+}
+```
+````
+
+The syntax highlighting theme automatically adapts to your chosen application theme (e.g., a dark highlight.js theme is used with the Dark app theme).
+
+### PlantUML Diagrams
+
+Embed PlantUML diagrams directly in your Markdown using fenced code blocks:
+
+````markdown
+```plantuml
+@startuml
+Alice -> Bob: Hello
+Bob --> Alice: Hi!
+@enduml
+```
+````
+
+Diagrams are rendered as SVG images via the PlantUML server.
+
+### Mermaid Diagrams
+
+Mermaid diagrams are also supported:
+
+````markdown
+```mermaid
+graph LR
+    A[Start] --> B{Decision}
+    B -->|Yes| C[OK]
+    B -->|No| D[Cancel]
+```
+````
+
+Mermaid diagrams are rendered client-side in the preview panel. The Mermaid theme adapts to your application theme.
+
+### Math Equations (KaTeX)
+
+MarkNote supports LaTeX math notation via KaTeX:
+
+- **Inline math:** `$E = mc^2$` renders as an inline equation
+- **Block math:**
+
+```markdown
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+```
+
+---
+
+## Splash Screen & About
+
+### Splash Screen
+
+When MarkNote starts, a themed splash screen is displayed showing:
+- The application name and version
+- Author and contact information
+- Copyright notice
+
+Click anywhere on the splash screen to dismiss it and continue to the main window.
+
+The splash screen follows the current application theme (Light, Dark, Solarized, etc.). You can disable it in **Help → Options... → Misc. → Show splash screen on startup**.
+
+### About Dialog
+
+Access the same information at any time via **Help → About**. The About dialog displays the same content as the splash screen.
 
 ---
 
@@ -290,6 +377,7 @@ Access settings via **Help → Options...** or by pressing the shortcut shown in
 | **Create document on startup** | Automatically create a new document when starting |
 | **Reopen last project on startup** | Remember and reopen your last project |
 | **Show Welcome page on startup** | Display the Welcome tab when starting |
+| **Show splash screen on startup** | Display the splash screen when starting (enabled by default) |
 | **Language** | Choose your preferred interface language |
 
 ### Themes Tab
@@ -392,7 +480,7 @@ If you encounter issues not covered here:
 
 ## About MarkNote
 
-**Version:** 0.0.1  
+**Version:** 0.0.2  
 **Author:** Frédéric Delorme  
 **Copyright:** © SnapGames 2026  
 **License:** MIT  

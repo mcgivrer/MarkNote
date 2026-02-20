@@ -17,10 +17,16 @@ A lightweight and modern Markdown editor built with JavaFX.
 
 - **Markdown Editing** - Full-featured Markdown editor with syntax highlighting
 - **Live Preview** - Real-time HTML preview with WebView rendering
+- **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/))
+- **Markdown Tables** - Full GFM table support with styled rendering
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview (server-side rendering)
+- **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview
+- **Math Equations** - LaTeX/MathML support via KaTeX for inline (`$...$`) and block (`$$...$$`) equations
 - **Project Explorer** - Browse and manage your project files with drag & drop support
 - **Multi-document Tabs** - Work on multiple documents simultaneously
-- **Theme Support** - Built-in themes (Light, Dark, Solarized, High Contrast) with custom theme creation
-- **Image Preview** - Quick preview for images in your project
+- **Theme Support** - Built-in themes (Light, Dark, Solarized, High Contrast) with custom theme creation; syntax highlighting themes coordinate automatically
+- **Splash Screen** - Themed splash screen at startup (can be disabled in options), also used as About dialog
+- **Image Preview** - Quick preview for images with zoom and pan
 - **Recent Projects** - Quick access to recently opened projects
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
@@ -142,9 +148,9 @@ MarkNote/
 │   ├── java/                # Java source files
 │   │   ├── Main.java
 │   │   ├── MarkNote.java
-│   │   ├── config/          # Configuration classes
-│   │   ├── ui/              # UI components
-│   │   └── utils/           # Utility classes
+│   │   ├── config/          # Configuration (AppConfig, ThemeManager)
+│   │   ├── ui/              # UI components (Editor, Preview, SplashScreen, Options...)
+│   │   └── utils/           # Utilities (DocumentService, PlantUmlEncoder)
 │   └── resources/
 │       ├── css/             # Stylesheets
 │       │   ├── markdown-editor.css
