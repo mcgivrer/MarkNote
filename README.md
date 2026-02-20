@@ -1,5 +1,6 @@
 # MarkNote
 
+[![Java build](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml)
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![JavaFX](https://img.shields.io/badge/JavaFX-25-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
