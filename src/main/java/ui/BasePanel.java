@@ -105,4 +105,13 @@ public abstract class BasePanel extends BorderPane {
     protected Label getTitleLabel() {
         return titleLabel;
     }
+
+    /**
+     * Retourne le header HBox pour permettre l'ajout de boutons supplémentaires.
+     *
+     * @return Le header HBox
+     */
+    protected HBox getHeader() {
+        return header;
+    }
 }

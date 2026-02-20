@@ -1,0 +1,76 @@
+/* CSS Editor Syntax Highlighting */
+
+.css-editor {
+    -fx-font-family: "Monospace", "DejaVu Sans Mono", "Consolas";
+    -fx-font-size: 13px;
+    -fx-background-color: #fafafa;
+}
+
+.css-editor .text {
+    -fx-fill: #2e3436;
+}
+
+/* CSS Selectors (.class, #id, element) */
+.css-selector {
+    -fx-fill: #a40000;
+    -fx-font-weight: bold;
+}
+
+/* CSS Properties (-fx-background-color, color, etc.) */
+.css-property {
+    -fx-fill: #3465a4;
+}
+
+/* CSS Pseudo-selectors (:hover, :selected, etc.) */
+.css-pseudo {
+    -fx-fill: #75507b;
+}
+
+/* Colors (#fff, #3584e4) */
+.css-color {
+    -fx-fill: #c4a000;
+    -fx-font-weight: bold;
+}
+
+/* Numbers and units (10px, 1.5em, 50%) */
+.css-number {
+    -fx-fill: #4e9a06;
+}
+
+/* Strings ("value") */
+.css-string {
+    -fx-fill: #c17d11;
+}
+
+/* Comments */
+.css-comment {
+    -fx-fill: #8f5902;
+    -fx-font-style: italic;
+}
+
+/* Braces {} */
+.css-brace {
+    -fx-fill: #555753;
+    -fx-font-weight: bold;
+}
+
+/* Caret and selection */
+.css-editor .caret {
+    -fx-stroke: #2e3436;
+}
+
+.css-editor .selection {
+    -fx-fill: #3584e4;
+    -fx-opacity: 0.3;
+}
+
+/* Line numbers */
+.css-editor .lineno {
+    -fx-fill: #888a85;
+    -fx-font-size: 11px;
+}
+
+/* Paragraph box (current line highlight) */
+.css-editor .paragraph-box:has-caret {
+    -fx-background-color: #f0f0f0;
+}

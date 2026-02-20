@@ -2,7 +2,7 @@
 #---- project parameters
 project_name=MarkNote
 project_version=0.0.1
-main_class=MarkNote
+main_class=Main
 JARS=
 JFX_VERSION=25
 vendor_name="SNAPGAMES"

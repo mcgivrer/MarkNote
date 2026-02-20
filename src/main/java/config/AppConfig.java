@@ -13,7 +13,8 @@ import java.util.List;
  */
 public class AppConfig {
 
-    private static final String CONFIG_FILE = System.getProperty("user.home") + File.separator + ".marknote.conf";
+    private static final String CONFIG_DIR = System.getProperty("user.home") + File.separator + ".marknote";
+    private static final String CONFIG_FILE = CONFIG_DIR + File.separator + "config";
 
     private final LinkedList<String> recentFiles = new LinkedList<>();
     private final LinkedList<String> recentDirs = new LinkedList<>();
@@ -69,6 +70,12 @@ public class AppConfig {
      */
     public void save() {
         try {
+            // S'assurer que le répertoire existe
+            File configDir = new File(CONFIG_DIR);
+            if (!configDir.exists()) {
+                configDir.mkdirs();
+            }
+            
             List<String> lines = new ArrayList<>();
             lines.add("maxRecentItems=" + maxRecentItems);
             lines.add("openDocOnStart=" + openDocOnStart);

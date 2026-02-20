@@ -72,6 +72,7 @@ public class MarkNote extends Application {
 
         // Panel de prévisualisation
         previewPanel = new PreviewPanel();
+        previewPanel.setOnMarkdownLinkClick(this::openFileInTab);
 
         // Panel d'exploration de projet
         projectExplorerPanel = new ProjectExplorerPanel();
