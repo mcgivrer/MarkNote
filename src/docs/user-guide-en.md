@@ -293,6 +293,26 @@ $$
 $$
 ```
 
+### Image Sizing
+
+MarkNote extends the standard Markdown image syntax to allow specifying image dimensions using `=WIDTHxHEIGHT` at the end of the image declaration:
+
+```markdown
+![alt text](path/to/image.png "optional title" =100x20)
+```
+
+This renders the image with `width="100"` and `height="20"` attributes.
+
+You can also specify only width or only height:
+
+| Syntax | Result |
+|--------|--------|
+| `![photo](pic.png =300x200)` | Width 300px, Height 200px |
+| `![photo](pic.png "title" =400x)` | Width 400px, height auto |
+| `![photo](pic.png =x150)` | Width auto, height 150px |
+
+> **Note:** Without the `=WxH` suffix, images behave as standard Markdown images and scale automatically to fit the preview.
+
 ---
 
 ## Splash Screen & About
@@ -480,7 +500,7 @@ If you encounter issues not covered here:
 
 ## About MarkNote
 
-**Version:** 0.0.2  
+**Version:** 0.0.3
 **Author:** Frédéric Delorme  
 **Copyright:** © SnapGames 2026  
 **License:** MIT  
