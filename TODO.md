@@ -16,11 +16,24 @@
 - [x] Ajouter dans le support du markdown une specificité pour les images:
 dans  `![alt text](./pic/pic1_50.png "title" =100x20)`
 le `=100x20` permet de fixer les attribtus Width et Height de la balise image. il possible de definir unitquement `=200x` ou même `=x120` pour définir uniquement width ou height.
+
+
+## UUID and links
+
+- [x] Ajouter le support de lien vers d'autres document via "Front Matter" avec l'attribut `links` qui contient un seul ou une liste de lien vers d'autres documents; e.x: `links: [4567-6789-8903-6784]`
+
+> **NOTE1** Les liens pointent vers un UUID
+
+> **NOTE2** Cet uuid est généré à la création d'un document : c'est un nouvel attribute Front Matter" : `uuid`.
+
+> **NOTE3** Le lien sera créé par drag-and-drop depuis l'explorateur de projet vers la zone "Front Matter" en haut du DocumentTab cible. Si le champs uuid n'existe poas ldans le document à lier, il faut le créer et l'ajouter; et renseigner le lien dans le document cible.
+
 - [ ] Ajouter le support de template de pages
 - [ ] Ajouter un panel "Assistant" permettant la connexion à un LLM via un MCP agent (ajouter un onlget "MCP agent" dans le dialogue "Options" pour configurer url, parameètres et clé d'API).
 - [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options. 
 
-## Front Matter
+
+## Front Matter
 
  maintenant je souhaite ajouter le support des attributes de "Front Matter" dans le fichier markdown, ainsi on peu ajouter des attributs:
 - `title` pour le titre de l'article (il devra être utilisé dans l'explorateur de projet si celui-ci existe)

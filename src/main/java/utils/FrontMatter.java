@@ -7,6 +7,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,12 +43,14 @@ public class FrontMatter {
             Pattern.compile("\\[(.*)\\]");
 
     // ── Champs ──────────────────────────────────────────────────
+    private String uuid = "";
     private String title = "";
     private List<String> authors = new ArrayList<>();
     private String createdAt = "";
     private List<String> tags = new ArrayList<>();
     private String summary = "";
     private boolean draft = false;
+    private List<String> links = new ArrayList<>();
 
     // ── Constructeurs ───────────────────────────────────────────
 
@@ -76,12 +79,14 @@ public class FrontMatter {
             String key = line.substring(0, colon).trim().toLowerCase();
             String value = line.substring(colon + 1).trim();
             switch (key) {
+                case "uuid" -> fm.uuid = value;
                 case "title" -> fm.title = value;
                 case "author" -> fm.authors = parseList(value);
                 case "created_at" -> fm.createdAt = value;
                 case "tags" -> fm.tags = parseList(value);
                 case "summary" -> fm.summary = value;
                 case "draft" -> fm.draft = Boolean.parseBoolean(value);
+                case "links" -> fm.links = parseList(value);
             }
         }
         return fm;
@@ -110,6 +115,9 @@ public class FrontMatter {
     public String serialize() {
         StringBuilder sb = new StringBuilder();
         sb.append("---\n");
+        if (!uuid.isBlank()) {
+            sb.append("uuid: ").append(uuid).append('\n');
+        }
         if (!title.isBlank()) {
             sb.append("title: ").append(title).append('\n');
         }
@@ -128,6 +136,9 @@ public class FrontMatter {
         if (draft) {
             sb.append("draft: true\n");
         }
+        if (!links.isEmpty()) {
+            sb.append("links: ").append(formatList(links)).append('\n');
+        }
         sb.append("---\n");
         return sb.toString();
     }
@@ -136,12 +147,14 @@ public class FrontMatter {
      * Indique si le front matter est entièrement vide (aucun champ renseigné).
      */
     public boolean isEmpty() {
-        return title.isBlank()
+        return uuid.isBlank()
+                && title.isBlank()
                 && authors.isEmpty()
                 && createdAt.isBlank()
                 && tags.isEmpty()
                 && summary.isBlank()
-                && !draft;
+                && !draft
+                && links.isEmpty();
     }
 
     // ── Helpers privés ──────────────────────────────────────────
@@ -178,6 +191,24 @@ public class FrontMatter {
     }
 
     // ── Getters / Setters ───────────────────────────────────────
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid != null ? uuid : "";
+    }
+
+    /**
+     * Génère un UUID aléatoire et le stocke.
+     *
+     * @return l'UUID généré
+     */
+    public String generateUuid() {
+        this.uuid = UUID.randomUUID().toString();
+        return this.uuid;
+    }
 
     public String getTitle() {
         return title;
@@ -273,5 +304,41 @@ public class FrontMatter {
                 return false;
             }
         }
+    }
+
+    public List<String> getLinks() {
+        return Collections.unmodifiableList(links);
+    }
+
+    public void setLinks(List<String> links) {
+        this.links = links != null ? new ArrayList<>(links) : new ArrayList<>();
+    }
+
+    /**
+     * Définit les liens à partir d'une chaîne séparée par des virgules.
+     */
+    public void setLinksFromString(String linksStr) {
+        this.links = parseList("[" + linksStr + "]");
+    }
+
+    /**
+     * Retourne les liens sous forme de chaîne séparée par des virgules.
+     */
+    public String getLinksAsString() {
+        return String.join(", ", links);
+    }
+
+    /**
+     * Ajoute un lien (UUID) s'il n'est pas déjà présent.
+     *
+     * @param linkUuid l'UUID du document lié
+     * @return true si le lien a été ajouté
+     */
+    public boolean addLink(String linkUuid) {
+        if (linkUuid != null && !linkUuid.isBlank() && !links.contains(linkUuid)) {
+            links.add(linkUuid);
+            return true;
+        }
+        return false;
     }
 }

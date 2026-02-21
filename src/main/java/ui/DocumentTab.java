@@ -96,9 +96,15 @@ public class DocumentTab extends Tab {
         // Panneau Front Matter (repliable)
         frontMatterPanel = new FrontMatterPanel();
         if (fm != null) {
+            // Générer un UUID si le document existant n'en possède pas
+            if (fm.getUuid().isBlank()) {
+                fm.generateUuid();
+            }
             frontMatterPanel.setFrontMatter(fm);
             frontMatterPanel.setExpanded(true);
         } else {
+            // Nouveau document : générer un UUID par défaut
+            frontMatterPanel.initDefaults();
             frontMatterPanel.setExpanded(false);
         }
 
@@ -334,11 +340,16 @@ public class DocumentTab extends Tab {
             // Parser le front matter
             FrontMatter fm = FrontMatter.parse(content.get());
             if (fm != null) {
+                // Générer un UUID si le document n'en possède pas
+                if (fm.getUuid().isBlank()) {
+                    fm.generateUuid();
+                }
                 frontMatterPanel.setFrontMatter(fm);
                 frontMatterPanel.setExpanded(true);
                 editor.replaceText(FrontMatter.stripFrontMatter(content.get()));
             } else {
                 frontMatterPanel.clear();
+                frontMatterPanel.initDefaults();
                 frontMatterPanel.setExpanded(false);
                 editor.replaceText(content.get());
             }
