@@ -57,11 +57,22 @@ Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ai
 - [x] Add a search box at the top of the UI that queries the index and displays matching documents in a popup list, showing the matching excerpt below each document title. Selecting a result opens the document.
 - [x] Add a Tag Cloud panel below the Project Explorer, where each tag's font size is proportional to its number of occurrences.
 - [x] Allow resetting the index from a context menu entry on the root folder in the Project Explorer.
-- [ ] Add a status bar at the bottom of the main window with three sections:
+- [x] Add a status bar at the bottom of the main window with three sections:
   - **Document & position** — name and cursor position (line:column) of the current document,
   - **Statistics** — number of indexed documents, lines, and words in the current document,
   - **Indexing progress** — a progress bar showing advancement while the indexing service is running.
     > **IMPORTANT** The indexing service must run in a separate thread so as not to interrupt the user's note-taking experience.
+
+## Add Visual Network Diagram 
+
+- [ ] Add a new Network Diagram in a new VisualLinkPanel which can, be dsiplayed in the same side as Tags. 
+This link diagram is representing all the links betweek document in a project. each line is link, each node is a doc. use doc icon for nodes and black line for links.
+  - if link is a link to a tag, add tag name as node on the corresponding line
+  - if link is a simple link between docs, draw a simple line.
+  - the diagram must try to keep all nodes distances equals in a dynamic way. 
+  > **NOTE1** As IndexService, the visual Network diagram is dynamically updated.
+  
+  > **NOTE2** Use the same component to open/clkose panel like in "Front Matter".
 
 
 ## Optional
