@@ -277,9 +277,13 @@ public class MarkNote extends Application {
         quitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
         quitItem.setOnAction(e -> Platform.exit());
 
+        MenuItem closeTabItem = new MenuItem(messages.getString("menu.file.close"));
+        closeTabItem.setAccelerator(KeyCombination.keyCombination("Ctrl+W"));
+        closeTabItem.setOnAction(e -> closeActiveTab());
+
         fileMenu.getItems().addAll(newDocItem, new SeparatorMenuItem(), openProjectItem, openItem,
                 new SeparatorMenuItem(), recentMenu, new SeparatorMenuItem(), saveItem, saveAsItem,
-                new SeparatorMenuItem(), quitItem);
+                new SeparatorMenuItem(), closeTabItem, quitItem);
 
         // == Menu Affichage ==
         Menu viewMenu = new Menu(messages.getString("menu.view"));
@@ -322,6 +326,27 @@ public class MarkNote extends Application {
         // Bouton [x] du preview décoche le menu
         previewPanel.setOnClose(() -> showPreviewPanel.setSelected(false));
 
+        CheckMenuItem showTagCloud = new CheckMenuItem(messages.getString("menu.view.tagCloud"));
+        showTagCloud.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
+        showTagCloud.setSelected(true);
+        showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            javafx.scene.Parent leftPane = tagCloudPanel.getParent();
+            if (leftPane instanceof SplitPane leftSplit) {
+                if (isSelected) {
+                    if (!leftSplit.getItems().contains(tagCloudPanel)) {
+                        // Insérer après l'explorateur (index 1) ou en fin
+                        int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
+                        leftSplit.getItems().add(idx + 1, tagCloudPanel);
+                    }
+                } else {
+                    leftSplit.getItems().remove(tagCloudPanel);
+                }
+            }
+        });
+
+        // Bouton [x] du tag cloud décoche le menu
+        tagCloudPanel.setOnClose(() -> showTagCloud.setSelected(false));
+
         CheckMenuItem showNetworkDiagram = new CheckMenuItem(messages.getString("menu.view.networkDiagram"));
         showNetworkDiagram.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
         showNetworkDiagram.setSelected(true);
@@ -345,7 +370,9 @@ public class MarkNote extends Application {
         MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
         showWelcomeItem.setOnAction(e -> showWelcomeTab());
 
-        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, showNetworkDiagram, showWelcomeItem);
+        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel,
+                new SeparatorMenuItem(), showTagCloud, showNetworkDiagram,
+                new SeparatorMenuItem(), showWelcomeItem);
 
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
@@ -371,6 +398,21 @@ public class MarkNote extends Application {
         setupDocumentTab(tab);
         mainTabPane.getTabs().add(tab);
         mainTabPane.getSelectionModel().select(tab);
+    }
+
+    /**
+     * Ferme l'onglet actif (avec confirmation si modifié).
+     */
+    private void closeActiveTab() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            // Déclencher la logique de fermeture existante (onCloseRequest)
+            var closeEvent = new javafx.event.Event(javafx.scene.control.Tab.TAB_CLOSE_REQUEST_EVENT);
+            javafx.event.Event.fireEvent(selected, closeEvent);
+            if (!closeEvent.isConsumed()) {
+                mainTabPane.getTabs().remove(selected);
+            }
+        }
     }
 
     /**
@@ -536,6 +578,7 @@ public class MarkNote extends Application {
             indexService.buildIndexAsync(projectDir);
         } else {
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
             updateStatusBarStats();
         }
     }

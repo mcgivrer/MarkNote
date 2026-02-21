@@ -13,6 +13,7 @@ import utils.IndexService.IndexEntry;
 
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Insets;
+import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.MouseButton;
@@ -63,7 +64,9 @@ public class VisualLinkPanel extends BasePanel {
     private int stableFrames = 0;
 
     // ── Interaction ─────────────────────────────────────────────
+    private static final double EDGE_HIT_TOLERANCE = 6.0;
     private GraphNode draggedNode = null;
+    private boolean wasDragging = false;
     private double dragOffsetX, dragOffsetY;
     private double panX = 0, panY = 0;
     private double zoom = 1.0;
@@ -129,6 +132,7 @@ public class VisualLinkPanel extends BasePanel {
 
     private void setupInteraction() {
         canvas.setOnMousePressed(e -> {
+            wasDragging = false;
             if (e.getButton() == MouseButton.PRIMARY) {
                 GraphNode hit = hitTest(e.getX(), e.getY());
                 if (hit != null) {
@@ -145,6 +149,7 @@ public class VisualLinkPanel extends BasePanel {
         });
 
         canvas.setOnMouseDragged(e -> {
+            wasDragging = true;
             if (draggedNode != null) {
                 draggedNode.x = toWorldX(e.getX()) - dragOffsetX;
                 draggedNode.y = toWorldY(e.getY()) - dragOffsetY;
@@ -171,23 +176,54 @@ public class VisualLinkPanel extends BasePanel {
         });
 
         canvas.setOnMouseClicked(e -> {
-            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 1 && !wasDragging) {
+                if (onDocumentClick == null) return;
+
+                // Priorité : clic sur un nœud document
                 GraphNode hit = hitTest(e.getX(), e.getY());
-                if (hit != null && hit.type == NodeType.DOCUMENT && onDocumentClick != null) {
+                if (hit != null && hit.type == NodeType.DOCUMENT) {
                     onDocumentClick.accept(hit.id);
+                    return;
                 }
+
+                // Sinon : clic sur une arête → ouvrir le document le plus proche
+                GraphEdge edgeHit = edgeHitTest(e.getX(), e.getY());
+                if (edgeHit != null) {
+                    GraphNode target = nearestDocNode(edgeHit, e.getX(), e.getY());
+                    if (target != null) {
+                        onDocumentClick.accept(target.id);
+                    }
+                }
+            }
+        });
+
+        canvas.setOnMouseMoved(e -> {
+            GraphNode hit = hitTest(e.getX(), e.getY());
+            if (hit != null && hit.type == NodeType.DOCUMENT) {
+                canvas.setCursor(Cursor.HAND);
+            } else if (edgeHitTest(e.getX(), e.getY()) != null) {
+                canvas.setCursor(Cursor.HAND);
+            } else {
+                canvas.setCursor(Cursor.DEFAULT);
             }
         });
 
         canvas.setOnScroll((ScrollEvent e) -> {
             double factor = e.getDeltaY() > 0 ? 1.1 : 0.9;
+            double newZoom = zoom * factor;
+            newZoom = Math.max(0.2, Math.min(5.0, newZoom));
+            if (newZoom == zoom) {
+                e.consume();
+                return;
+            }
+            double actualFactor = newZoom / zoom;
             // Zoom centré sur la position de la souris
             double mx = e.getX(), my = e.getY();
-            panX = mx - factor * (mx - panX);
-            panY = my - factor * (my - panY);
-            zoom *= factor;
-            zoom = Math.max(0.2, Math.min(5.0, zoom));
+            panX = mx - actualFactor * (mx - panX);
+            panY = my - actualFactor * (my - panY);
+            zoom = newZoom;
             draw();
+            e.consume();
         });
     }
 
@@ -219,6 +255,59 @@ public class VisualLinkPanel extends BasePanel {
             }
         }
         return null;
+    }
+
+    /**
+     * Détecte si le clic est proche d'une arête (distance point–segment).
+     */
+    private GraphEdge edgeHitTest(double screenX, double screenY) {
+        double tolerance = EDGE_HIT_TOLERANCE / zoom;
+        double wx = toWorldX(screenX);
+        double wy = toWorldY(screenY);
+        GraphEdge best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (GraphEdge edge : edges) {
+            double dist = pointToSegmentDist(wx, wy,
+                    edge.source.x, edge.source.y,
+                    edge.target.x, edge.target.y);
+            if (dist < tolerance && dist < bestDist) {
+                bestDist = dist;
+                best = edge;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Distance d'un point (px, py) au segment [(ax, ay)–(bx, by)].
+     */
+    private static double pointToSegmentDist(double px, double py,
+                                             double ax, double ay,
+                                             double bx, double by) {
+        double dx = bx - ax, dy = by - ay;
+        double lenSq = dx * dx + dy * dy;
+        if (lenSq < 1e-9) return Math.hypot(px - ax, py - ay);
+        double t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+        double projX = ax + t * dx;
+        double projY = ay + t * dy;
+        return Math.hypot(px - projX, py - projY);
+    }
+
+    /**
+     * Retourne le nœud document le plus proche du clic parmi
+     * les deux extrémités d'une arête.
+     */
+    private GraphNode nearestDocNode(GraphEdge edge, double screenX, double screenY) {
+        double wx = toWorldX(screenX);
+        double wy = toWorldY(screenY);
+        GraphNode a = edge.source.type == NodeType.DOCUMENT ? edge.source : null;
+        GraphNode b = edge.target.type == NodeType.DOCUMENT ? edge.target : null;
+        if (a == null && b == null) return null;
+        if (a == null) return b;
+        if (b == null) return a;
+        double da = Math.hypot(wx - a.x, wy - a.y);
+        double db = Math.hypot(wx - b.x, wy - b.y);
+        return da <= db ? a : b;
     }
 
     // ── Mise à jour des données ─────────────────────────────────

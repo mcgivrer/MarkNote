@@ -65,7 +65,7 @@ Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ai
 
 ## Add Visual Network Diagram 
 
-- [ ] Add a new Network Diagram in a new VisualLinkPanel which can, be dsiplayed in the same side as Tags. 
+- [x] Add a new Network Diagram in a new VisualLinkPanel which can, be dsiplayed in the same side as Tags. 
 This link diagram is representing all the links betweek document in a project. each line is link, each node is a doc. use doc icon for nodes and black line for links.
   - if link is a link to a tag, add tag name as node on the corresponding line
   - if link is a simple link between docs, draw a simple line.
