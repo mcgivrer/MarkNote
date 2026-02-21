@@ -39,7 +39,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -159,9 +158,10 @@ public class MarkNote extends Application {
             tagCloudPanel.updateTags(indexService.getTagCounts());
         });
 
-        // Conteneur gauche : explorateur + tag cloud
-        VBox leftPane = new VBox(projectExplorerPanel, tagCloudPanel);
-        VBox.setVgrow(projectExplorerPanel, Priority.ALWAYS);
+        // Conteneur gauche : explorateur + tag cloud (redimensionnable)
+        SplitPane leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel);
+        leftSplit.setOrientation(Orientation.VERTICAL);
+        leftSplit.setDividerPositions(0.75);
 
         // SplitPane éditeur | preview
         editorSplit = new SplitPane(mainTabPane, previewPanel);
@@ -169,7 +169,7 @@ public class MarkNote extends Application {
         editorSplit.setDividerPositions(0.5);
 
         // SplitPane principal : explorateur | éditeur/preview
-        mainSplit = new SplitPane(leftPane, editorSplit);
+        mainSplit = new SplitPane(leftSplit, editorSplit);
         mainSplit.setOrientation(Orientation.HORIZONTAL);
         mainSplit.setDividerPositions(0.2);
 
@@ -271,7 +271,7 @@ public class MarkNote extends Application {
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
         showProjectPanel.setSelected(true);
         showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            // The project explorer and tag cloud are in a VBox (leftPane).
+            // The project explorer and tag cloud are in a vertical SplitPane (leftSplit).
             // We need to find it — it's the parent of projectExplorerPanel.
             javafx.scene.Parent leftPane = projectExplorerPanel.getParent();
             if (leftPane == null) leftPane = projectExplorerPanel; // fallback
