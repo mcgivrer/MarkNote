@@ -17,6 +17,7 @@ import ui.SplashScreen;
 import ui.StatusBar;
 import ui.TagCloudPanel;
 import ui.ThemeTab;
+import ui.VisualLinkPanel;
 import ui.WelcomeTab;
 import utils.DocumentService;
 import utils.IndexService;
@@ -55,6 +56,7 @@ public class MarkNote extends Application {
     private PreviewPanel previewPanel;
     private ProjectExplorerPanel projectExplorerPanel;
     private TagCloudPanel tagCloudPanel;
+    private VisualLinkPanel visualLinkPanel;
     private SearchBox searchBox;
     private StatusBar statusBar;
     private IndexService indexService;
@@ -110,6 +112,15 @@ public class MarkNote extends Application {
         // Tag cloud panel (sous l'explorateur)
         tagCloudPanel = new TagCloudPanel();
 
+        // Visual link panel (diagramme réseau)
+        visualLinkPanel = new VisualLinkPanel();
+        visualLinkPanel.setOnDocumentClick(relativePath -> {
+            File projectDir = projectExplorerPanel.getProjectDirectory();
+            if (projectDir != null) {
+                openFileInTab(new File(projectDir, relativePath));
+            }
+        });
+
         // Search box (dans la barre du haut)
         searchBox = new SearchBox();
         searchBox.setIndexService(indexService);
@@ -123,6 +134,7 @@ public class MarkNote extends Application {
         indexService.setOnFinished(() -> {
             statusBar.setIndexIdle();
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
             updateStatusBarStats();
         });
 
@@ -136,10 +148,12 @@ public class MarkNote extends Application {
         projectExplorerPanel.setOnFileCreated(file -> {
             indexService.updateFile(file);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFileRenamed((oldFile, newFile) -> {
             indexService.handleRename(oldFile, newFile);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFileDeleted(file -> {
             if (file.isDirectory()) {
@@ -148,20 +162,23 @@ public class MarkNote extends Application {
                 indexService.removeFile(file);
             }
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFilesMoved((sourceFiles, targetDir) -> {
             indexService.handleMove(sourceFiles, targetDir);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFilesCopied((sourceFiles, targetDir) -> {
             indexService.handleCopy(sourceFiles, targetDir);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
 
-        // Conteneur gauche : explorateur + tag cloud (redimensionnable)
-        SplitPane leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel);
+        // Conteneur gauche : explorateur + tag cloud + diagramme réseau (redimensionnable)
+        SplitPane leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
         leftSplit.setOrientation(Orientation.VERTICAL);
-        leftSplit.setDividerPositions(0.75);
+        leftSplit.setDividerPositions(0.55, 0.78);
 
         // SplitPane éditeur | preview
         editorSplit = new SplitPane(mainTabPane, previewPanel);
@@ -305,11 +322,30 @@ public class MarkNote extends Application {
         // Bouton [x] du preview décoche le menu
         previewPanel.setOnClose(() -> showPreviewPanel.setSelected(false));
 
+        CheckMenuItem showNetworkDiagram = new CheckMenuItem(messages.getString("menu.view.networkDiagram"));
+        showNetworkDiagram.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
+        showNetworkDiagram.setSelected(true);
+        showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            javafx.scene.Parent leftPane = visualLinkPanel.getParent();
+            if (leftPane instanceof SplitPane leftSplit) {
+                if (isSelected) {
+                    if (!leftSplit.getItems().contains(visualLinkPanel)) {
+                        leftSplit.getItems().add(visualLinkPanel);
+                    }
+                } else {
+                    leftSplit.getItems().remove(visualLinkPanel);
+                }
+            }
+        });
+
+        // Bouton [x] du diagramme réseau décoche le menu
+        visualLinkPanel.setOnClose(() -> showNetworkDiagram.setSelected(false));
+
         // Option Afficher Welcome
         MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
         showWelcomeItem.setOnAction(e -> showWelcomeTab());
 
-        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, showWelcomeItem);
+        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, showNetworkDiagram, showWelcomeItem);
 
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
