@@ -392,6 +392,10 @@ public class PreviewPanel extends BasePanel {
         if (fm.isDraft()) {
             sb.append("  <div class=\"fm-field fm-draft\">\u270E Draft</div>\n");
         }
+        if (!fm.getUuid().isBlank()) {
+            sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">UUID: </span>")
+              .append("<code>").append(escapeHtml(fm.getUuid())).append("</code></div>\n");
+        }
         if (!fm.getAuthors().isEmpty()) {
             sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">Author: </span>")
               .append(escapeHtml(fm.getAuthorsAsString())).append("</div>\n");
@@ -409,6 +413,13 @@ public class PreviewPanel extends BasePanel {
         }
         if (!fm.getSummary().isBlank()) {
             sb.append("  <div class=\"fm-field\"><em>").append(escapeHtml(fm.getSummary())).append("</em></div>\n");
+        }
+        if (!fm.getLinks().isEmpty()) {
+            sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">Links: </span>");
+            for (String link : fm.getLinks()) {
+                sb.append("<span class=\"fm-tag\"><code>").append(escapeHtml(link)).append("</code></span>");
+            }
+            sb.append("</div>\n");
         }
         sb.append("</div>\n");
         return sb.toString();
