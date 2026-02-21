@@ -25,6 +25,10 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview
 - **Math Equations** - LaTeX/MathML support via KaTeX for inline (`$...$`) and block (`$$...$$`) equations
 - **Project Explorer** - Browse and manage your project files with drag & drop support
+- **Project Indexing** - Automatic indexing of all Markdown files by front matter metadata (title, tags, authors, summary) and filenames, stored as a local JSON index
+- **Search** - Instant full-text search across indexed documents with a live results popup; matches on title, filename, tags, summary, authors, and UUID
+- **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
+- **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), and indexing progress bar; indexing runs in a background thread
 - **Multi-document Tabs** - Work on multiple documents simultaneously
 - **Theme Support** - Built-in themes (Light, Dark, Solarized, High Contrast) with custom theme creation; syntax highlighting themes coordinate automatically
 - **Splash Screen** - Themed splash screen at startup (can be disabled in options), also used as About dialog
@@ -151,8 +155,8 @@ MarkNote/
 │   │   ├── Main.java
 │   │   ├── MarkNote.java
 │   │   ├── config/          # Configuration (AppConfig, ThemeManager)
-│   │   ├── ui/              # UI components (Editor, Preview, SplashScreen, Options...)
-│   │   └── utils/           # Utilities (DocumentService, PlantUmlEncoder)
+│   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud...)
+│   │   └── utils/           # Utilities (DocumentService, IndexService, PlantUmlEncoder)
 │   └── resources/
 │       ├── css/             # Stylesheets
 │       │   ├── markdown-editor.css

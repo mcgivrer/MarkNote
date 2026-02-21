@@ -401,3 +401,37 @@
     -fx-border-radius: 3px;
     -fx-font-size: 12px;
 }
+
+/* ── Status bar ── */
+
+.status-bar {
+    -fx-background-color: #3c3c3c;
+    -fx-border-color: #505050 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-min-height: 24px;
+    -fx-max-height: 24px;
+}
+
+.status-bar .status-section {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 11px;
+}
+
+.status-bar .separator *.line {
+    -fx-border-color: #505050;
+}
+
+.status-bar .status-progress {
+    -fx-accent: #6ab0f3;
+}
+
+.status-bar .status-progress .track {
+    -fx-background-color: #2a2a2a;
+    -fx-border-color: #505050;
+    -fx-border-radius: 2px;
+}
+
+.status-bar .status-progress .bar {
+    -fx-background-color: #6ab0f3;
+    -fx-background-radius: 2px;
+}
