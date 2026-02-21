@@ -183,6 +183,7 @@ public class MarkNote extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox topBar = new HBox(menuBar, spacer, searchBox);
+        topBar.getStyleClass().add("top-bar");
         topBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         HBox.setHgrow(menuBar, Priority.NEVER);
         root.setTop(topBar);
@@ -342,8 +343,6 @@ public class MarkNote extends Application {
     private void showWelcomeTab() {
         WelcomeTab welcomeTab = new WelcomeTab(config.getRecentDirs(), config.getMaxRecentItems(), config);
         welcomeTab.setOnProjectSelected(dir -> {
-            // Fermer l'onglet Welcome
-            mainTabPane.getTabs().remove(welcomeTab);
             // Ouvrir le projet
             projectExplorerPanel.setProjectDirectory(dir);
             previewPanel.setBaseDirectory(dir);
@@ -351,6 +350,11 @@ public class MarkNote extends Application {
             config.addRecentDir(dir);
             refreshRecentMenu();
             loadOrBuildIndex(dir);
+
+            // Fermer l'onglet Welcome seulement s'il reste d'autres onglets
+            if (mainTabPane.getTabs().size() > 1) {
+                mainTabPane.getTabs().remove(welcomeTab);
+            }
         });
         mainTabPane.getTabs().add(0, welcomeTab);
         mainTabPane.getSelectionModel().select(welcomeTab);

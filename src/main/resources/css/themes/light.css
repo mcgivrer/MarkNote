@@ -39,9 +39,57 @@
     -fx-text-fill: white;
 }
 
+/* === Top Bar & Search === */
+.top-bar {
+    -fx-background-color: #f6f5f4;
+    -fx-border-color: #deddda;
+    -fx-border-width: 0 0 1 0;
+}
+
+.top-bar .menu-bar {
+    -fx-border-width: 0;
+}
+
+.search-box .label {
+    -fx-text-fill: #777777;
+}
+
+.search-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #3d3846;
+    -fx-prompt-text-fill: #9a9996;
+    -fx-border-color: #c0bfbc;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 3 8 3 8;
+}
+
+.search-field:focused {
+    -fx-border-color: #3584e4;
+}
+
+.search-results-list {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #deddda;
+}
+
+.search-results-list .list-cell {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #3d3846;
+}
+
+.search-results-list .list-cell:selected {
+    -fx-background-color: #3584e4;
+    -fx-text-fill: white;
+}
+
 /* === Tab Pane === */
 .tab-pane .tab-header-area {
     -fx-background-color: #f6f5f4;
+}
+
+.tab-pane > .tab-content-area {
+    -fx-background-color: #ffffff;
 }
 
 .tab {
@@ -140,11 +188,16 @@
     -fx-background-color: #ffffff;
     -fx-border-color: #c0bfbc;
     -fx-border-radius: 3;
+    -fx-padding: 3;
 }
 
 .check-box:selected .box {
     -fx-background-color: #3584e4;
     -fx-border-color: #3584e4;
+}
+
+.check-box .mark {
+    -fx-background-color: white;
 }
 
 .check-box {
