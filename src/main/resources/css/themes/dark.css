@@ -57,6 +57,48 @@
     -fx-text-fill: white;
 }
 
+/* === Top Bar & Search === */
+.top-bar {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: #1a1a1a;
+    -fx-border-width: 0 0 1 0;
+}
+
+.top-bar .menu-bar {
+    -fx-border-width: 0;
+}
+
+.search-box .label {
+    -fx-text-fill: #aaaaaa;
+}
+
+.search-field {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #e0e0e0;
+    -fx-prompt-text-fill: #777777;
+    -fx-border-color: #555555;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 3 8 3 8;
+}
+
+.search-field:focused {
+    -fx-border-color: #3584e4;
+}
+
+.search-results-list {
+    -fx-background-color: #2d2d2d;
+    -fx-border-color: #555555;
+}
+
+.search-results-list .list-cell {
+    -fx-background-color: #2d2d2d;
+}
+
+.search-results-list .list-cell:selected {
+    -fx-background-color: #3584e4;
+}
+
 /* === Tab Pane === */
 .tab-pane .tab-header-area {
     -fx-background-color: #2d2d2d;
@@ -64,6 +106,10 @@
 
 .tab-pane .tab-header-background {
     -fx-background-color: #2d2d2d;
+}
+
+.tab-pane > .tab-content-area {
+    -fx-background-color: #1e1e1e;
 }
 
 .tab {
@@ -180,6 +226,7 @@
     -fx-background-color: #3d3d3d;
     -fx-border-color: #5d5d5d;
     -fx-border-radius: 3;
+    -fx-padding: 3;
 }
 
 .check-box:selected .box {

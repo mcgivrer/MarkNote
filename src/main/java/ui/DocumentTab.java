@@ -503,12 +503,9 @@ public class DocumentTab extends Tab {
         if (result.isPresent()) {
             if (result.get() == saveBtn) {
                 TabPane tabPane = getTabPane();
-                if (tabPane != null) {
-                    tabPane.getSelectionModel().select(this);
-                }
-                // Note: La sauvegarde doit être gérée par l'appelant via un callback
-                // Pour l'instant, on ferme si le document n'est plus modifié après sauvegarde
-                if (!isModified()) {
+                Stage stage = (tabPane != null && tabPane.getScene() != null)
+                        ? (Stage) tabPane.getScene().getWindow() : null;
+                if (save(stage, false, file != null ? file.getParentFile() : null)) {
                     closeTab();
                 }
             } else if (result.get() == discardBtn) {
