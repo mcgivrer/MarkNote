@@ -10,12 +10,28 @@
 - [x] Ajouter une syntax Highlighter,
 - [x] Ajouter la notion de theme pour toute l'application et fournir un set de themes par defaut inspires de gnome-edit avec la gestion des themes dans les options sous un nouvel onglet "Themes". Une liste de theme est affiches, et il est possible d'en creer de nouveau : le theme de base est copie et ouvert en tant que document CSS (avec coloration syntaxique). les themes customs seront sauves dans un repertoir ~/.marknote/themes. Biensur, tous les themes apparaiteront dans la liste.
 - [x] Ajouter un SpashScreen avec Nom de l'application, version, auteur, contact et copyright ( command dans "about")
+
+## Support external markdown extension
+
 - [x] Ajouter le support de plantuml et de mermaid,
 - [x] Ajouter le support de MathML,
-- [x] Ajouter un editeur de "Front Matter" pour les docs Markdown (voir plus bas).
 - [x] Ajouter dans le support du markdown une specificité pour les images:
 dans  `![alt text](./pic/pic1_50.png "title" =100x20)`
 le `=100x20` permet de fixer les attribtus Width et Height de la balise image. il possible de definir unitquement `=200x` ou même `=x120` pour définir uniquement width ou height.
+
+## Front Matter
+
+- [x] Ajouter un editeur de "Front Matter" pour les docs Markdown (voir plus bas).
+
+Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ainsi on peu ajouter des attributs:
+- `title` pour le titre de l'article (il devra être utilisé dans l'explorateur de projet si celui-ci existe)
+- `author` un auteur ou une liste d'auteurs
+- `created_at` la date de création de la note au `formaat YYYY-MM-DD (hh:mm)`   l'heure étant optionnelle,
+- `tags` une liste de tag `[tag2,tag2,tag3]`
+- `summary` un résumé de l'article/de la note (optionel)
+- `draft` status de la note (si elle est publiée ou non: publiée si draft=false)
+
+> **IMPORTANT** Tous ces élément pourront être utilisé plus tard dans un moteur de recherche de note.
 
 
 ## UUID and links
@@ -28,19 +44,15 @@ le `=100x20` permet de fixer les attribtus Width et Height de la balise image. i
 
 > **NOTE3** Le lien sera créé par drag-and-drop depuis l'explorateur de projet vers la zone "Front Matter" en haut du DocumentTab cible. Si le champs uuid n'existe poas ldans le document à lier, il faut le créer et l'ajouter; et renseigner le lien dans le document cible.
 
+## Indexing to local project database
+
+- [x] Index all files (mainly on front matter attribute and on filenames ) the index file can be a text file (typed JSON) or a light database (like derby), you can decide.  the index file (json or db) will be stored in the root folder of a project, and will be not displayed in the project explorer panel.
+- [x] Add search text box in top head of UI using this index to list matching diocument in a pop-up list of document, showing in extract under document title what is matching, and when selecting one, open the document. 
+- [x] Add a new panel under Projhect explorer show a tag cloud (each tag font size is a ratio to number of occurences)
+- [x] Index file can be reseted from contextual menu entry on project explorer showed on root folder only.
+
+## Optional
+
 - [ ] Ajouter le support de template de pages
 - [ ] Ajouter un panel "Assistant" permettant la connexion à un LLM via un MCP agent (ajouter un onlget "MCP agent" dans le dialogue "Options" pour configurer url, parameètres et clé d'API).
 - [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options. 
-
-
-## Front Matter
-
- maintenant je souhaite ajouter le support des attributes de "Front Matter" dans le fichier markdown, ainsi on peu ajouter des attributs:
-- `title` pour le titre de l'article (il devra être utilisé dans l'explorateur de projet si celui-ci existe)
-- `author` un auteur ou une liste d'auteurs
-- `created_at` la date de création de la note au `formaat YYYY-MM-DD (hh:mm)`   l'heure étant optionnelle,
-- `tags` une liste de tag `[tag2,tag2,tag3]`
-- `summary` un résumé de l'article/de la note (optionel)
-- `draft` status de la note (si elle est publiée ou non: publiée si draft=false)
-
-> **IMPORTANT** Tous ces élément pourront être utilisé plus tard dans un moteur de recherche de note.

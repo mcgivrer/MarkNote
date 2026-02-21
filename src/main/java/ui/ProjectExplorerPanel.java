@@ -1,7 +1,6 @@
 package ui;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +10,7 @@ import java.util.stream.Collectors;
 
 import utils.DocumentService;
 import utils.FrontMatter;
+import utils.IndexService;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -40,6 +40,7 @@ public class ProjectExplorerPanel extends BasePanel {
     private final TreeView<File> treeView;
     private File projectDir;
     private Consumer<File> onFileDoubleClick;
+    private Runnable onResetIndex;
 
     public ProjectExplorerPanel() {
         super("project.title", "project.close.tooltip");
@@ -86,7 +87,10 @@ public class ProjectExplorerPanel extends BasePanel {
         MenuItem deleteItem = new MenuItem(bundle.getString("context.delete"));
         deleteItem.setOnAction(e -> handleDelete());
 
-        menu.getItems().addAll(newFileItem, newFolderItem, new SeparatorMenuItem(), renameItem, new SeparatorMenuItem(), deleteItem);
+        MenuItem resetIndexItem = new MenuItem(bundle.getString("context.resetIndex"));
+        resetIndexItem.setOnAction(e -> handleResetIndex());
+
+        menu.getItems().addAll(newFileItem, newFolderItem, new SeparatorMenuItem(), renameItem, new SeparatorMenuItem(), deleteItem, new SeparatorMenuItem(), resetIndexItem);
 
         // Désactiver les items si aucune sélection
         menu.setOnShowing(e -> {
@@ -97,6 +101,9 @@ public class ProjectExplorerPanel extends BasePanel {
             // Nouveau fichier/dossier : actif si sélection est un dossier ou un fichier (on crée dans le parent)
             newFileItem.setDisable(!hasSelection);
             newFolderItem.setDisable(!hasSelection);
+            // Reset index : uniquement sur le nœud racine
+            boolean isRoot = hasSelection && selected == treeView.getRoot();
+            resetIndexItem.setDisable(!isRoot);
         });
 
         return menu;
@@ -218,6 +225,24 @@ public class ProjectExplorerPanel extends BasePanel {
     }
 
     /**
+     * Gère la réinitialisation de l'index du projet.
+     */
+    private void handleResetIndex() {
+        if (onResetIndex != null) {
+            onResetIndex.run();
+        }
+    }
+
+    /**
+     * Définit l'action à exécuter pour réinitialiser l'index.
+     *
+     * @param action L'action à exécuter
+     */
+    public void setOnResetIndex(Runnable action) {
+        this.onResetIndex = action;
+    }
+
+    /**
      * Affiche une boîte de dialogue d'erreur.
      */
     private void showError(String header, String content) {
@@ -287,8 +312,9 @@ public class ProjectExplorerPanel extends BasePanel {
                     return a.getName().compareToIgnoreCase(b.getName());
                 });
                 for (File child : children) {
-                    // Ignorer les fichiers/dossiers cachés
-                    if (!child.getName().startsWith(".")) {
+                    // Ignorer les fichiers/dossiers cachés et le fichier d'index
+                    if (!child.getName().startsWith(".")
+                            && !child.getName().equals(IndexService.INDEX_FILENAME)) {
                         item.getChildren().add(buildTreeItem(child));
                     }
                 }
