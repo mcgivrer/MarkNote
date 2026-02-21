@@ -365,15 +365,15 @@ public class PreviewPanel extends BasePanel {
         for (var entry : sizes.entrySet()) {
             String url = entry.getKey();
             int[] dims = entry.getValue();
-            StringBuilder attrs = new StringBuilder();
-            if (dims[0] > 0) attrs.append(" width=\"").append(dims[0]).append("\"");
-            if (dims[1] > 0) attrs.append(" height=\"").append(dims[1]).append("\"");
-            if (attrs.length() > 0) {
-                // Chercher la balise <img ... src="url" ...> et injecter les attributs
+            StringBuilder style = new StringBuilder();
+            if (dims[0] > 0) style.append("width:").append(dims[0]).append("px;");
+            if (dims[1] > 0) style.append("height:").append(dims[1]).append("px;");
+            if (style.length() > 0) {
+                // Chercher la balise <img ... src="url" ...> et injecter un style inline
                 String escaped = Pattern.quote(url);
                 html = html.replaceAll(
                         "(<img\\s[^>]*src=\"" + escaped + "\")",
-                        "$1" + Matcher.quoteReplacement(attrs.toString()));
+                        "$1 style=\"" + Matcher.quoteReplacement(style.toString()) + "\"");
             }
         }
         return html;
