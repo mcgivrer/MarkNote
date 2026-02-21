@@ -289,3 +289,32 @@
     -fx-text-fill: #586e75;
     -fx-font-size: 10px;
 }
+
+/* === Front Matter Panel === */
+.front-matter-panel {
+    -fx-border-color: #073642;
+    -fx-border-width: 0 0 1 0;
+}
+
+.front-matter-panel > .title {
+    -fx-background-color: #073642;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.front-matter-panel > .content {
+    -fx-background-color: #002b36;
+}
+
+.front-matter-panel .label {
+    -fx-text-fill: #93a1a1;
+    -fx-font-size: 12px;
+}
+
+.front-matter-panel .text-field {
+    -fx-background-color: #073642;
+    -fx-text-fill: #93a1a1;
+    -fx-border-color: #586e75;
+    -fx-border-radius: 3px;
+    -fx-font-size: 12px;
+}

@@ -285,12 +285,12 @@ public class MarkNote extends Application {
         // Mettre à jour la preview quand on change d'onglet
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
-                previewPanel.updatePreview(docTab.getTextContent());
+                previewPanel.updatePreview(docTab.getFullContent());
             }
         });
 
         // Initial preview
-        previewPanel.updatePreview(tab.getTextContent());
+        previewPanel.updatePreview(tab.getFullContent());
     }
 
     /**

@@ -12,8 +12,19 @@
 - [x] Ajouter un SpashScreen avec Nom de l'application, version, auteur, contact et copyright ( command dans "about")
 - [x] Ajouter le support de plantuml et de mermaid,
 - [x] Ajouter le support de MathML,
-- [ ] Ajouter un editeur de "Front Matter" pour les docs Markdown.
+- [x] Ajouter un editeur de "Front Matter" pour les docs Markdown (voir plus bas).
 - [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options. 
 - [ ] Ajouter le support de template de pages
 - [ ] Ajouter un panel "Assistant" permettant la connexion à un LLM via un MCP agent (ajouter un onlget "MCP agent" dans le dialogue "Options" pour configurer url, parameètres et clé d'API).
  
+## Front Matter
+
+ maintenant je souhaite ajouter le support des attributes de "Front Matter" dans le fichier markdown, ainsi on peu ajouter des attributs:
+- `title` pour le titre de l'article (il devra être utilisé dans l'explorateur de projet si celui-ci existe)
+- `author` un auteur ou une liste d'auteurs
+- `created_at` la date de création de la note au `formaat YYYY-MM-DD (hh:mm)`   l'heure étant optionnelle,
+- `tags` une liste de tag `[tag2,tag2,tag3]`
+- `summary` un résumé de l'article/de la note (optionel)
+- `draft` status de la note (si elle est publiée ou non: publiée si draft=false)
+
+> **IMPORTANT** Tous ces élément pourront être utilisé plus tard dans un moteur de recherche de note.

@@ -278,3 +278,31 @@
     -fx-text-fill: #aaaaaa;
     -fx-font-size: 10px;
 }
+
+/* === Front Matter Panel === */
+.front-matter-panel {
+    -fx-border-color: #deddda;
+    -fx-border-width: 0 0 1 0;
+}
+
+.front-matter-panel > .title {
+    -fx-background-color: #f0efee;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.front-matter-panel > .content {
+    -fx-background-color: #fafaf9;
+}
+
+.front-matter-panel .label {
+    -fx-text-fill: #555555;
+    -fx-font-size: 12px;
+}
+
+.front-matter-panel .text-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #deddda;
+    -fx-border-radius: 3px;
+    -fx-font-size: 12px;
+}
