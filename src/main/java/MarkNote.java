@@ -66,6 +66,7 @@ public class MarkNote extends Application {
     // Panels et SplitPanes pour la gestion de l'affichage
     private SplitPane mainSplit;
     private SplitPane editorSplit;
+    private SplitPane leftSplit;
 
     public static void main(String[] args) {
         launch(args);
@@ -176,7 +177,7 @@ public class MarkNote extends Application {
         });
 
         // Conteneur gauche : explorateur + tag cloud + diagramme réseau (redimensionnable)
-        SplitPane leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
+        leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
         leftSplit.setOrientation(Orientation.VERTICAL);
         leftSplit.setDividerPositions(0.55, 0.78);
 
@@ -330,17 +331,14 @@ public class MarkNote extends Application {
         showTagCloud.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
         showTagCloud.setSelected(true);
         showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            javafx.scene.Parent leftPane = tagCloudPanel.getParent();
-            if (leftPane instanceof SplitPane leftSplit) {
-                if (isSelected) {
-                    if (!leftSplit.getItems().contains(tagCloudPanel)) {
-                        // Insérer après l'explorateur (index 1) ou en fin
-                        int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
-                        leftSplit.getItems().add(idx + 1, tagCloudPanel);
-                    }
-                } else {
-                    leftSplit.getItems().remove(tagCloudPanel);
+            if (isSelected) {
+                if (!leftSplit.getItems().contains(tagCloudPanel)) {
+                    // Insérer après l'explorateur (index 1) ou en fin
+                    int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
+                    leftSplit.getItems().add(idx + 1, tagCloudPanel);
                 }
+            } else {
+                leftSplit.getItems().remove(tagCloudPanel);
             }
         });
 
@@ -351,15 +349,12 @@ public class MarkNote extends Application {
         showNetworkDiagram.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
         showNetworkDiagram.setSelected(true);
         showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            javafx.scene.Parent leftPane = visualLinkPanel.getParent();
-            if (leftPane instanceof SplitPane leftSplit) {
-                if (isSelected) {
-                    if (!leftSplit.getItems().contains(visualLinkPanel)) {
-                        leftSplit.getItems().add(visualLinkPanel);
-                    }
-                } else {
-                    leftSplit.getItems().remove(visualLinkPanel);
+            if (isSelected) {
+                if (!leftSplit.getItems().contains(visualLinkPanel)) {
+                    leftSplit.getItems().add(visualLinkPanel);
                 }
+            } else {
+                leftSplit.getItems().remove(visualLinkPanel);
             }
         });
 

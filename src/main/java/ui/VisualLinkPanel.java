@@ -62,6 +62,7 @@ public class VisualLinkPanel extends BasePanel {
     private AnimationTimer timer;
     private boolean stable = false;
     private int stableFrames = 0;
+    private boolean fitDone = false;
 
     // ── Interaction ─────────────────────────────────────────────
     private static final double EDGE_HIT_TOLERANCE = 6.0;
@@ -126,6 +127,18 @@ public class VisualLinkPanel extends BasePanel {
         setupInteraction();
         setContent(canvasContainer);
         setPrefHeight(250);
+
+        // Recentrer quand le panel redevient visible
+        visibleProperty().addListener((o, ov, nv) -> {
+            if (nv && !nodes.isEmpty()) {
+                zoomToFit();
+            }
+        });
+        sceneProperty().addListener((o, ov, nv) -> {
+            if (nv != null && !nodes.isEmpty()) {
+                zoomToFit();
+            }
+        });
     }
 
     // ── Interaction souris ──────────────────────────────────────
@@ -176,6 +189,13 @@ public class VisualLinkPanel extends BasePanel {
         });
 
         canvas.setOnMouseClicked(e -> {
+            // Ctrl+Clic gauche → recentrer le diagramme
+            if (e.getButton() == MouseButton.PRIMARY && e.isControlDown()) {
+                zoomToFit();
+                e.consume();
+                return;
+            }
+
             if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 1 && !wasDragging) {
                 if (onDocumentClick == null) return;
 
@@ -208,23 +228,29 @@ public class VisualLinkPanel extends BasePanel {
             }
         });
 
-        canvas.setOnScroll((ScrollEvent e) -> {
-            double factor = e.getDeltaY() > 0 ? 1.1 : 0.9;
-            double newZoom = zoom * factor;
-            newZoom = Math.max(0.2, Math.min(5.0, newZoom));
-            if (newZoom == zoom) {
-                e.consume();
-                return;
-            }
-            double actualFactor = newZoom / zoom;
-            // Zoom centré sur la position de la souris
-            double mx = e.getX(), my = e.getY();
-            panX = mx - actualFactor * (mx - panX);
-            panY = my - actualFactor * (my - panY);
-            zoom = newZoom;
-            draw();
+        canvas.setOnScroll((ScrollEvent e) -> e.consume());
+        // Intercepter le scroll au niveau du panel lui-même
+        // (avant que le SplitPane parent ne le capture)
+        this.addEventFilter(ScrollEvent.SCROLL, this::handleZoomScroll);
+    }
+
+    private void handleZoomScroll(ScrollEvent e) {
+        double factor = e.getDeltaY() > 0 ? 1.15 : 1.0 / 1.15;
+        double newZoom = zoom * factor;
+        newZoom = Math.max(0.1, Math.min(8.0, newZoom));
+        if (Math.abs(newZoom - zoom) < 1e-9) {
             e.consume();
-        });
+            return;
+        }
+        double actualFactor = newZoom / zoom;
+        // Zoom centré sur la position de la souris dans le canvas
+        var localPt = canvas.sceneToLocal(e.getSceneX(), e.getSceneY());
+        double mx = localPt.getX(), my = localPt.getY();
+        panX = mx - actualFactor * (mx - panX);
+        panY = my - actualFactor * (my - panY);
+        zoom = newZoom;
+        draw();
+        e.consume();
     }
 
     private double toWorldX(double screenX) {
@@ -412,6 +438,7 @@ public class VisualLinkPanel extends BasePanel {
         zoom = 1.0;
         stable = false;
         stableFrames = 0;
+        fitDone = false;
         startSimulation();
     }
 
@@ -435,6 +462,10 @@ public class VisualLinkPanel extends BasePanel {
                 if (stable) {
                     stableFrames++;
                     if (stableFrames > 60) {
+                        if (!fitDone) {
+                            zoomToFit();
+                            fitDone = true;
+                        }
                         stopSimulation();
                     }
                 }
@@ -680,5 +711,53 @@ public class VisualLinkPanel extends BasePanel {
      */
     public void setOnDocumentClick(Consumer<String> action) {
         this.onDocumentClick = action;
+    }
+
+    /**
+     * Ajuste le zoom et le pan pour que tous les nœuds remplissent
+     * l'espace disponible du canvas avec une marge.
+     */
+    public void zoomToFit() {
+        if (nodes.isEmpty()) return;
+
+        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
+        double maxX = -Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+        for (GraphNode node : nodes) {
+            minX = Math.min(minX, node.x);
+            minY = Math.min(minY, node.y);
+            maxX = Math.max(maxX, node.x);
+            maxY = Math.max(maxY, node.y);
+        }
+
+        double graphW = maxX - minX;
+        double graphH = maxY - minY;
+        double cw = canvas.getWidth();
+        double ch = canvas.getHeight();
+        if (cw < 1 || ch < 1) return;
+
+        double margin = 40; // marge en pixels
+        double availW = cw - margin * 2;
+        double availH = ch - margin * 2;
+        if (availW < 1 || availH < 1) return;
+
+        // Calculer le zoom pour remplir l'espace
+        if (graphW < 1 && graphH < 1) {
+            zoom = 1.0;
+        } else if (graphW < 1) {
+            zoom = availH / graphH;
+        } else if (graphH < 1) {
+            zoom = availW / graphW;
+        } else {
+            zoom = Math.min(availW / graphW, availH / graphH);
+        }
+        zoom = Math.max(0.1, Math.min(8.0, zoom));
+
+        // Centrer le graphe dans le canvas
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+        panX = cw / 2.0 - centerX * zoom;
+        panY = ch / 2.0 - centerY * zoom;
+
+        draw();
     }
 }
