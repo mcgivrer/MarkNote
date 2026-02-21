@@ -17,6 +17,7 @@ import ui.SplashScreen;
 import ui.StatusBar;
 import ui.TagCloudPanel;
 import ui.ThemeTab;
+import ui.VisualLinkPanel;
 import ui.WelcomeTab;
 import utils.DocumentService;
 import utils.IndexService;
@@ -55,6 +56,7 @@ public class MarkNote extends Application {
     private PreviewPanel previewPanel;
     private ProjectExplorerPanel projectExplorerPanel;
     private TagCloudPanel tagCloudPanel;
+    private VisualLinkPanel visualLinkPanel;
     private SearchBox searchBox;
     private StatusBar statusBar;
     private IndexService indexService;
@@ -64,6 +66,7 @@ public class MarkNote extends Application {
     // Panels et SplitPanes pour la gestion de l'affichage
     private SplitPane mainSplit;
     private SplitPane editorSplit;
+    private SplitPane leftSplit;
 
     public static void main(String[] args) {
         launch(args);
@@ -110,6 +113,17 @@ public class MarkNote extends Application {
         // Tag cloud panel (sous l'explorateur)
         tagCloudPanel = new TagCloudPanel();
 
+        // Visual link panel (diagramme réseau)
+        visualLinkPanel = new VisualLinkPanel();
+        visualLinkPanel.setOnDocumentClick(relativePath -> {
+            File projectDir = projectExplorerPanel.getProjectDirectory();
+            if (projectDir != null) {
+                openFileInTab(new File(projectDir, relativePath));
+            }
+        });
+        visualLinkPanel.setIndexService(indexService);
+        visualLinkPanel.setOnFileSelected(this::openFileInTab);
+
         // Search box (dans la barre du haut)
         searchBox = new SearchBox();
         searchBox.setIndexService(indexService);
@@ -123,6 +137,7 @@ public class MarkNote extends Application {
         indexService.setOnFinished(() -> {
             statusBar.setIndexIdle();
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
             updateStatusBarStats();
         });
 
@@ -136,10 +151,12 @@ public class MarkNote extends Application {
         projectExplorerPanel.setOnFileCreated(file -> {
             indexService.updateFile(file);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFileRenamed((oldFile, newFile) -> {
             indexService.handleRename(oldFile, newFile);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFileDeleted(file -> {
             if (file.isDirectory()) {
@@ -148,20 +165,23 @@ public class MarkNote extends Application {
                 indexService.removeFile(file);
             }
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFilesMoved((sourceFiles, targetDir) -> {
             indexService.handleMove(sourceFiles, targetDir);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFilesCopied((sourceFiles, targetDir) -> {
             indexService.handleCopy(sourceFiles, targetDir);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
 
-        // Conteneur gauche : explorateur + tag cloud (redimensionnable)
-        SplitPane leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel);
+        // Conteneur gauche : explorateur + tag cloud + diagramme réseau (redimensionnable)
+        leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
         leftSplit.setOrientation(Orientation.VERTICAL);
-        leftSplit.setDividerPositions(0.75);
+        leftSplit.setDividerPositions(0.55, 0.78);
 
         // SplitPane éditeur | preview
         editorSplit = new SplitPane(mainTabPane, previewPanel);
@@ -260,9 +280,13 @@ public class MarkNote extends Application {
         quitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
         quitItem.setOnAction(e -> Platform.exit());
 
+        MenuItem closeTabItem = new MenuItem(messages.getString("menu.file.close"));
+        closeTabItem.setAccelerator(KeyCombination.keyCombination("Ctrl+W"));
+        closeTabItem.setOnAction(e -> closeActiveTab());
+
         fileMenu.getItems().addAll(newDocItem, new SeparatorMenuItem(), openProjectItem, openItem,
                 new SeparatorMenuItem(), recentMenu, new SeparatorMenuItem(), saveItem, saveAsItem,
-                new SeparatorMenuItem(), quitItem);
+                new SeparatorMenuItem(), closeTabItem, quitItem);
 
         // == Menu Affichage ==
         Menu viewMenu = new Menu(messages.getString("menu.view"));
@@ -305,11 +329,47 @@ public class MarkNote extends Application {
         // Bouton [x] du preview décoche le menu
         previewPanel.setOnClose(() -> showPreviewPanel.setSelected(false));
 
+        CheckMenuItem showTagCloud = new CheckMenuItem(messages.getString("menu.view.tagCloud"));
+        showTagCloud.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
+        showTagCloud.setSelected(true);
+        showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            if (isSelected) {
+                if (!leftSplit.getItems().contains(tagCloudPanel)) {
+                    // Insérer après l'explorateur (index 1) ou en fin
+                    int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
+                    leftSplit.getItems().add(idx + 1, tagCloudPanel);
+                }
+            } else {
+                leftSplit.getItems().remove(tagCloudPanel);
+            }
+        });
+
+        // Bouton [x] du tag cloud décoche le menu
+        tagCloudPanel.setOnClose(() -> showTagCloud.setSelected(false));
+
+        CheckMenuItem showNetworkDiagram = new CheckMenuItem(messages.getString("menu.view.networkDiagram"));
+        showNetworkDiagram.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
+        showNetworkDiagram.setSelected(true);
+        showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            if (isSelected) {
+                if (!leftSplit.getItems().contains(visualLinkPanel)) {
+                    leftSplit.getItems().add(visualLinkPanel);
+                }
+            } else {
+                leftSplit.getItems().remove(visualLinkPanel);
+            }
+        });
+
+        // Bouton [x] du diagramme réseau décoche le menu
+        visualLinkPanel.setOnClose(() -> showNetworkDiagram.setSelected(false));
+
         // Option Afficher Welcome
         MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
         showWelcomeItem.setOnAction(e -> showWelcomeTab());
 
-        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, showWelcomeItem);
+        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel,
+                new SeparatorMenuItem(), showTagCloud, showNetworkDiagram,
+                new SeparatorMenuItem(), showWelcomeItem);
 
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
@@ -335,6 +395,21 @@ public class MarkNote extends Application {
         setupDocumentTab(tab);
         mainTabPane.getTabs().add(tab);
         mainTabPane.getSelectionModel().select(tab);
+    }
+
+    /**
+     * Ferme l'onglet actif (avec confirmation si modifié).
+     */
+    private void closeActiveTab() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            // Déclencher la logique de fermeture existante (onCloseRequest)
+            var closeEvent = new javafx.event.Event(javafx.scene.control.Tab.TAB_CLOSE_REQUEST_EVENT);
+            javafx.event.Event.fireEvent(selected, closeEvent);
+            if (!closeEvent.isConsumed()) {
+                mainTabPane.getTabs().remove(selected);
+            }
+        }
     }
 
     /**
@@ -500,6 +575,7 @@ public class MarkNote extends Application {
             indexService.buildIndexAsync(projectDir);
         } else {
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
             updateStatusBarStats();
         }
     }
