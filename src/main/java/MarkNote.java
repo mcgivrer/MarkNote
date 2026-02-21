@@ -12,10 +12,14 @@ import ui.ImagePreviewTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
+import ui.SearchBox;
 import ui.SplashScreen;
+import ui.StatusBar;
+import ui.TagCloudPanel;
 import ui.ThemeTab;
 import ui.WelcomeTab;
 import utils.DocumentService;
+import utils.IndexService;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -32,6 +36,10 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -47,6 +55,10 @@ public class MarkNote extends Application {
     private TabPane mainTabPane;
     private PreviewPanel previewPanel;
     private ProjectExplorerPanel projectExplorerPanel;
+    private TagCloudPanel tagCloudPanel;
+    private SearchBox searchBox;
+    private StatusBar statusBar;
+    private IndexService indexService;
     private AppConfig config;
     private Menu recentMenu;
 
@@ -93,21 +105,87 @@ public class MarkNote extends Application {
         projectExplorerPanel = new ProjectExplorerPanel();
         projectExplorerPanel.setOnFileDoubleClick(this::openFileInTab);
 
+        // Index service
+        indexService = new IndexService();
+
+        // Tag cloud panel (sous l'explorateur)
+        tagCloudPanel = new TagCloudPanel();
+
+        // Search box (dans la barre du haut)
+        searchBox = new SearchBox();
+        searchBox.setIndexService(indexService);
+        searchBox.setOnFileSelected(this::openFileInTab);
+
+        // Status bar (en bas de la fenêtre)
+        statusBar = new StatusBar();
+
+        // Callbacks de progression de l'indexation
+        indexService.setOnProgress(progress -> statusBar.setIndexProgress(progress));
+        indexService.setOnFinished(() -> {
+            statusBar.setIndexIdle();
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+            updateStatusBarStats();
+        });
+
+        // Tag cloud : clic sur un tag → recherche
+        tagCloudPanel.setOnTagClick(tag -> searchBox.setSearchText(tag));
+
+        // Reset index depuis le menu contextuel de l'explorateur
+        projectExplorerPanel.setOnResetIndex(this::handleResetIndex);
+
+        // Index updates: fichier créé, renommé, supprimé, déplacé, copié
+        projectExplorerPanel.setOnFileCreated(file -> {
+            indexService.updateFile(file);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFileRenamed((oldFile, newFile) -> {
+            indexService.handleRename(oldFile, newFile);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFileDeleted(file -> {
+            if (file.isDirectory()) {
+                indexService.removeFilesUnder(file);
+            } else {
+                indexService.removeFile(file);
+            }
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFilesMoved((sourceFiles, targetDir) -> {
+            indexService.handleMove(sourceFiles, targetDir);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFilesCopied((sourceFiles, targetDir) -> {
+            indexService.handleCopy(sourceFiles, targetDir);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+
+        // Conteneur gauche : explorateur + tag cloud
+        VBox leftPane = new VBox(projectExplorerPanel, tagCloudPanel);
+        VBox.setVgrow(projectExplorerPanel, Priority.ALWAYS);
+
         // SplitPane éditeur | preview
         editorSplit = new SplitPane(mainTabPane, previewPanel);
         editorSplit.setOrientation(Orientation.HORIZONTAL);
         editorSplit.setDividerPositions(0.5);
 
         // SplitPane principal : explorateur | éditeur/preview
-        mainSplit = new SplitPane(projectExplorerPanel, editorSplit);
+        mainSplit = new SplitPane(leftPane, editorSplit);
         mainSplit.setOrientation(Orientation.HORIZONTAL);
         mainSplit.setDividerPositions(0.2);
 
         root.setCenter(mainSplit);
 
-        // Menu Bar
+        // Status bar en bas
+        root.setBottom(statusBar);
+
+        // Menu Bar + Search Box
         MenuBar menuBar = createMenuBar();
-        root.setTop(menuBar);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox topBar = new HBox(menuBar, spacer, searchBox);
+        topBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        HBox.setHgrow(menuBar, Priority.NEVER);
+        root.setTop(topBar);
 
         Scene scene = new Scene(root, 1200, 700);
         applyTheme(scene);
@@ -192,13 +270,17 @@ public class MarkNote extends Application {
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
         showProjectPanel.setSelected(true);
         showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            // The project explorer and tag cloud are in a VBox (leftPane).
+            // We need to find it — it's the parent of projectExplorerPanel.
+            javafx.scene.Parent leftPane = projectExplorerPanel.getParent();
+            if (leftPane == null) leftPane = projectExplorerPanel; // fallback
             if (isSelected) {
-                if (!mainSplit.getItems().contains(projectExplorerPanel)) {
-                    mainSplit.getItems().addFirst(projectExplorerPanel);
+                if (!mainSplit.getItems().contains(leftPane)) {
+                    mainSplit.getItems().addFirst(leftPane);
                     mainSplit.setDividerPositions(0.2);
                 }
             } else {
-                mainSplit.getItems().remove(projectExplorerPanel);
+                mainSplit.getItems().remove(leftPane);
             }
         });
 
@@ -268,6 +350,7 @@ public class MarkNote extends Application {
             primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
             config.addRecentDir(dir);
             refreshRecentMenu();
+            loadOrBuildIndex(dir);
         });
         mainTabPane.getTabs().add(0, welcomeTab);
         mainTabPane.getSelectionModel().select(welcomeTab);
@@ -291,18 +374,32 @@ public class MarkNote extends Application {
         tab.setOnTextChanged(text -> {
             if (mainTabPane.getSelectionModel().getSelectedItem() == tab) {
                 previewPanel.updatePreview(text);
+                updateStatusBarForTab(tab);
             }
         });
 
-        // Mettre à jour la preview quand on change d'onglet
+        // Suivre la position du curseur dans l'éditeur
+        tab.getEditor().caretPositionProperty().addListener((obs, oldPos, newPos) -> {
+            if (mainTabPane.getSelectionModel().getSelectedItem() == tab) {
+                updateStatusBarForTab(tab);
+            }
+        });
+
+        // Mettre à jour la preview et la statusbar quand on change d'onglet
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
                 previewPanel.updatePreview(docTab.getFullContent());
+                updateStatusBarForTab(docTab);
+            } else {
+                statusBar.clearDocumentInfo();
+                statusBar.updateStats(
+                        indexService.getEntries().size(), 0, 0);
             }
         });
 
         // Initial preview
         previewPanel.updatePreview(tab.getFullContent());
+        updateStatusBarForTab(tab);
     }
 
     /**
@@ -384,7 +481,36 @@ public class MarkNote extends Application {
             primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
             config.addRecentDir(dir);
             refreshRecentMenu();
+            loadOrBuildIndex(dir);
         }
+    }
+
+    /**
+     * Charge l'index existant ou en construit un nouveau pour le projet.
+     * L'indexation complète s'exécute dans un thread séparé.
+     */
+    private void loadOrBuildIndex(File projectDir) {
+        if (projectDir == null) return;
+        if (!indexService.loadIndex(projectDir)) {
+            statusBar.setIndexProgress(-1);
+            indexService.buildIndexAsync(projectDir);
+        } else {
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+            updateStatusBarStats();
+        }
+    }
+
+    /**
+     * Réinitialise l'index du projet : supprime le fichier d'index,
+     * reconstruit l'index en arrière-plan et met à jour le tag cloud.
+     */
+    private void handleResetIndex() {
+        File projectDir = projectExplorerPanel.getProjectDirectory();
+        if (projectDir == null) return;
+        indexService.resetIndex(projectDir);
+        statusBar.setIndexProgress(-1);
+        indexService.buildIndexAsync(projectDir);
+        projectExplorerPanel.refresh();
     }
 
     /**
@@ -400,6 +526,9 @@ public class MarkNote extends Application {
                 // Rafraîchir l'arbre si le fichier est dans le projet
                 if (projectDir != null && docTab.getFile().toPath().startsWith(projectDir.toPath())) {
                     projectExplorerPanel.refresh();
+                    // Mettre à jour l'index pour ce fichier
+                    indexService.updateFile(docTab.getFile());
+                    tagCloudPanel.updateTags(indexService.getTagCounts());
                 }
             }
         }
@@ -467,6 +596,7 @@ public class MarkNote extends Application {
                         primaryStage.setTitle(messages.getString("app.title") + " - " + d.getName());
                         config.addRecentDir(d);
                         refreshRecentMenu();
+                        loadOrBuildIndex(d);
                     } else {
                         showError(messages.getString("error.dirNotFound.title"),
                                 MessageFormat.format(messages.getString("error.dirNotFound.message"), path));
@@ -504,6 +634,7 @@ public class MarkNote extends Application {
                     projectExplorerPanel.setProjectDirectory(lastDir);
                     previewPanel.setBaseDirectory(lastDir);
                     primaryStage.setTitle(messages.getString("app.title") + " - " + lastDir.getName());
+                    loadOrBuildIndex(lastDir);
                 }
             }
         }
@@ -615,5 +746,55 @@ public class MarkNote extends Application {
         alert.setTitle(title);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    // ── Status bar helpers ──────────────────────────────────────────
+
+    /**
+     * Met à jour la statusbar pour l'onglet de document donné :
+     * nom du fichier, position du curseur, comptage de lignes et de mots.
+     */
+    private void updateStatusBarForTab(DocumentTab tab) {
+        if (tab == null) return;
+
+        // Nom du fichier
+        String filename = tab.getFile() != null ? tab.getFile().getName() : tab.getText().replaceFirst("^\\*", "");
+
+        // Position du curseur
+        var editor = tab.getEditor();
+        int caretPos = editor.getCaretPosition();
+        String text = editor.getText();
+
+        int line = 1;
+        int col = 1;
+        for (int i = 0; i < caretPos && i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                line++;
+                col = 1;
+            } else {
+                col++;
+            }
+        }
+
+        statusBar.updateDocumentInfo(filename, line, col);
+
+        // Statistiques
+        int totalLines = text.isEmpty() ? 0 : (int) text.lines().count();
+        int words = text.isBlank() ? 0 : text.trim().split("\\s+").length;
+        int docs = indexService.getEntries().size();
+        statusBar.updateStats(docs, totalLines, words);
+    }
+
+    /**
+     * Met à jour uniquement les statistiques de la statusbar
+     * (après un changement d'index, par exemple).
+     */
+    private void updateStatusBarStats() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        if (selected instanceof DocumentTab docTab) {
+            updateStatusBarForTab(docTab);
+        } else {
+            statusBar.updateStats(indexService.getEntries().size(), 0, 0);
+        }
     }
 }

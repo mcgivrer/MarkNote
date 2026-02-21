@@ -291,3 +291,37 @@
     -fx-border-radius: 3px;
     -fx-font-size: 12px;
 }
+
+/* ── Status bar ── */
+
+.status-bar {
+    -fx-background-color: #eee8d5;
+    -fx-border-color: #93a1a1 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-min-height: 24px;
+    -fx-max-height: 24px;
+}
+
+.status-bar .status-section {
+    -fx-text-fill: #586e75;
+    -fx-font-size: 11px;
+}
+
+.status-bar .separator *.line {
+    -fx-border-color: #93a1a1;
+}
+
+.status-bar .status-progress {
+    -fx-accent: #268bd2;
+}
+
+.status-bar .status-progress .track {
+    -fx-background-color: #fdf6e3;
+    -fx-border-color: #93a1a1;
+    -fx-border-radius: 2px;
+}
+
+.status-bar .status-progress .bar {
+    -fx-background-color: #268bd2;
+    -fx-background-radius: 2px;
+}

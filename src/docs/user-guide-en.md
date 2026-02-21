@@ -9,12 +9,15 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 3. [Main Interface](#main-interface)
 4. [Working with Documents](#working-with-documents)
 5. [Project Explorer](#project-explorer)
-6. [Live Preview](#live-preview)
-7. [Splash Screen & About](#splash-screen--about)
-8. [Themes](#themes)
-9. [Options & Settings](#options--settings)
-10. [Keyboard Shortcuts](#keyboard-shortcuts)
-11. [Troubleshooting](#troubleshooting)
+6. [Search & Indexing](#search--indexing)
+7. [Tag Cloud](#tag-cloud)
+8. [Status Bar](#status-bar)
+9. [Live Preview](#live-preview)
+10. [Splash Screen & About](#splash-screen--about)
+11. [Themes](#themes)
+12. [Options & Settings](#options--settings)
+13. [Keyboard Shortcuts](#keyboard-shortcuts)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -32,6 +35,10 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Mermaid Diagrams** - Render Mermaid flowcharts, sequences, and more in the preview
 - **Math Equations** - LaTeX/MathML support via KaTeX (`$...$` inline, `$$...$$` block)
 - **Project Explorer** - Browse and manage your project files
+- **Project Indexing** - Automatic indexing of Markdown files by front matter and filenames
+- **Search** - Instant full-text search across indexed documents with live results popup
+- **Tag Cloud** - Visual tag cloud showing tag frequency; click to search
+- **Status Bar** - Document info, statistics, and indexing progress at the bottom of the window
 - **Multi-document Tabs** - Work on multiple files simultaneously
 - **Theme Support** - Built-in themes with custom theme creation
 - **Splash Screen** - Themed splash screen at startup (configurable)
@@ -77,14 +84,18 @@ MarkNote's interface is divided into three main areas:
 
 ![Main Interface](illustrations/main-interface.svg)
 
-### 1. Project Explorer (Left Panel)
+### 1. Project Explorer & Tag Cloud (Left Panel)
 
-Displays your project's file structure in a tree view. You can:
-- Navigate through folders
-- Double-click files to open them
-- Right-click for context menu options
+The left panel contains two sub-panels:
 
-### 2. Editor (Center Panel)
+- **Project Explorer** (top) - Displays your project's file structure in a tree view. Navigate through folders, double-click files to open them, and right-click for context menu options.
+- **Tag Cloud** (bottom) - Shows all tags found in your project's Markdown front matter, with font size proportional to frequency. Click a tag to search for it.
+
+### 2. Search Box (Top Bar)
+
+Located to the right of the menu bar, the search box lets you instantly search across all indexed documents. Results appear in a popup as you type.
+
+### 3. Editor (Center Panel)
 
 The main editing area where you write your Markdown. Features include:
 - Syntax highlighting for Markdown elements
@@ -92,12 +103,19 @@ The main editing area where you write your Markdown. Features include:
 - Undo/Redo support
 - Line numbers (optional)
 
-### 3. Preview Panel (Right Panel)
+### 4. Preview Panel (Right Panel)
 
 Shows the rendered HTML output of your Markdown in real-time. Features:
 - Navigation buttons (back/forward through history)
 - Refresh button
 - Clickable links that navigate within your project
+
+### 5. Status Bar (Bottom)
+
+A thin bar at the bottom of the window showing:
+- **Document name** and **cursor position** (line:column) on the left
+- **Statistics** (document count, line count, word count) in the center
+- **Indexing progress bar** on the right (visible only during indexing)
 
 ### Toggling Panels
 
@@ -166,6 +184,7 @@ Right-click on files or folders to access:
 | **New folder** | Create a new subfolder |
 | **Rename...** | Rename the selected item |
 | **Delete** | Delete the selected item (with confirmation) |
+| **Rebuild index** | Rebuild the project search index (root folder only) |
 
 ### Drag and Drop
 
@@ -180,6 +199,123 @@ Right-click on files or folders to access:
 | Text | `.txt`, `.text` | Opens in editor |
 | Images | `.png`, `.jpg`, `.gif`, `.svg` | Opens in image preview |
 | CSS | `.css` | Opens with CSS syntax highlighting |
+
+---
+
+## Search & Indexing
+
+MarkNote automatically indexes all Markdown files in your project to enable fast searching.
+
+![Search Box](illustrations/search-box.svg)
+
+### How Indexing Works
+
+When you open a project, MarkNote scans all Markdown files and extracts metadata from their YAML front matter:
+
+```yaml
+---
+title: Getting Started Guide
+tags: tutorial, beginner, guide
+authors: John Doe
+summary: A step-by-step introduction to MarkNote
+uuid: 550e8400-e29b-41d4-a716-446655440000
+draft: false
+---
+```
+
+The index is stored as a `.marknote-index.json` file in your project root (hidden from the Project Explorer).
+
+### Incremental Updates
+
+The index is automatically kept up to date:
+- **Creating a file** - The new file is immediately indexed
+- **Saving a file** - Front matter changes are re-indexed
+- **Renaming a file** - The index entry is updated
+- **Moving files** - Paths are updated in the index
+- **Deleting a file** - The entry is removed from the index
+- **Copying files** - New entries are added for the copies
+
+### Using the Search Box
+
+The search box is located in the top-right corner of the menu bar:
+
+1. Click the search field or start typing
+2. Results appear instantly in a dropdown popup
+3. Each result shows:
+   - **Document title** (bold)
+   - **Match type** (e.g., "title: ...", "tag: ...", "filename: ...")
+   - **File path** (relative to the project root)
+4. Click a result or press `Enter` to open the document
+5. Press `Escape` to dismiss the results
+
+Search matches against:
+- Document title
+- Filename
+- Tags
+- Summary
+- Authors
+- UUID
+
+### Rebuilding the Index
+
+If the index becomes out of sync, you can rebuild it:
+
+1. Right-click on the **root folder** in the Project Explorer
+2. Select **Rebuild index**
+3. The index will be regenerated from scratch
+
+> **Note:** The "Rebuild index" option only appears on the root project folder.
+
+---
+
+## Tag Cloud
+
+The Tag Cloud panel provides a visual overview of all tags used across your project.
+
+![Tag Cloud](illustrations/tag-cloud.svg)
+
+### How It Works
+
+The Tag Cloud displays all tags extracted from your documents' YAML front matter (`tags:` field). Each tag is displayed as a clickable label with:
+
+- **Font size proportional to frequency** - Tags used in many documents appear larger (up to 28px), while rare tags appear smaller (down to 11px)
+- **Color variation** - Tags are displayed in different colors for visual distinction
+
+### Interacting with Tags
+
+- **Click a tag** to immediately search for all documents tagged with it. The search term is entered in the Search Box and matching results are shown.
+- **Hover** over a tag to see it highlighted
+
+### Tag Cloud Location
+
+The Tag Cloud panel appears below the Project Explorer in the left panel. It can be closed using the **×** button in its header.
+
+### Keeping Tags Updated
+
+The Tag Cloud updates automatically whenever the project index changes:
+- Opening a project
+- Creating, saving, renaming, or deleting documents
+- Rebuilding the index
+
+---
+
+## Status Bar
+
+The status bar is displayed at the bottom of the main window and provides at-a-glance information about your current work.
+
+![Status Bar](illustrations/status-bar.svg)
+
+### Sections
+
+| Section | Content |
+|---------|----------|
+| **Document & Position** | Name of the active document and cursor position (Ln/Col) |
+| **Statistics** | Number of indexed documents, lines in the current document, and word count |
+| **Indexing Progress** | A progress bar shown while the indexing service is running |
+
+### Background Indexing
+
+When a full index build or rebuild is triggered, the indexing runs in a **background thread** so that your editing is never interrupted. The progress bar shows the indexation progress in real-time. Once complete, the status returns to "Ready".
 
 ---
 
