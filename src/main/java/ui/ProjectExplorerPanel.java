@@ -313,7 +313,7 @@ public class ProjectExplorerPanel extends BasePanel {
                 // Ne pas permettre de déplacer la racine
                 if (selectedItems.stream().anyMatch(item -> item == treeView.getRoot())) return;
                 
-                Dragboard dragboard = startDragAndDrop(TransferMode.MOVE);
+                Dragboard dragboard = startDragAndDrop(TransferMode.COPY, TransferMode.MOVE, TransferMode.LINK);
                 ClipboardContent content = new ClipboardContent();
                 
                 List<File> files = selectedItems.stream()

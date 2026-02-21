@@ -129,6 +129,14 @@ public class PreviewPanel extends BasePanel {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                    } else if (location.startsWith("marknote-link:")) {
+                        // Lien vers un document par UUID
+                        webView.getEngine().getLoadWorker().cancel();
+                        String uuid = location.substring("marknote-link:".length());
+                        File target = findFileByUuid(uuid);
+                        if (target != null && onMarkdownLinkClick != null) {
+                            onMarkdownLinkClick.accept(target);
+                        }
                     }
                 }
             }
@@ -245,6 +253,13 @@ public class PreviewPanel extends BasePanel {
                                             border-radius: 3px; padding: 1px 6px; margin: 1px 2px;
                                             font-size: 0.85em; }
                     .front-matter .fm-draft { color: #d9534f; font-weight: bold; }
+                    .front-matter .fm-link { display: inline-block; background: rgba(0,120,215,0.12);
+                                             border-radius: 3px; padding: 1px 6px; margin: 1px 2px;
+                                             font-size: 0.85em; text-decoration: none; color: #0078d7; }
+                    .front-matter .fm-link:hover { text-decoration: underline; background: rgba(0,120,215,0.2); }
+                    .front-matter .fm-summary { cursor: pointer; font-weight: bold; font-size: 0.9em;
+                                                color: #666; padding: 0.2em 0; }
+                    .front-matter .fm-summary:hover { color: #333; }
                   </style>
                 </head>
                 <body>%s%s
@@ -385,12 +400,24 @@ public class PreviewPanel extends BasePanel {
      */
     private String renderFrontMatterHtml(FrontMatter fm) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<div class=\"front-matter\">\n");
+        sb.append("<details class=\"front-matter\">\n");
+        // Titre du bloc repliable
+        sb.append("  <summary class=\"fm-summary\">");
+        if (!fm.getTitle().isBlank()) {
+            sb.append(escapeHtml(fm.getTitle()));
+        } else {
+            sb.append("Front Matter");
+        }
+        sb.append("</summary>\n");
         if (!fm.getTitle().isBlank()) {
             sb.append("  <h1>").append(escapeHtml(fm.getTitle())).append("</h1>\n");
         }
         if (fm.isDraft()) {
             sb.append("  <div class=\"fm-field fm-draft\">\u270E Draft</div>\n");
+        }
+        if (!fm.getUuid().isBlank()) {
+            sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">UUID: </span>")
+              .append("<code>").append(escapeHtml(fm.getUuid())).append("</code></div>\n");
         }
         if (!fm.getAuthors().isEmpty()) {
             sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">Author: </span>")
@@ -410,8 +437,78 @@ public class PreviewPanel extends BasePanel {
         if (!fm.getSummary().isBlank()) {
             sb.append("  <div class=\"fm-field\"><em>").append(escapeHtml(fm.getSummary())).append("</em></div>\n");
         }
-        sb.append("</div>\n");
+        if (!fm.getLinks().isEmpty()) {
+            sb.append("  <div class=\"fm-field\"><span class=\"fm-label\">Links: </span>");
+            for (String link : fm.getLinks()) {
+                String title = resolveUuidTitle(link);
+                if (title != null && !title.isBlank()) {
+                    sb.append("<a class=\"fm-link\" href=\"marknote-link:").append(escapeHtml(link))
+                      .append("\">").append(escapeHtml(title)).append("</a> ");
+                } else {
+                    sb.append("<a class=\"fm-link\" href=\"marknote-link:").append(escapeHtml(link))
+                      .append("\">").append(escapeHtml(link)).append("</a> ");
+                }
+            }
+            sb.append("</div>\n");
+        }
+        sb.append("</details>\n");
         return sb.toString();
+    }
+
+    /**
+     * R\u00e9sout le titre d'un document \u00e0 partir de son UUID en cherchant dans le r\u00e9pertoire de base.
+     */
+    private String resolveUuidTitle(String uuid) {
+        File file = findFileByUuid(uuid);
+        if (file == null) return null;
+        return extractFrontMatterField(file, "title");
+    }
+
+    /**
+     * Recherche r\u00e9cursivement un fichier .md dont le front matter contient l'UUID donn\u00e9.
+     */
+    private File findFileByUuid(String uuid) {
+        if (baseDirectory == null || !baseDirectory.isDirectory() || uuid == null) return null;
+        return searchFileByUuid(baseDirectory, uuid);
+    }
+
+    private File searchFileByUuid(File dir, String uuid) {
+        File[] children = dir.listFiles();
+        if (children == null) return null;
+        for (File child : children) {
+            if (child.isDirectory() && !child.getName().startsWith(".")) {
+                File found = searchFileByUuid(child, uuid);
+                if (found != null) return found;
+            } else if (child.getName().toLowerCase().endsWith(".md")) {
+                String fileUuid = extractFrontMatterField(child, "uuid");
+                if (uuid.equals(fileUuid)) return child;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lit le front matter d'un fichier et retourne la valeur d'un champ donn\u00e9.
+     */
+    private String extractFrontMatterField(File file, String field) {
+        try {
+            java.util.List<String> lines = java.nio.file.Files.readAllLines(file.toPath());
+            if (lines.isEmpty() || !lines.get(0).trim().equals("---")) return null;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < lines.size(); i++) {
+                sb.append(lines.get(i)).append('\n');
+                if (i > 0 && lines.get(i).trim().equals("---")) break;
+            }
+            FrontMatter fm = FrontMatter.parse(sb.toString());
+            if (fm == null) return null;
+            return switch (field) {
+                case "uuid" -> fm.getUuid();
+                case "title" -> fm.getTitle();
+                default -> null;
+            };
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** Échappe les caractères spéciaux HTML. */

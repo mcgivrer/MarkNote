@@ -1,24 +1,37 @@
 package ui;
 
+import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
+import utils.DocumentService;
 import utils.FrontMatter;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 
 /**
  * Panneau d'édition des attributs Front Matter d'un document Markdown.
@@ -38,8 +51,14 @@ public class FrontMatterPanel extends TitledPane {
     private final TextField tagsField;
     private final TextField summaryField;
     private final CheckBox draftCheck;
+    private final TextField uuidField;
+    private final ObservableList<String> linksList;
+    private final VBox linksBox;
+    private final TitledPane linksTitledPane;
 
     private Runnable onChanged;
+    private java.util.function.Consumer<File> onLinkClick;
+    private File projectDir;
 
     public FrontMatterPanel() {
         setText(getMessages().getString("frontmatter.title"));
@@ -113,8 +132,256 @@ public class FrontMatterPanel extends TitledPane {
         draftCheck.selectedProperty().addListener((o, ov, nv) -> fireChanged());
         grid.add(draftLabel, 0, row);
         grid.add(draftCheck, 1, row);
+        row++;
 
-        setContent(grid);
+        // UUID (lecture seule)
+        Label uuidLabel = new Label(getMessages().getString("frontmatter.field.uuid"));
+        uuidField = new TextField();
+        uuidField.setEditable(false);
+        uuidField.setStyle("-fx-opacity: 0.7;");
+        uuidField.setTooltip(new Tooltip(getMessages().getString("frontmatter.field.uuid.tooltip")));
+        grid.add(uuidLabel, 0, row);
+        grid.add(uuidField, 1, row);
+        row++;
+
+        // Links (zone repliable avec liste verticale d'UUIDs)
+        linksList = FXCollections.observableArrayList();
+        linksBox = new VBox(2);
+        linksBox.setPadding(new Insets(4));
+        Label linksPlaceholder = new Label(getMessages().getString("frontmatter.field.links.prompt"));
+        linksPlaceholder.setStyle("-fx-text-fill: #999; -fx-font-style: italic;");
+        linksBox.getChildren().add(linksPlaceholder);
+
+        linksList.addListener((ListChangeListener<String>) change -> {
+            rebuildLinksView();
+            fireChanged();
+        });
+
+        linksTitledPane = new TitledPane(getMessages().getString("frontmatter.field.links"), linksBox);
+        linksTitledPane.setCollapsible(true);
+        linksTitledPane.setExpanded(false);
+        linksTitledPane.setTooltip(new Tooltip(getMessages().getString("frontmatter.field.links.tooltip")));
+
+        // Layout principal : grid + liens repliables
+        VBox mainContent = new VBox(grid, linksTitledPane);
+        setContent(mainContent);
+
+        // ── Drag & Drop : accepter les fichiers .md pour créer des liens ──
+        setupDragAndDrop();
+    }
+
+    /**
+     * Configure le drag & drop sur le panneau pour accepter les fichiers .md
+     * et ajouter leur UUID dans la liste des liens.
+     */
+    private void setupDragAndDrop() {
+        setOnDragOver(event -> {
+            if (event.getDragboard().hasFiles()) {
+                boolean hasMd = event.getDragboard().getFiles().stream()
+                        .anyMatch(f -> f.getName().toLowerCase().endsWith(".md"));
+                if (hasMd) {
+                    event.acceptTransferModes(TransferMode.LINK);
+                }
+            }
+            event.consume();
+        });
+
+        setOnDragEntered(event -> {
+            if (event.getDragboard().hasFiles()) {
+                boolean hasMd = event.getDragboard().getFiles().stream()
+                        .anyMatch(f -> f.getName().toLowerCase().endsWith(".md"));
+                if (hasMd) {
+                    setStyle("-fx-border-color: #4a90d9; -fx-border-width: 2; -fx-border-style: dashed;");
+                }
+            }
+        });
+
+        setOnDragExited(event -> {
+            setStyle("");
+        });
+
+        setOnDragDropped(event -> {
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasFiles()) {
+                for (File file : db.getFiles()) {
+                    if (file.getName().toLowerCase().endsWith(".md")) {
+                        String linkedUuid = ensureUuidInFile(file);
+                        if (linkedUuid != null) {
+                            addLinkUuid(linkedUuid);
+                            success = true;
+                        }
+                    }
+                }
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        });
+    }
+
+    /**
+     * S'assure qu'un fichier .md possède un UUID dans son front matter.
+     * Si absent, en génère un et réécrit le fichier.
+     *
+     * @param file le fichier Markdown
+     * @return l'UUID du fichier, ou null en cas d'erreur
+     */
+    private String ensureUuidInFile(File file) {
+        Optional<String> contentOpt = DocumentService.readFile(file);
+        if (contentOpt.isEmpty()) return null;
+
+        String content = contentOpt.get();
+        FrontMatter fm = FrontMatter.parse(content);
+
+        if (fm != null && !fm.getUuid().isBlank()) {
+            return fm.getUuid();
+        }
+
+        // Créer ou compléter le front matter avec un UUID
+        if (fm == null) {
+            fm = new FrontMatter();
+        }
+        fm.generateUuid();
+
+        // Réécrire le fichier avec le front matter mis à jour
+        String body = FrontMatter.stripFrontMatter(content);
+        String newContent = fm.serialize() + body;
+        DocumentService.writeFile(file, newContent);
+
+        return fm.getUuid();
+    }
+
+    /**
+     * Ajoute un UUID dans la liste des liens s'il n'y est pas déjà.
+     *
+     * @param uuid l'UUID à ajouter
+     */
+    private void addLinkUuid(String uuid) {
+        if (uuid != null && !uuid.isBlank() && !linksList.contains(uuid)) {
+            linksList.add(uuid);
+            linksTitledPane.setExpanded(true);
+        }
+    }
+
+    /**
+     * Reconstruit l'affichage de la liste des liens.
+     */
+    private void rebuildLinksView() {
+        linksBox.getChildren().clear();
+        if (linksList.isEmpty()) {
+            Label placeholder = new Label(getMessages().getString("frontmatter.field.links.prompt"));
+            placeholder.setStyle("-fx-text-fill: #999; -fx-font-style: italic;");
+            linksBox.getChildren().add(placeholder);
+            linksTitledPane.setText(getMessages().getString("frontmatter.field.links"));
+        } else {
+            linksTitledPane.setText(getMessages().getString("frontmatter.field.links")
+                    + " (" + linksList.size() + ")");
+            for (String uuid : linksList) {
+                HBox row = new HBox(4);
+                row.setAlignment(Pos.CENTER_LEFT);
+
+                // Lien cliquable vers le document cible
+                Hyperlink linkLabel = new Hyperlink(uuid);
+                linkLabel.setStyle("-fx-font-family: monospace; -fx-font-size: 11px;");
+                HBox.setHgrow(linkLabel, Priority.ALWAYS);
+                linkLabel.setMaxWidth(Double.MAX_VALUE);
+
+                // Tooltip : titre du document cible
+                String targetTitle = findTitleByUuid(uuid);
+                if (targetTitle != null && !targetTitle.isBlank()) {
+                    linkLabel.setTooltip(new Tooltip(targetTitle));
+                }
+
+                // Clic : ouvrir le document cible
+                linkLabel.setOnAction(e -> {
+                    File targetFile = findFileByUuid(uuid);
+                    if (targetFile != null && onLinkClick != null) {
+                        onLinkClick.accept(targetFile);
+                    }
+                });
+
+                Button removeBtn = new Button("\u2715");
+                removeBtn.setStyle("-fx-font-size: 10px; -fx-padding: 0 4 0 4; -fx-min-width: 20; -fx-min-height: 18;");
+                removeBtn.setTooltip(new Tooltip(getMessages().getString("frontmatter.field.links.remove")));
+                removeBtn.setOnAction(e -> linksList.remove(uuid));
+
+                row.getChildren().addAll(linkLabel, removeBtn);
+                linksBox.getChildren().add(row);
+            }
+        }
+    }
+
+    /**
+     * Recherche récursivement un fichier .md dont le front matter contient l'UUID donné.
+     *
+     * @param uuid l'UUID à rechercher
+     * @return le fichier trouvé, ou null
+     */
+    private File findFileByUuid(String uuid) {
+        if (projectDir == null || !projectDir.isDirectory() || uuid == null) return null;
+        return searchFileByUuid(projectDir, uuid);
+    }
+
+    private File searchFileByUuid(File dir, String uuid) {
+        File[] children = dir.listFiles();
+        if (children == null) return null;
+        for (File child : children) {
+            if (child.isDirectory() && !child.getName().startsWith(".")) {
+                File found = searchFileByUuid(child, uuid);
+                if (found != null) return found;
+            } else if (child.getName().toLowerCase().endsWith(".md")) {
+                String fileUuid = extractUuidFromFile(child);
+                if (uuid.equals(fileUuid)) return child;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extrait le titre du front matter du document ayant l'UUID donné.
+     */
+    private String findTitleByUuid(String uuid) {
+        File file = findFileByUuid(uuid);
+        if (file == null) return null;
+        return extractTitleFromFile(file);
+    }
+
+    /**
+     * Lit le front matter d'un fichier et retourne son UUID.
+     */
+    private String extractUuidFromFile(File file) {
+        try {
+            List<String> lines = java.nio.file.Files.readAllLines(file.toPath());
+            if (lines.isEmpty() || !lines.get(0).trim().equals("---")) return null;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < lines.size(); i++) {
+                sb.append(lines.get(i)).append('\n');
+                if (i > 0 && lines.get(i).trim().equals("---")) break;
+            }
+            FrontMatter fm = FrontMatter.parse(sb.toString());
+            return fm != null ? fm.getUuid() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Lit le front matter d'un fichier et retourne son titre.
+     */
+    private String extractTitleFromFile(File file) {
+        try {
+            List<String> lines = java.nio.file.Files.readAllLines(file.toPath());
+            if (lines.isEmpty() || !lines.get(0).trim().equals("---")) return null;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < lines.size(); i++) {
+                sb.append(lines.get(i)).append('\n');
+                if (i > 0 && lines.get(i).trim().equals("---")) break;
+            }
+            FrontMatter fm = FrontMatter.parse(sb.toString());
+            return fm != null ? fm.getTitle() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ── Public API ──────────────────────────────────────────────
@@ -129,12 +396,17 @@ public class FrontMatterPanel extends TitledPane {
             clear();
             return;
         }
+        uuidField.setText(fm.getUuid());
         titleField.setText(fm.getTitle());
         authorField.setText(fm.getAuthorsAsString());
         createdAtField.setText(fm.getCreatedAt());
         tagsField.setText(fm.getTagsAsString());
         summaryField.setText(fm.getSummary());
         draftCheck.setSelected(fm.isDraft());
+        linksList.setAll(fm.getLinks());
+        if (!fm.getLinks().isEmpty()) {
+            linksTitledPane.setExpanded(true);
+        }
     }
 
     /**
@@ -144,12 +416,14 @@ public class FrontMatterPanel extends TitledPane {
      */
     public FrontMatter getFrontMatter() {
         FrontMatter fm = new FrontMatter();
+        fm.setUuid(uuidField.getText().trim());
         fm.setTitle(titleField.getText().trim());
         fm.setAuthorsFromString(authorField.getText().trim());
         fm.setCreatedAt(createdAtField.getText().trim());
         fm.setTagsFromString(tagsField.getText().trim());
         fm.setSummary(summaryField.getText().trim());
         fm.setDraft(draftCheck.isSelected());
+        fm.setLinks(new java.util.ArrayList<>(linksList));
         return fm;
     }
 
@@ -157,19 +431,38 @@ public class FrontMatterPanel extends TitledPane {
      * Efface tous les champs.
      */
     public void clear() {
+        uuidField.clear();
         titleField.clear();
         authorField.clear();
         createdAtField.clear();
         tagsField.clear();
         summaryField.clear();
         draftCheck.setSelected(false);
+        linksList.clear();
     }
 
     /**
-     * Initialise un front matter par défaut avec la date du jour.
+     * Initialise un front matter par défaut avec la date du jour et un UUID.
      */
     public void initDefaults() {
         createdAtField.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        if (uuidField.getText().isBlank()) {
+            uuidField.setText(java.util.UUID.randomUUID().toString());
+        }
+    }
+
+    /**
+     * Retourne l'UUID courant du document.
+     */
+    public String getUuid() {
+        return uuidField.getText().trim();
+    }
+
+    /**
+     * Définit l'UUID du document.
+     */
+    public void setUuid(String uuid) {
+        uuidField.setText(uuid != null ? uuid : "");
     }
 
     /**
@@ -177,6 +470,24 @@ public class FrontMatterPanel extends TitledPane {
      */
     public void setOnChanged(Runnable onChanged) {
         this.onChanged = onChanged;
+    }
+
+    /**
+     * Définit le callback pour ouvrir un document lié par clic sur un lien.
+     *
+     * @param onLinkClick action recevant le fichier à ouvrir
+     */
+    public void setOnLinkClick(java.util.function.Consumer<File> onLinkClick) {
+        this.onLinkClick = onLinkClick;
+    }
+
+    /**
+     * Définit le répertoire de projet pour la recherche de documents par UUID.
+     *
+     * @param projectDir le répertoire racine du projet
+     */
+    public void setProjectDirectory(File projectDir) {
+        this.projectDir = projectDir;
     }
 
     // ── Privé ───────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import java.util.ResourceBundle;
 import config.AppConfig;
 import config.ThemeManager;
 import ui.DocumentTab;
+import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
@@ -82,6 +83,7 @@ public class MarkNote extends Application {
         // TabPane pour les documents
         mainTabPane = new TabPane();
         mainTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
+        mainTabPane.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);
 
         // Panel de prévisualisation
         previewPanel = new PreviewPanel();
@@ -275,6 +277,16 @@ public class MarkNote extends Application {
      * Configure un onglet de document avec les listeners nécessaires.
      */
     private void setupDocumentTab(DocumentTab tab) {
+        // Configurer le panneau Front Matter : répertoire de projet et callback de lien
+        FrontMatterPanel fmPanel = tab.getFrontMatterPanel();
+        if (projectExplorerPanel.getProjectDirectory() != null) {
+            fmPanel.setProjectDirectory(projectExplorerPanel.getProjectDirectory());
+        }
+        fmPanel.setOnLinkClick(this::openFileInTab);
+
+        // Appliquer la préférence d'expansion du panneau Front Matter
+        fmPanel.setExpanded(config.isFrontMatterExpandedByDefault());
+
         // Mettre à jour la preview quand le texte change
         tab.setOnTextChanged(text -> {
             if (mainTabPane.getSelectionModel().getSelectedItem() == tab) {
