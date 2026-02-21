@@ -7,6 +7,8 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
+![An illustration of the Main interface pf MarkNote](src/docs/illustrations/main-interface.svg "The Main interface for MarkNote")
+
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
 **Repository:** [https://github.com/mcgivrer/marknote](https://github.com/mcgivrer/marknote)
