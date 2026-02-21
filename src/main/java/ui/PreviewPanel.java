@@ -4,7 +4,9 @@ import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,6 +55,16 @@ public class PreviewPanel extends BasePanel {
     private static final Pattern PLANTUML_BLOCK = Pattern.compile(
             "<pre><code\\s+class=\"language-plantuml\">(.*?)</code></pre>",
             Pattern.DOTALL);
+
+    /**
+     * Pattern pour détecter la syntaxe d'image étendue avec dimensions.
+     * Formats supportés :
+     *   ![alt](url "title" =100x20)
+     *   ![alt](url =200x)
+     *   ![alt](url =x120)
+     */
+    private static final Pattern IMAGE_SIZE_PATTERN = Pattern.compile(
+            "!\\[([^\\]]*)\\]\\(([^\\s)]+)(?:\\s+\"([^\"]*)\")?\\s+=([0-9]*)x([0-9]*)\\)");
 
     public PreviewPanel() {
         super("preview.title", "preview.close.tooltip");
@@ -161,8 +173,17 @@ public class PreviewPanel extends BasePanel {
         FrontMatter fm = FrontMatter.parse(markdown);
         String body = fm != null ? FrontMatter.stripFrontMatter(markdown) : markdown;
         String frontMatterHtml = fm != null && !fm.isEmpty() ? renderFrontMatterHtml(fm) : "";
+
+        // ── Images avec dimensions : pré-traiter la syntaxe =WxH
+        Map<String, int[]> imageSizes = new HashMap<>();
+        body = preprocessImageSizes(body, imageSizes);
         
         String html = htmlRenderer.render(markdownParser.parse(body));
+
+        // ── Images : injecter les attributs width/height
+        if (!imageSizes.isEmpty()) {
+            html = applyImageSizes(html, imageSizes);
+        }
 
         // ── PlantUML : remplacer les blocs <pre><code class="language-plantuml">
         //    par des <img> pointant vers le serveur PlantUML en ligne.
@@ -297,6 +318,65 @@ public class PreviewPanel extends BasePanel {
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+
+    /**
+     * Pré-traite le Markdown pour extraire la syntaxe d'image étendue
+     * {@code ![alt](url "title" =WxH)} et la convertir en syntaxe standard.
+     * Les dimensions sont stockées dans la map {@code sizes} (clé = URL).
+     *
+     * @param markdown le corps Markdown
+     * @param sizes    map de sortie : URL → {width, height} (0 = non spécifié)
+     * @return le Markdown sans les suffixes {@code =WxH}
+     */
+    private String preprocessImageSizes(String markdown, Map<String, int[]> sizes) {
+        Matcher m = IMAGE_SIZE_PATTERN.matcher(markdown);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String alt = m.group(1);
+            String url = m.group(2);
+            String title = m.group(3); // peut être null
+            String wStr = m.group(4);  // peut être vide
+            String hStr = m.group(5);  // peut être vide
+
+            int w = wStr != null && !wStr.isEmpty() ? Integer.parseInt(wStr) : 0;
+            int h = hStr != null && !hStr.isEmpty() ? Integer.parseInt(hStr) : 0;
+            sizes.put(url, new int[]{w, h});
+
+            // Reconstruire la syntaxe standard (sans =WxH)
+            String replacement;
+            if (title != null) {
+                replacement = "![" + alt + "](" + url + " \"" + title + "\")";
+            } else {
+                replacement = "![" + alt + "](" + url + ")";
+            }
+            m.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
+    /**
+     * Post-traite le HTML pour injecter les attributs {@code width} et/ou
+     * {@code height} sur les balises {@code <img>} dont l'URL correspond
+     * à une entrée de la map {@code sizes}.
+     */
+    private String applyImageSizes(String html, Map<String, int[]> sizes) {
+        for (var entry : sizes.entrySet()) {
+            String url = entry.getKey();
+            int[] dims = entry.getValue();
+            StringBuilder style = new StringBuilder();
+            if (dims[0] > 0) style.append("width:").append(dims[0]).append("px;");
+            if (dims[1] > 0) style.append("height:").append(dims[1]).append("px;");
+            if (style.length() > 0) {
+                // Chercher la balise <img ... src="url" ...> et injecter un style inline
+                String escaped = Pattern.quote(url);
+                html = html.replaceAll(
+                        "(<img\\s[^>]*src=\"" + escaped + "\")",
+                        "$1 style=\"" + Matcher.quoteReplacement(style.toString()) + "\"");
+            }
+        }
+        return html;
     }
 
     /**

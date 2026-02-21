@@ -13,10 +13,13 @@
 - [x] Ajouter le support de plantuml et de mermaid,
 - [x] Ajouter le support de MathML,
 - [x] Ajouter un editeur de "Front Matter" pour les docs Markdown (voir plus bas).
-- [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options. 
+- [x] Ajouter dans le support du markdown une specificité pour les images:
+dans  `![alt text](./pic/pic1_50.png "title" =100x20)`
+le `=100x20` permet de fixer les attribtus Width et Height de la balise image. il possible de definir unitquement `=200x` ou même `=x120` pour définir uniquement width ou height.
 - [ ] Ajouter le support de template de pages
 - [ ] Ajouter un panel "Assistant" permettant la connexion à un LLM via un MCP agent (ajouter un onlget "MCP agent" dans le dialogue "Options" pour configurer url, parameètres et clé d'API).
- 
+- [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options. 
+
 ## Front Matter
 
  maintenant je souhaite ajouter le support des attributes de "Front Matter" dans le fichier markdown, ainsi on peu ajouter des attributs:
