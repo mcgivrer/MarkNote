@@ -92,7 +92,7 @@ public class FrontMatter {
             int colon = line.indexOf(':');
             if (colon < 0) continue;
             String key = line.substring(0, colon).trim().toLowerCase();
-            String value = line.substring(colon + 1).trim();
+            String value = stripQuotes(line.substring(colon + 1).trim());
             if (!key.isEmpty()) {
                 fm.attributes.put(key, value);
             }
@@ -226,13 +226,23 @@ public class FrontMatter {
             String inner = m.group(1);
             List<String> items = new ArrayList<>();
             for (String item : inner.split(",")) {
-                String trimmed = item.trim();
+                String trimmed = stripQuotes(item.trim());
                 if (!trimmed.isEmpty()) items.add(trimmed);
             }
             return items;
         }
         // Valeur scalaire → liste à un élément
-        return new ArrayList<>(List.of(value.trim()));
+        return new ArrayList<>(List.of(stripQuotes(value.trim())));
+    }
+
+    /**
+     * Supprime les guillemets doubles entourant une chaîne, si présents.
+     */
+    private static String stripQuotes(String s) {
+        if (s != null && s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")) {
+            return s.substring(1, s.length() - 1);
+        }
+        return s;
     }
 
     /**
