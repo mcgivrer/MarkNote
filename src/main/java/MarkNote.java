@@ -121,6 +121,8 @@ public class MarkNote extends Application {
                 openFileInTab(new File(projectDir, relativePath));
             }
         });
+        visualLinkPanel.setIndexService(indexService);
+        visualLinkPanel.setOnFileSelected(this::openFileInTab);
 
         // Search box (dans la barre du haut)
         searchBox = new SearchBox();

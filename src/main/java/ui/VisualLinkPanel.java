@@ -1,5 +1,6 @@
 package ui;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,20 +10,31 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import utils.IndexService;
 import utils.IndexService.IndexEntry;
+import utils.IndexService.SearchResult;
 
 import javafx.animation.AnimationTimer;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.Popup;
+import javafx.stage.Screen;
+import javafx.stage.Window;
 
 /**
  * Panneau affichant un diagramme réseau des liens entre documents.
@@ -75,6 +87,10 @@ public class VisualLinkPanel extends BasePanel {
     private boolean panning = false;
 
     private Consumer<String> onDocumentClick;
+    private IndexService indexService;
+    private Consumer<File> onFileSelected;
+    private Popup tagPopup;
+    private ListView<SearchResult> tagResultsList;
 
     // ── Modèle interne ──────────────────────────────────────────
 
@@ -125,6 +141,7 @@ public class VisualLinkPanel extends BasePanel {
         });
 
         setupInteraction();
+        setupTagPopup();
         setContent(canvasContainer);
         setPrefHeight(250);
 
@@ -197,10 +214,17 @@ public class VisualLinkPanel extends BasePanel {
             }
 
             if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 1 && !wasDragging) {
+                // Clic sur un nœud tag → popup de recherche
+                GraphNode hit = hitTest(e.getX(), e.getY());
+                if (hit != null && hit.type == NodeType.TAG) {
+                    showTagSearchPopup(hit, e.getScreenX(), e.getScreenY());
+                    e.consume();
+                    return;
+                }
+
                 if (onDocumentClick == null) return;
 
-                // Priorité : clic sur un nœud document
-                GraphNode hit = hitTest(e.getX(), e.getY());
+                // Clic sur un nœud document
                 if (hit != null && hit.type == NodeType.DOCUMENT) {
                     onDocumentClick.accept(hit.id);
                     return;
@@ -219,7 +243,7 @@ public class VisualLinkPanel extends BasePanel {
 
         canvas.setOnMouseMoved(e -> {
             GraphNode hit = hitTest(e.getX(), e.getY());
-            if (hit != null && hit.type == NodeType.DOCUMENT) {
+            if (hit != null && (hit.type == NodeType.DOCUMENT || hit.type == NodeType.TAG)) {
                 canvas.setCursor(Cursor.HAND);
             } else if (edgeHitTest(e.getX(), e.getY()) != null) {
                 canvas.setCursor(Cursor.HAND);
@@ -705,12 +729,137 @@ public class VisualLinkPanel extends BasePanel {
     // ── API publique ────────────────────────────────────────────
 
     /**
-     * Définit le callback pour le double-clic sur un document.
+     * Définit le callback pour le clic sur un document.
      *
      * @param action callback recevant le chemin relatif du document
      */
     public void setOnDocumentClick(Consumer<String> action) {
         this.onDocumentClick = action;
+    }
+
+    /**
+     * Définit le service d'index pour les recherches par tag.
+     */
+    public void setIndexService(IndexService indexService) {
+        this.indexService = indexService;
+    }
+
+    /**
+     * Définit l'action quand un fichier est sélectionné dans le popup de tag.
+     */
+    public void setOnFileSelected(Consumer<File> action) {
+        this.onFileSelected = action;
+    }
+
+    // ── Popup recherche par tag ────────────────────────────────────
+
+    private void setupTagPopup() {
+        tagPopup = new Popup();
+        tagPopup.setAutoHide(true);
+        tagPopup.setHideOnEscape(true);
+
+        tagResultsList = new ListView<>();
+        tagResultsList.setPrefWidth(350);
+        tagResultsList.setPrefHeight(250);
+        tagResultsList.setMaxHeight(350);
+        tagResultsList.getStyleClass().add("search-results-list");
+        tagResultsList.setPlaceholder(new Label(bundle.getString("search.noResults")));
+
+        tagResultsList.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(SearchResult item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    VBox cellBox = new VBox(2);
+                    cellBox.setPadding(new Insets(4, 8, 4, 8));
+
+                    Label titleLabel = new Label(item.getEntry().getDisplayTitle());
+                    titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px;");
+
+                    Label matchLabel = new Label(item.getMatchText());
+                    matchLabel.setStyle("-fx-text-fill: gray; -fx-font-size: 11px;");
+
+                    Label pathLabel = new Label(item.getEntry().getRelativePath());
+                    pathLabel.setStyle("-fx-text-fill: #888888; -fx-font-size: 10px; -fx-font-style: italic;");
+
+                    cellBox.getChildren().addAll(titleLabel, matchLabel, pathLabel);
+                    setGraphic(cellBox);
+                    setText(null);
+                }
+            }
+        });
+
+        tagResultsList.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 1) selectTagResult();
+        });
+        tagResultsList.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ENTER) selectTagResult();
+            else if (e.getCode() == KeyCode.ESCAPE) tagPopup.hide();
+        });
+
+        VBox popupContent = new VBox(tagResultsList);
+        popupContent.setStyle(
+            "-fx-background-color: -fx-background; " +
+            "-fx-border-color: -fx-box-border; " +
+            "-fx-border-width: 1; " +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 8, 0, 0, 4);"
+        );
+        tagPopup.getContent().add(popupContent);
+    }
+
+    private void showTagSearchPopup(GraphNode tagNode, double screenX, double screenY) {
+        if (indexService == null) return;
+
+        List<SearchResult> results = indexService.search(tagNode.label);
+        tagResultsList.getItems().setAll(results.subList(0, Math.min(results.size(), 20)));
+
+        Window window = getScene() != null ? getScene().getWindow() : null;
+        if (window == null) return;
+
+        // Positionner le popup près du tag cliqué
+        double popupW = tagResultsList.getPrefWidth();
+        double popupH = tagResultsList.getPrefHeight() + 10;
+
+        // Obtenir les limites de l'écran contenant le point
+        var screenBounds = Screen.getScreensForRectangle(screenX, screenY, 1, 1)
+                .stream().findFirst()
+                .map(s -> s.getVisualBounds())
+                .orElse(Screen.getPrimary().getVisualBounds());
+
+        double x = screenX;
+        double y = screenY + 8;
+
+        // Ajuster pour ne pas dépasser à droite
+        if (x + popupW > screenBounds.getMaxX()) {
+            x = screenBounds.getMaxX() - popupW - 5;
+        }
+        // Ajuster pour ne pas dépasser en bas
+        if (y + popupH > screenBounds.getMaxY()) {
+            y = screenY - popupH - 8;
+        }
+        // Ajuster pour ne pas dépasser à gauche / en haut
+        if (x < screenBounds.getMinX()) x = screenBounds.getMinX() + 5;
+        if (y < screenBounds.getMinY()) y = screenBounds.getMinY() + 5;
+
+        tagPopup.show(window, x, y);
+        tagResultsList.requestFocus();
+        if (!tagResultsList.getItems().isEmpty()) {
+            tagResultsList.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void selectTagResult() {
+        SearchResult selected = tagResultsList.getSelectionModel().getSelectedItem();
+        if (selected != null && indexService != null && onFileSelected != null) {
+            File file = indexService.resolveFile(selected.getEntry());
+            if (file != null && file.exists()) {
+                tagPopup.hide();
+                onFileSelected.accept(file);
+            }
+        }
     }
 
     /**
