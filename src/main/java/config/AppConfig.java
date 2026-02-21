@@ -25,6 +25,7 @@ public class AppConfig {
     private boolean showSplashScreen = true;
     private String currentTheme = "light";
     private String language = "system";
+    private boolean frontMatterExpandedByDefault = true;
 
     /**
      * Charge la configuration depuis le fichier.
@@ -65,6 +66,8 @@ public class AppConfig {
                     currentTheme = line.substring("currentTheme=".length()).trim();
                 } else if (line.startsWith("language=")) {
                     language = line.substring("language=".length()).trim();
+                } else if (line.startsWith("frontMatterExpandedByDefault=")) {
+                    frontMatterExpandedByDefault = Boolean.parseBoolean(line.substring("frontMatterExpandedByDefault=".length()).trim());
                 }
             }
         } catch (IOException ignored) {
@@ -90,6 +93,7 @@ public class AppConfig {
             lines.add("showSplashScreen=" + showSplashScreen);
             lines.add("currentTheme=" + currentTheme);
             lines.add("language=" + language);
+            lines.add("frontMatterExpandedByDefault=" + frontMatterExpandedByDefault);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -174,6 +178,10 @@ public class AppConfig {
         return currentTheme;
     }
 
+    public boolean isFrontMatterExpandedByDefault() {
+        return frontMatterExpandedByDefault;
+    }
+
     // --- Setters ---
 
     public void setMaxRecentItems(int maxRecentItems) {
@@ -213,6 +221,10 @@ public class AppConfig {
 
     public void setLanguage(String language) {
         this.language = language;
+    }
+
+    public void setFrontMatterExpandedByDefault(boolean frontMatterExpandedByDefault) {
+        this.frontMatterExpandedByDefault = frontMatterExpandedByDefault;
     }
 
     /**

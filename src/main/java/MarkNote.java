@@ -83,6 +83,7 @@ public class MarkNote extends Application {
         // TabPane pour les documents
         mainTabPane = new TabPane();
         mainTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
+        mainTabPane.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);
 
         // Panel de prévisualisation
         previewPanel = new PreviewPanel();
@@ -282,6 +283,9 @@ public class MarkNote extends Application {
             fmPanel.setProjectDirectory(projectExplorerPanel.getProjectDirectory());
         }
         fmPanel.setOnLinkClick(this::openFileInTab);
+
+        // Appliquer la préférence d'expansion du panneau Front Matter
+        fmPanel.setExpanded(config.isFrontMatterExpandedByDefault());
 
         // Mettre à jour la preview quand le texte change
         tab.setOnTextChanged(text -> {

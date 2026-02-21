@@ -120,6 +120,13 @@ public class OptionsDialog {
         miscGrid.add(splashLabel, 0, 4);
         miscGrid.add(splashCheck, 1, 4);
 
+        // Panneau FrontMatter ouvert par défaut
+        Label fmExpandedLabel = new Label(getMessages().getString("options.frontMatterExpanded"));
+        CheckBox fmExpandedCheck = new CheckBox();
+        fmExpandedCheck.setSelected(config.isFrontMatterExpandedByDefault());
+        miscGrid.add(fmExpandedLabel, 0, 5);
+        miscGrid.add(fmExpandedCheck, 1, 5);
+
         // Sélecteur de langue
         Label languageLabel = new Label(getMessages().getString("options.language"));
         ComboBox<String> languageCombo = new ComboBox<>();
@@ -169,8 +176,8 @@ public class OptionsDialog {
                 });
             }
         });
-        miscGrid.add(languageLabel, 0, 5);
-        miscGrid.add(languageCombo, 1, 5);
+        miscGrid.add(languageLabel, 0, 6);
+        miscGrid.add(languageCombo, 1, 6);
 
         miscTab.setContent(miscGrid);
         optionsTabs.getTabs().add(miscTab);
@@ -304,6 +311,7 @@ public class OptionsDialog {
             config.setReopenLastProject(reopenCheck.isSelected());
             config.setShowWelcomePage(welcomeCheck.isSelected());
             config.setShowSplashScreen(splashCheck.isSelected());
+            config.setFrontMatterExpandedByDefault(fmExpandedCheck.isSelected());
             String selectedTheme = themeList.getSelectionModel().getSelectedItem();
             if (selectedTheme != null) {
                 config.setCurrentTheme(selectedTheme);
