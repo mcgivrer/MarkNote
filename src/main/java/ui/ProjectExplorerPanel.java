@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -41,6 +42,11 @@ public class ProjectExplorerPanel extends BasePanel {
     private File projectDir;
     private Consumer<File> onFileDoubleClick;
     private Runnable onResetIndex;
+    private Consumer<File> onFileCreated;
+    private BiConsumer<File, File> onFileRenamed;
+    private Consumer<File> onFileDeleted;
+    private BiConsumer<List<File>, File> onFilesMoved;
+    private BiConsumer<List<File>, File> onFilesCopied;
 
     public ProjectExplorerPanel() {
         super("project.title", "project.close.tooltip");
@@ -137,6 +143,7 @@ public class ProjectExplorerPanel extends BasePanel {
                 Optional<File> created = DocumentService.createFile(targetDir, name);
                 if (created.isPresent()) {
                     refresh();
+                    if (onFileCreated != null) onFileCreated.accept(created.get());
                 } else {
                     showError(bundle.getString("context.error.create"), name);
                 }
@@ -188,6 +195,7 @@ public class ProjectExplorerPanel extends BasePanel {
                 Optional<File> renamed = DocumentService.rename(file, newName);
                 if (renamed.isPresent()) {
                     refresh();
+                    if (onFileRenamed != null) onFileRenamed.accept(file, renamed.get());
                 } else {
                     showError(bundle.getString("context.error.rename"), file.getName());
                 }
@@ -216,6 +224,8 @@ public class ProjectExplorerPanel extends BasePanel {
 
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
+            // Notify before deletion (file still exists)
+            if (onFileDeleted != null) onFileDeleted.accept(file);
             if (DocumentService.delete(file)) {
                 refresh();
             } else {
@@ -240,6 +250,46 @@ public class ProjectExplorerPanel extends BasePanel {
      */
     public void setOnResetIndex(Runnable action) {
         this.onResetIndex = action;
+    }
+
+    /**
+     * Définit le callback appelé quand un fichier est créé.
+     */
+    public void setOnFileCreated(Consumer<File> action) {
+        this.onFileCreated = action;
+    }
+
+    /**
+     * Définit le callback appelé quand un fichier est renommé.
+     * Le premier argument est l'ancien fichier, le second le nouveau.
+     */
+    public void setOnFileRenamed(BiConsumer<File, File> action) {
+        this.onFileRenamed = action;
+    }
+
+    /**
+     * Définit le callback appelé quand un fichier ou répertoire est supprimé.
+     */
+    public void setOnFileDeleted(Consumer<File> action) {
+        this.onFileDeleted = action;
+    }
+
+    /**
+     * Définit le callback appelé quand des fichiers sont déplacés (drag & drop interne).
+     * Premier argument : les fichiers source (chemin avant déplacement).
+     * Second argument : le répertoire de destination.
+     */
+    public void setOnFilesMoved(BiConsumer<List<File>, File> action) {
+        this.onFilesMoved = action;
+    }
+
+    /**
+     * Définit le callback appelé quand des fichiers sont copiés (drag & drop externe).
+     * Premier argument : les fichiers source.
+     * Second argument : le répertoire de destination.
+     */
+    public void setOnFilesCopied(BiConsumer<List<File>, File> action) {
+        this.onFilesCopied = action;
     }
 
     /**
@@ -404,6 +454,7 @@ public class ProjectExplorerPanel extends BasePanel {
                                 int copied = DocumentService.copyAll(files, targetDir);
                                 if (copied > 0) {
                                     refresh();
+                                    if (onFilesCopied != null) onFilesCopied.accept(files, targetDir);
                                     success = true;
                                 } else {
                                     showError(bundle.getString("context.error.copy"), targetDir.getName());
@@ -417,9 +468,14 @@ public class ProjectExplorerPanel extends BasePanel {
                                     .collect(Collectors.toList());
                             
                             if (!validFiles.isEmpty() && confirmMove(validFiles, targetDir)) {
+                                // Capture source paths before move
+                                List<File> sourceFiles = validFiles.stream()
+                                        .map(f -> new File(f.getAbsolutePath()))
+                                        .collect(Collectors.toList());
                                 int moved = DocumentService.moveAll(validFiles, targetDir);
                                 if (moved > 0) {
                                     refresh();
+                                    if (onFilesMoved != null) onFilesMoved.accept(sourceFiles, targetDir);
                                     success = true;
                                 } else {
                                     showError(bundle.getString("context.error.move"), targetDir.getName());

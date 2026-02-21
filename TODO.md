@@ -50,6 +50,12 @@ Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ai
 - [x] Add search text box in top head of UI using this index to list matching diocument in a pop-up list of document, showing in extract under document title what is matching, and when selecting one, open the document. 
 - [x] Add a new panel under Projhect explorer show a tag cloud (each tag font size is a ratio to number of occurences)
 - [x] Index file can be reseted from contextual menu entry on project explorer showed on root folder only.
+- [ ] Ajouter une statusbar en bas de la fenêtre principale affichant 
+  - dans une première partie le nom et la postion dans le document actuel, 
+  - ensuite une seconde partie avec des statistiques (nombre de documenrts, nombre de lignes, nombre de mots) 
+  - et dans une dernière partie une progressbar qui représente l'avancement lorsque le service d'indexation est en cours d'indexatrion.
+    > **IMPORTANT** Il faut que le service soit un thread séparé pour ne pas interompre l'expérience utilisateur de saisie de notes.
+
 
 ## Optional
 

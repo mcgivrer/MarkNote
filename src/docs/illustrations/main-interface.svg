@@ -17,14 +17,19 @@
   <!-- Title -->
   <text x="400" y="42" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle">MarkNote - Markdown Editor</text>
   
-  <!-- Menu bar -->
+  <!-- Menu bar with search box -->
   <rect x="20" y="55" width="760" height="30" fill="#404040"/>
   <text x="40" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">File</text>
   <text x="85" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">View</text>
   <text x="130" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Help</text>
   
+  <!-- Search box (right side of menu bar) -->
+  <rect x="600" y="59" width="170" height="22" rx="4" fill="#555555" stroke="#666666" stroke-width="1"/>
+  <text x="610" y="74" font-family="Arial, sans-serif" font-size="10" fill="#999999">Search...</text>
+  <text x="755" y="74" font-family="Arial, sans-serif" font-size="11" fill="#888888" text-anchor="end">🔍</text>
+  
   <!-- Project Explorer Panel -->
-  <rect x="20" y="85" width="200" height="395" fill="#2a2a2a"/>
+  <rect x="20" y="85" width="200" height="260" fill="#2a2a2a"/>
   <rect x="20" y="85" width="200" height="25" fill="#383838"/>
   <text x="30" y="102" font-family="Arial, sans-serif" font-size="11" fill="#cccccc">Project Explorer</text>
   <text x="205" y="102" font-family="Arial, sans-serif" font-size="14" fill="#888888" text-anchor="end">×</text>
@@ -35,6 +40,26 @@
   <text x="50" y="170" font-family="monospace" font-size="11" fill="#61afef">📄 notes.md</text>
   <text x="50" y="190" font-family="monospace" font-size="11" fill="#e5c07b">📁 docs</text>
   <text x="65" y="210" font-family="monospace" font-size="11" fill="#61afef">📄 guide.md</text>
+  
+  <!-- Tag Cloud Panel -->
+  <rect x="20" y="345" width="200" height="25" fill="#383838"/>
+  <text x="30" y="362" font-family="Arial, sans-serif" font-size="11" fill="#cccccc">Tag Cloud</text>
+  <text x="205" y="362" font-family="Arial, sans-serif" font-size="14" fill="#888888" text-anchor="end">×</text>
+  <rect x="20" y="370" width="200" height="110" fill="#2a2a2a"/>
+  
+  <!-- Tag cloud tags -->
+  <text x="30" y="395" font-family="Arial, sans-serif" font-size="18" fill="#61afef" font-weight="bold">java</text>
+  <text x="85" y="393" font-family="Arial, sans-serif" font-size="12" fill="#98c379">markdown</text>
+  <text x="160" y="393" font-family="Arial, sans-serif" font-size="14" fill="#e06c75">blog</text>
+  <text x="30" y="420" font-family="Arial, sans-serif" font-size="10" fill="#e5c07b">css</text>
+  <text x="55" y="418" font-family="Arial, sans-serif" font-size="16" fill="#c678dd">tutorial</text>
+  <text x="145" y="418" font-family="Arial, sans-serif" font-size="11" fill="#56b6c2">api</text>
+  <text x="30" y="445" font-family="Arial, sans-serif" font-size="14" fill="#56b6c2">guide</text>
+  <text x="85" y="447" font-family="Arial, sans-serif" font-size="20" fill="#d19a66" font-weight="bold">docs</text>
+  <text x="145" y="445" font-family="Arial, sans-serif" font-size="11" fill="#c678dd">setup</text>
+  <text x="30" y="470" font-family="Arial, sans-serif" font-size="12" fill="#d19a66">release</text>
+  <text x="95" y="470" font-family="Arial, sans-serif" font-size="10" fill="#98c379">config</text>
+  <text x="145" y="470" font-family="Arial, sans-serif" font-size="13" fill="#e5c07b">notes</text>
   
   <!-- Editor area -->
   <rect x="220" y="85" width="280" height="395" fill="#1e1e1e"/>
@@ -83,12 +108,18 @@
   <text x="530" y="350" font-family="Georgia, serif" font-size="14" fill="#333333">• Multiple themes</text>
   
   <!-- Labels -->
-  <rect x="70" y="430" width="100" height="25" rx="4" fill="#4a90d9" opacity="0.9"/>
-  <text x="120" y="447" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Project Explorer</text>
+  <rect x="55" y="300" width="100" height="20" rx="4" fill="#4a90d9" opacity="0.9"/>
+  <text x="105" y="315" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Project Explorer</text>
+
+  <rect x="65" y="455" width="80" height="20" rx="4" fill="#4a90d9" opacity="0.9"/>
+  <text x="105" y="470" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Tag Cloud</text>
   
-  <rect x="310" y="430" width="80" height="25" rx="4" fill="#4a90d9" opacity="0.9"/>
-  <text x="350" y="447" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Editor</text>
+  <rect x="310" y="455" width="80" height="20" rx="4" fill="#4a90d9" opacity="0.9"/>
+  <text x="350" y="470" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Editor</text>
   
-  <rect x="590" y="430" width="80" height="25" rx="4" fill="#4a90d9" opacity="0.9"/>
-  <text x="630" y="447" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Preview</text>
+  <rect x="590" y="455" width="80" height="20" rx="4" fill="#4a90d9" opacity="0.9"/>
+  <text x="630" y="470" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Preview</text>
+
+  <rect x="600" y="44" width="100" height="14" rx="3" fill="#4a90d9" opacity="0.8"/>
+  <text x="650" y="54" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">Search Box</text>
 </svg>

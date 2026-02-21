@@ -120,6 +120,32 @@ public class MarkNote extends Application {
         // Reset index depuis le menu contextuel de l'explorateur
         projectExplorerPanel.setOnResetIndex(this::handleResetIndex);
 
+        // Index updates: fichier créé, renommé, supprimé, déplacé, copié
+        projectExplorerPanel.setOnFileCreated(file -> {
+            indexService.updateFile(file);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFileRenamed((oldFile, newFile) -> {
+            indexService.handleRename(oldFile, newFile);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFileDeleted(file -> {
+            if (file.isDirectory()) {
+                indexService.removeFilesUnder(file);
+            } else {
+                indexService.removeFile(file);
+            }
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFilesMoved((sourceFiles, targetDir) -> {
+            indexService.handleMove(sourceFiles, targetDir);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+        projectExplorerPanel.setOnFilesCopied((sourceFiles, targetDir) -> {
+            indexService.handleCopy(sourceFiles, targetDir);
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+        });
+
         // Conteneur gauche : explorateur + tag cloud
         VBox leftPane = new VBox(projectExplorerPanel, tagCloudPanel);
         VBox.setVgrow(projectExplorerPanel, Priority.ALWAYS);
@@ -466,6 +492,9 @@ public class MarkNote extends Application {
                 // Rafraîchir l'arbre si le fichier est dans le projet
                 if (projectDir != null && docTab.getFile().toPath().startsWith(projectDir.toPath())) {
                     projectExplorerPanel.refresh();
+                    // Mettre à jour l'index pour ce fichier
+                    indexService.updateFile(docTab.getFile());
+                    tagCloudPanel.updateTags(indexService.getTagCounts());
                 }
             }
         }

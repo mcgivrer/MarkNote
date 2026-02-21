@@ -213,6 +213,193 @@ public class IndexService {
         return new File(projectDir, entry.getRelativePath());
     }
 
+    // ── Mises à jour incrémentales ──────────────────────────────
+
+    /**
+     * Met à jour l'index pour un fichier donné. Si le fichier est déjà indexé,
+     * son entrée est remplacée ; sinon une nouvelle entrée est ajoutée.
+     * Applicable aux fichiers {@code .md} uniquement ; les autres sont ignorés.
+     * Persiste l'index et recalcule les compteurs de tags.
+     *
+     * @param file le fichier à (ré-)indexer
+     */
+    public void updateFile(File file) {
+        if (projectDir == null || file == null) return;
+        if (!file.getName().toLowerCase().endsWith(".md")) return;
+        if (file.getName().startsWith(".")) return;
+
+        // Retirer l'ancienne entrée si elle existe
+        String relativePath = projectDir.toPath().relativize(file.toPath()).toString();
+        entries.removeIf(e -> e.relativePath.equals(relativePath));
+
+        // Indexer le fichier s'il existe encore (pourrait avoir été supprimé)
+        if (file.exists() && file.isFile()) {
+            indexFile(file.toPath());
+        }
+
+        rebuildTagCounts();
+        saveIndex();
+    }
+
+    /**
+     * Retire du index le fichier correspondant au chemin relatif donné,
+     * puis persiste et recalcule les tags.
+     *
+     * @param file le fichier supprimé (n'a plus besoin d'exister sur disque)
+     */
+    public void removeFile(File file) {
+        if (projectDir == null || file == null) return;
+        String relativePath = projectDir.toPath().relativize(file.toPath()).toString();
+        entries.removeIf(e -> e.relativePath.equals(relativePath));
+        rebuildTagCounts();
+        saveIndex();
+    }
+
+    /**
+     * Retire du index tous les fichiers situés sous le répertoire donné
+     * (suppression récursive), puis persiste et recalcule les tags.
+     *
+     * @param dir le répertoire supprimé
+     */
+    public void removeFilesUnder(File dir) {
+        if (projectDir == null || dir == null) return;
+        String relativePrefix = projectDir.toPath().relativize(dir.toPath()).toString();
+        // Retirer toutes les entrées dont le chemin relatif commence par ce préfixe
+        entries.removeIf(e -> e.relativePath.startsWith(relativePrefix));
+        rebuildTagCounts();
+        saveIndex();
+    }
+
+    /**
+     * Gère le renommage d'un fichier : retire l'ancienne entrée et indexe la nouvelle.
+     *
+     * @param oldFile l'ancien fichier (avant renommage)
+     * @param newFile le nouveau fichier (après renommage)
+     */
+    public void handleRename(File oldFile, File newFile) {
+        if (projectDir == null) return;
+
+        if (oldFile.isDirectory() || (newFile != null && newFile.isDirectory())) {
+            // Pour un répertoire renommé, reconstruire tout l'index
+            // car les chemins relatifs de tous les fichiers enfants changent.
+            buildIndex(projectDir);
+            return;
+        }
+
+        // Retirer l'ancienne entrée
+        String oldRelativePath = projectDir.toPath().relativize(oldFile.toPath()).toString();
+        entries.removeIf(e -> e.relativePath.equals(oldRelativePath));
+
+        // Indexer le nouveau fichier
+        if (newFile != null && newFile.exists() && newFile.getName().toLowerCase().endsWith(".md")) {
+            indexFile(newFile.toPath());
+        }
+
+        rebuildTagCounts();
+        saveIndex();
+    }
+
+    /**
+     * Gère le déplacement de fichiers : retire les anciennes entrées et indexe
+     * les fichiers au nouvel emplacement.
+     *
+     * @param movedFiles  les fichiers tels qu'ils étaient avant le déplacement
+     * @param targetDir   le répertoire de destination
+     */
+    public void handleMove(List<File> movedFiles, File targetDir) {
+        if (projectDir == null || movedFiles == null || targetDir == null) return;
+
+        for (File oldFile : movedFiles) {
+            String oldRelativePath = projectDir.toPath().relativize(oldFile.toPath()).toString();
+
+            if (oldFile.isDirectory()) {
+                // Retirer tout ce qui était sous ce dossier
+                entries.removeIf(e -> e.relativePath.startsWith(oldRelativePath));
+            } else {
+                entries.removeIf(e -> e.relativePath.equals(oldRelativePath));
+            }
+
+            // Indexer au nouvel emplacement
+            File newFile = new File(targetDir, oldFile.getName());
+            if (newFile.exists()) {
+                if (newFile.isDirectory()) {
+                    indexDirectory(newFile);
+                } else if (newFile.getName().toLowerCase().endsWith(".md")
+                        && !newFile.getName().startsWith(".")) {
+                    indexFile(newFile.toPath());
+                }
+            }
+        }
+
+        rebuildTagCounts();
+        saveIndex();
+    }
+
+    /**
+     * Gère la copie de fichiers : indexe les nouveaux fichiers copiés.
+     *
+     * @param copiedFiles les fichiers source (pour déterminer les noms)
+     * @param targetDir   le répertoire de destination
+     */
+    public void handleCopy(List<File> copiedFiles, File targetDir) {
+        if (projectDir == null || copiedFiles == null || targetDir == null) return;
+
+        for (File srcFile : copiedFiles) {
+            File newFile = new File(targetDir, srcFile.getName());
+            if (newFile.exists()) {
+                if (newFile.isDirectory()) {
+                    indexDirectory(newFile);
+                } else if (newFile.getName().toLowerCase().endsWith(".md")
+                        && !newFile.getName().startsWith(".")) {
+                    indexFile(newFile.toPath());
+                }
+            }
+        }
+
+        rebuildTagCounts();
+        saveIndex();
+    }
+
+    /**
+     * Indexe récursivement tous les fichiers .md d'un répertoire.
+     */
+    private void indexDirectory(File dir) {
+        if (dir == null || !dir.isDirectory()) return;
+        try (Stream<Path> walk = Files.walk(dir.toPath())) {
+            walk.filter(Files::isRegularFile)
+                .filter(p -> p.toString().toLowerCase().endsWith(".md"))
+                .filter(p -> !p.getFileName().toString().startsWith("."))
+                .forEach(this::indexFile);
+        } catch (IOException e) {
+            System.err.println("IndexService: error indexing directory " + dir + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Recalcule les compteurs de tags à partir des entrées actuelles
+     * et les trie par ordre décroissant d'occurrences.
+     */
+    private void rebuildTagCounts() {
+        tagCounts.clear();
+        for (IndexEntry entry : entries) {
+            for (String tag : entry.tags) {
+                String normalized = tag.toLowerCase().trim();
+                if (!normalized.isEmpty()) {
+                    tagCounts.merge(normalized, 1, Integer::sum);
+                }
+            }
+        }
+        // Trier par nombre d'occurrences décroissant
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(tagCounts.entrySet());
+        sorted.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+        LinkedHashMap<String, Integer> sortedMap = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : sorted) {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+        tagCounts.clear();
+        tagCounts.putAll(sortedMap);
+    }
+
     // ── Résultat de recherche ───────────────────────────────────
 
     /**
