@@ -1,18 +1,22 @@
 package utils;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Modèle représentant les métadonnées "Front Matter" d'un document Markdown.
+ * <p>
+ * Utilise un {@link LinkedHashMap} interne pour stocker tous les attributs,
+ * y compris les attributs inconnus. Les clés connues sont accessibles via
+ * des constantes et des getters/setters typés.
  * <p>
  * Format attendu en tête de fichier :
  * <pre>
@@ -23,10 +27,21 @@ import java.util.regex.Pattern;
  * tags: [java, markdown, editor]
  * summary: Un résumé de l'article
  * draft: true
+ * custom_attr: some value
  * ---
  * </pre>
  */
 public class FrontMatter {
+
+    // ── Clés connues ────────────────────────────────────────────
+    public static final String KEY_UUID       = "uuid";
+    public static final String KEY_TITLE      = "title";
+    public static final String KEY_AUTHOR     = "author";
+    public static final String KEY_CREATED_AT = "created_at";
+    public static final String KEY_TAGS       = "tags";
+    public static final String KEY_SUMMARY    = "summary";
+    public static final String KEY_DRAFT      = "draft";
+    public static final String KEY_LINKS      = "links";
 
     // ── Format de date ──────────────────────────────────────────
     private static final DateTimeFormatter DATE_FMT =
@@ -42,15 +57,15 @@ public class FrontMatter {
     private static final Pattern LIST_PATTERN =
             Pattern.compile("\\[(.*)\\]");
 
-    // ── Champs ──────────────────────────────────────────────────
-    private String uuid = "";
-    private String title = "";
-    private List<String> authors = new ArrayList<>();
-    private String createdAt = "";
-    private List<String> tags = new ArrayList<>();
-    private String summary = "";
-    private boolean draft = false;
-    private List<String> links = new ArrayList<>();
+    /** Ensemble ordonné des clés connues (pour la sérialisation). */
+    private static final List<String> KNOWN_KEYS = List.of(
+            KEY_UUID, KEY_TITLE, KEY_AUTHOR, KEY_CREATED_AT,
+            KEY_TAGS, KEY_SUMMARY, KEY_DRAFT, KEY_LINKS
+    );
+
+    // ── Stockage ────────────────────────────────────────────────
+    /** Map ordonnée contenant tous les attributs (connus et inconnus). */
+    private final LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
 
     // ── Constructeurs ───────────────────────────────────────────
 
@@ -78,15 +93,8 @@ public class FrontMatter {
             if (colon < 0) continue;
             String key = line.substring(0, colon).trim().toLowerCase();
             String value = line.substring(colon + 1).trim();
-            switch (key) {
-                case "uuid" -> fm.uuid = value;
-                case "title" -> fm.title = value;
-                case "author" -> fm.authors = parseList(value);
-                case "created_at" -> fm.createdAt = value;
-                case "tags" -> fm.tags = parseList(value);
-                case "summary" -> fm.summary = value;
-                case "draft" -> fm.draft = Boolean.parseBoolean(value);
-                case "links" -> fm.links = parseList(value);
+            if (!key.isEmpty()) {
+                fm.attributes.put(key, value);
             }
         }
         return fm;
@@ -109,36 +117,34 @@ public class FrontMatter {
 
     /**
      * Sérialise le front matter en bloc YAML.
+     * Les clés connues sont sérialisées en premier (dans l'ordre défini),
+     * suivies des attributs inconnus dans l'ordre d'insertion.
      *
      * @return le bloc front matter (avec les délimiteurs ---)
      */
     public String serialize() {
         StringBuilder sb = new StringBuilder();
         sb.append("---\n");
-        if (!uuid.isBlank()) {
-            sb.append("uuid: ").append(uuid).append('\n');
+
+        // Écrire les clés connues en premier (dans l'ordre défini)
+        for (String key : KNOWN_KEYS) {
+            String value = attributes.get(key);
+            if (value != null && !value.isBlank()) {
+                // Cas spécial pour draft : ne pas écrire "draft: false"
+                if (KEY_DRAFT.equals(key) && "false".equalsIgnoreCase(value)) {
+                    continue;
+                }
+                sb.append(key).append(": ").append(value).append('\n');
+            }
         }
-        if (!title.isBlank()) {
-            sb.append("title: ").append(title).append('\n');
+
+        // Écrire les attributs inconnus
+        for (Map.Entry<String, String> entry : attributes.entrySet()) {
+            if (!KNOWN_KEYS.contains(entry.getKey()) && !entry.getValue().isBlank()) {
+                sb.append(entry.getKey()).append(": ").append(entry.getValue()).append('\n');
+            }
         }
-        if (!authors.isEmpty()) {
-            sb.append("author: ").append(formatList(authors)).append('\n');
-        }
-        if (!createdAt.isBlank()) {
-            sb.append("created_at: ").append(createdAt).append('\n');
-        }
-        if (!tags.isEmpty()) {
-            sb.append("tags: ").append(formatList(tags)).append('\n');
-        }
-        if (!summary.isBlank()) {
-            sb.append("summary: ").append(summary).append('\n');
-        }
-        if (draft) {
-            sb.append("draft: true\n");
-        }
-        if (!links.isEmpty()) {
-            sb.append("links: ").append(formatList(links)).append('\n');
-        }
+
         sb.append("---\n");
         return sb.toString();
     }
@@ -147,17 +153,64 @@ public class FrontMatter {
      * Indique si le front matter est entièrement vide (aucun champ renseigné).
      */
     public boolean isEmpty() {
-        return uuid.isBlank()
-                && title.isBlank()
-                && authors.isEmpty()
-                && createdAt.isBlank()
-                && tags.isEmpty()
-                && summary.isBlank()
-                && !draft
-                && links.isEmpty();
+        return attributes.values().stream().allMatch(v -> v == null || v.isBlank());
     }
 
-    // ── Helpers privés ──────────────────────────────────────────
+    // ── Accès générique à la Map ────────────────────────────────
+
+    /**
+     * Retourne la valeur brute d'un attribut.
+     *
+     * @param key la clé (en minuscules)
+     * @return la valeur, ou une chaîne vide si absente
+     */
+    public String get(String key) {
+        String v = attributes.get(key);
+        return v != null ? v : "";
+    }
+
+    /**
+     * Définit la valeur d'un attribut.
+     *
+     * @param key   la clé (en minuscules)
+     * @param value la valeur
+     */
+    public void put(String key, String value) {
+        if (key != null && !key.isBlank()) {
+            attributes.put(key.toLowerCase(), value != null ? value : "");
+        }
+    }
+
+    /**
+     * Supprime un attribut.
+     *
+     * @param key la clé à supprimer
+     */
+    public void remove(String key) {
+        attributes.remove(key);
+    }
+
+    /**
+     * Retourne une vue non modifiable de tous les attributs, dans l'ordre d'insertion.
+     */
+    public Map<String, String> getAll() {
+        return Collections.unmodifiableMap(attributes);
+    }
+
+    /**
+     * Retourne la liste des clés d'attributs inconnus (non standard).
+     */
+    public List<String> getExtraKeys() {
+        List<String> extra = new ArrayList<>();
+        for (String key : attributes.keySet()) {
+            if (!KNOWN_KEYS.contains(key)) {
+                extra.add(key);
+            }
+        }
+        return extra;
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────
 
     /**
      * Parse une valeur qui peut être :
@@ -166,7 +219,7 @@ public class FrontMatter {
      *   <li>une liste entre crochets : {@code "[a, b, c]"}</li>
      * </ul>
      */
-    private static List<String> parseList(String value) {
+    static List<String> parseList(String value) {
         if (value == null || value.isBlank()) return new ArrayList<>();
         Matcher m = LIST_PATTERN.matcher(value);
         if (m.find()) {
@@ -185,19 +238,20 @@ public class FrontMatter {
     /**
      * Formate une liste en représentation YAML inline.
      */
-    private static String formatList(List<String> items) {
+    static String formatList(List<String> items) {
+        if (items == null || items.isEmpty()) return "";
         if (items.size() == 1) return items.get(0);
         return "[" + String.join(", ", items) + "]";
     }
 
-    // ── Getters / Setters ───────────────────────────────────────
+    // ── Getters / Setters typés pour les clés connues ───────────
 
     public String getUuid() {
-        return uuid;
+        return get(KEY_UUID);
     }
 
     public void setUuid(String uuid) {
-        this.uuid = uuid != null ? uuid : "";
+        put(KEY_UUID, uuid);
     }
 
     /**
@@ -206,84 +260,89 @@ public class FrontMatter {
      * @return l'UUID généré
      */
     public String generateUuid() {
-        this.uuid = UUID.randomUUID().toString();
-        return this.uuid;
+        String uuid = UUID.randomUUID().toString();
+        setUuid(uuid);
+        return uuid;
     }
 
     public String getTitle() {
-        return title;
+        return get(KEY_TITLE);
     }
 
     public void setTitle(String title) {
-        this.title = title != null ? title : "";
+        put(KEY_TITLE, title);
     }
 
     public List<String> getAuthors() {
-        return Collections.unmodifiableList(authors);
+        return Collections.unmodifiableList(parseList(get(KEY_AUTHOR)));
     }
 
     public void setAuthors(List<String> authors) {
-        this.authors = authors != null ? new ArrayList<>(authors) : new ArrayList<>();
+        put(KEY_AUTHOR, formatList(authors));
     }
 
     /**
      * Définit les auteurs à partir d'une chaîne séparée par des virgules.
      */
     public void setAuthorsFromString(String authorsStr) {
-        this.authors = parseList(authorsStr);
+        put(KEY_AUTHOR, authorsStr != null ? authorsStr.trim() : "");
     }
 
     /**
      * Retourne les auteurs sous forme de chaîne séparée par des virgules.
      */
     public String getAuthorsAsString() {
-        return String.join(", ", authors);
+        return String.join(", ", getAuthors());
     }
 
     public String getCreatedAt() {
-        return createdAt;
+        return get(KEY_CREATED_AT);
     }
 
     public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt != null ? createdAt : "";
+        put(KEY_CREATED_AT, createdAt);
     }
 
     public List<String> getTags() {
-        return Collections.unmodifiableList(tags);
+        return Collections.unmodifiableList(parseList(get(KEY_TAGS)));
     }
 
     public void setTags(List<String> tags) {
-        this.tags = tags != null ? new ArrayList<>(tags) : new ArrayList<>();
+        put(KEY_TAGS, formatList(tags));
     }
 
     /**
      * Définit les tags à partir d'une chaîne séparée par des virgules.
      */
     public void setTagsFromString(String tagsStr) {
-        this.tags = parseList("[" + tagsStr + "]");
+        if (tagsStr != null && !tagsStr.isBlank()) {
+            put(KEY_TAGS, "[" + tagsStr.trim() + "]");
+        } else {
+            put(KEY_TAGS, "");
+        }
     }
 
     /**
      * Retourne les tags sous forme de chaîne séparée par des virgules.
      */
     public String getTagsAsString() {
-        return String.join(", ", tags);
+        return String.join(", ", getTags());
     }
 
     public String getSummary() {
-        return summary;
+        return get(KEY_SUMMARY);
     }
 
     public void setSummary(String summary) {
-        this.summary = summary != null ? summary : "";
+        put(KEY_SUMMARY, summary);
     }
 
     public boolean isDraft() {
-        return draft;
+        return Boolean.parseBoolean(get(KEY_DRAFT));
     }
 
     public void setDraft(boolean draft) {
-        this.draft = draft;
+        put(KEY_DRAFT, String.valueOf(draft));
     }
 
     /**
@@ -292,6 +351,7 @@ public class FrontMatter {
      * @return true si la date est vide ou au format valide (YYYY-MM-DD ou YYYY-MM-DD HH:mm)
      */
     public boolean isCreatedAtValid() {
+        String createdAt = getCreatedAt();
         if (createdAt.isBlank()) return true;
         try {
             DATETIME_FMT.parse(createdAt);
@@ -307,25 +367,29 @@ public class FrontMatter {
     }
 
     public List<String> getLinks() {
-        return Collections.unmodifiableList(links);
+        return Collections.unmodifiableList(parseList(get(KEY_LINKS)));
     }
 
     public void setLinks(List<String> links) {
-        this.links = links != null ? new ArrayList<>(links) : new ArrayList<>();
+        put(KEY_LINKS, formatList(links));
     }
 
     /**
      * Définit les liens à partir d'une chaîne séparée par des virgules.
      */
     public void setLinksFromString(String linksStr) {
-        this.links = parseList("[" + linksStr + "]");
+        if (linksStr != null && !linksStr.isBlank()) {
+            put(KEY_LINKS, "[" + linksStr.trim() + "]");
+        } else {
+            put(KEY_LINKS, "");
+        }
     }
 
     /**
      * Retourne les liens sous forme de chaîne séparée par des virgules.
      */
     public String getLinksAsString() {
-        return String.join(", ", links);
+        return String.join(", ", getLinks());
     }
 
     /**
@@ -335,9 +399,13 @@ public class FrontMatter {
      * @return true si le lien a été ajouté
      */
     public boolean addLink(String linkUuid) {
-        if (linkUuid != null && !linkUuid.isBlank() && !links.contains(linkUuid)) {
-            links.add(linkUuid);
-            return true;
+        if (linkUuid != null && !linkUuid.isBlank()) {
+            List<String> currentLinks = new ArrayList<>(getLinks());
+            if (!currentLinks.contains(linkUuid)) {
+                currentLinks.add(linkUuid);
+                setLinks(currentLinks);
+                return true;
+            }
         }
         return false;
     }
