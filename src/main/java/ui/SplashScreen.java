@@ -36,7 +36,7 @@ import javafx.util.Duration;
 public class SplashScreen {
 
     /** Version de l'application affichée dans le splash / about. */
-    public static final String APP_VERSION = "0.0.2";
+    public static final String APP_VERSION = "0.0.3";
 
     /** Durée d'affichage automatique du splash en secondes. */
     private static final double SPLASH_DURATION = 3.0;
