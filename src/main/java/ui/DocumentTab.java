@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +27,8 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -40,6 +43,10 @@ public class DocumentTab extends Tab {
     }
 
     private static final int MAX_TAB_NAME_LENGTH = 15;
+
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of(
+            "png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "ico", "tiff", "tif"
+    );
 
     // Patterns pour la coloration syntaxique Markdown
     private static final String HEADING_PATTERN = "^#{1,6}\\s.*$";
@@ -124,7 +131,10 @@ public class DocumentTab extends Tab {
         editor.multiPlainChanges()
               .successionEnds(Duration.ofMillis(100))
               .subscribe(ignore -> applyHighlighting());
-        
+
+        // Drag & drop : insertion de liens markdown depuis l'explorateur
+        setupEditorDragAndDrop();
+
         VirtualizedScrollPane<StyleClassedTextArea> scrollPane = new VirtualizedScrollPane<>(editor);
 
         // Layout : front matter panel au-dessus de l'éditeur
@@ -162,6 +172,101 @@ public class DocumentTab extends Tab {
      */
     private void applyHighlighting() {
         editor.setStyleSpans(0, computeHighlighting(editor.getText()));
+    }
+
+    /**
+     * Configure le drag & drop depuis l'explorateur vers l'éditeur.
+     * Images → ![alt](path), Documents → [title](path)
+     */
+    private void setupEditorDragAndDrop() {
+        editor.setOnDragOver(event -> {
+            if (event.getDragboard().hasFiles()) {
+                event.acceptTransferModes(TransferMode.COPY, TransferMode.LINK);
+            }
+            event.consume();
+        });
+
+        editor.setOnDragDropped(event -> {
+            Dragboard db = event.getDragboard();
+            if (db.hasFiles()) {
+                var hit = editor.hit(event.getX(), event.getY());
+                int insertPos = hit.getInsertionIndex();
+
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < db.getFiles().size(); i++) {
+                    File droppedFile = db.getFiles().get(i);
+                    if (i > 0) sb.append("\n");
+                    String relativePath = computeRelativePath(droppedFile);
+                    if (isImageFile(droppedFile)) {
+                        String altText = getFileNameWithoutExtension(droppedFile);
+                        sb.append("![").append(altText).append("](")
+                           .append(relativePath).append(")");
+                    } else {
+                        String title = extractDroppedFileTitle(droppedFile);
+                        sb.append("[").append(title).append("](")
+                           .append(relativePath).append(")");
+                    }
+                }
+
+                editor.insertText(insertPos, sb.toString());
+                event.setDropCompleted(true);
+            } else {
+                event.setDropCompleted(false);
+            }
+            event.consume();
+        });
+    }
+
+    /**
+     * Calcule le chemin relatif d'un fichier par rapport au document courant.
+     */
+    private String computeRelativePath(File droppedFile) {
+        File baseDir = (this.file != null) ? this.file.getParentFile() : null;
+        if (baseDir != null) {
+            try {
+                String relative = baseDir.toPath().relativize(droppedFile.toPath())
+                        .toString().replace('\\', '/');
+                return relative.replace(" ", "%20");
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return droppedFile.getAbsolutePath().replace('\\', '/').replace(" ", "%20");
+    }
+
+    /**
+     * Vérifie si un fichier est une image.
+     */
+    private boolean isImageFile(File file) {
+        String name = file.getName().toLowerCase();
+        int dotIndex = name.lastIndexOf('.');
+        if (dotIndex < 0) return false;
+        return IMAGE_EXTENSIONS.contains(name.substring(dotIndex + 1));
+    }
+
+    /**
+     * Retourne le nom du fichier sans extension.
+     */
+    private String getFileNameWithoutExtension(File file) {
+        String name = file.getName();
+        int dotIndex = name.lastIndexOf('.');
+        return dotIndex > 0 ? name.substring(0, dotIndex) : name;
+    }
+
+    /**
+     * Extrait le titre d'un fichier pour le lien Markdown.
+     * Pour les fichiers .md, utilise le titre du front matter s'il existe.
+     */
+    private String extractDroppedFileTitle(File file) {
+        if (file.getName().toLowerCase().endsWith(".md")) {
+            Optional<String> content = DocumentService.readFile(file);
+            if (content.isPresent()) {
+                FrontMatter fm = FrontMatter.parse(content.get());
+                if (fm != null && !fm.getTitle().isBlank()) {
+                    return fm.getTitle();
+                }
+            }
+        }
+        return getFileNameWithoutExtension(file);
     }
 
     /**
