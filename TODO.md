@@ -53,15 +53,15 @@ Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ai
 
 ## Indexing to local project database
 
-- [x] Index all files (mainly on front matter attribute and on filenames ) the index file can be a text file (typed JSON) or a light database (like derby), you can decide.  the index file (json or db) will be stored in the root folder of a project, and will be not displayed in the project explorer panel.
-- [x] Add search text box in top head of UI using this index to list matching diocument in a pop-up list of document, showing in extract under document title what is matching, and when selecting one, open the document. 
-- [x] Add a new panel under Projhect explorer show a tag cloud (each tag font size is a ratio to number of occurences)
-- [x] Index file can be reseted from contextual menu entry on project explorer showed on root folder only.
-- [ ] Ajouter une statusbar en bas de la fenêtre principale affichant 
-  - dans une première partie le nom et la postion dans le document actuel, 
-  - ensuite une seconde partie avec des statistiques (nombre de documenrts, nombre de lignes, nombre de mots) 
-  - et dans une dernière partie une progressbar qui représente l'avancement lorsque le service d'indexation est en cours d'indexatrion.
-    > **IMPORTANT** Il faut que le service soit un thread séparé pour ne pas interompre l'expérience utilisateur de saisie de notes.
+- [x] Index all files (primarily by front matter attributes and filenames). The index is stored as a JSON file in the project's root folder and is hidden from the Project Explorer panel.
+- [x] Add a search box at the top of the UI that queries the index and displays matching documents in a popup list, showing the matching excerpt below each document title. Selecting a result opens the document.
+- [x] Add a Tag Cloud panel below the Project Explorer, where each tag's font size is proportional to its number of occurrences.
+- [x] Allow resetting the index from a context menu entry on the root folder in the Project Explorer.
+- [ ] Add a status bar at the bottom of the main window with three sections:
+  - **Document & position** — name and cursor position (line:column) of the current document,
+  - **Statistics** — number of indexed documents, lines, and words in the current document,
+  - **Indexing progress** — a progress bar showing advancement while the indexing service is running.
+    > **IMPORTANT** The indexing service must run in a separate thread so as not to interrupt the user's note-taking experience.
 
 
 ## Optional
