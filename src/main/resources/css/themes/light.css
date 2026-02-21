@@ -306,3 +306,37 @@
     -fx-border-radius: 3px;
     -fx-font-size: 12px;
 }
+
+/* ── Status bar ── */
+
+.status-bar {
+    -fx-background-color: #e0e0e0;
+    -fx-border-color: #cccccc transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-min-height: 24px;
+    -fx-max-height: 24px;
+}
+
+.status-bar .status-section {
+    -fx-text-fill: #2e3436;
+    -fx-font-size: 11px;
+}
+
+.status-bar .separator *.line {
+    -fx-border-color: #cccccc;
+}
+
+.status-bar .status-progress {
+    -fx-accent: #3584e4;
+}
+
+.status-bar .status-progress .track {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 2px;
+}
+
+.status-bar .status-progress .bar {
+    -fx-background-color: #3584e4;
+    -fx-background-radius: 2px;
+}

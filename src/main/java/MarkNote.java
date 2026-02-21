@@ -14,6 +14,7 @@ import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
 import ui.SearchBox;
 import ui.SplashScreen;
+import ui.StatusBar;
 import ui.TagCloudPanel;
 import ui.ThemeTab;
 import ui.WelcomeTab;
@@ -56,6 +57,7 @@ public class MarkNote extends Application {
     private ProjectExplorerPanel projectExplorerPanel;
     private TagCloudPanel tagCloudPanel;
     private SearchBox searchBox;
+    private StatusBar statusBar;
     private IndexService indexService;
     private AppConfig config;
     private Menu recentMenu;
@@ -114,6 +116,17 @@ public class MarkNote extends Application {
         searchBox.setIndexService(indexService);
         searchBox.setOnFileSelected(this::openFileInTab);
 
+        // Status bar (en bas de la fenêtre)
+        statusBar = new StatusBar();
+
+        // Callbacks de progression de l'indexation
+        indexService.setOnProgress(progress -> statusBar.setIndexProgress(progress));
+        indexService.setOnFinished(() -> {
+            statusBar.setIndexIdle();
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+            updateStatusBarStats();
+        });
+
         // Tag cloud : clic sur un tag → recherche
         tagCloudPanel.setOnTagClick(tag -> searchBox.setSearchText(tag));
 
@@ -161,6 +174,9 @@ public class MarkNote extends Application {
         mainSplit.setDividerPositions(0.2);
 
         root.setCenter(mainSplit);
+
+        // Status bar en bas
+        root.setBottom(statusBar);
 
         // Menu Bar + Search Box
         MenuBar menuBar = createMenuBar();
@@ -358,18 +374,32 @@ public class MarkNote extends Application {
         tab.setOnTextChanged(text -> {
             if (mainTabPane.getSelectionModel().getSelectedItem() == tab) {
                 previewPanel.updatePreview(text);
+                updateStatusBarForTab(tab);
             }
         });
 
-        // Mettre à jour la preview quand on change d'onglet
+        // Suivre la position du curseur dans l'éditeur
+        tab.getEditor().caretPositionProperty().addListener((obs, oldPos, newPos) -> {
+            if (mainTabPane.getSelectionModel().getSelectedItem() == tab) {
+                updateStatusBarForTab(tab);
+            }
+        });
+
+        // Mettre à jour la preview et la statusbar quand on change d'onglet
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
                 previewPanel.updatePreview(docTab.getFullContent());
+                updateStatusBarForTab(docTab);
+            } else {
+                statusBar.clearDocumentInfo();
+                statusBar.updateStats(
+                        indexService.getEntries().size(), 0, 0);
             }
         });
 
         // Initial preview
         previewPanel.updatePreview(tab.getFullContent());
+        updateStatusBarForTab(tab);
     }
 
     /**
@@ -457,25 +487,29 @@ public class MarkNote extends Application {
 
     /**
      * Charge l'index existant ou en construit un nouveau pour le projet.
+     * L'indexation complète s'exécute dans un thread séparé.
      */
     private void loadOrBuildIndex(File projectDir) {
         if (projectDir == null) return;
         if (!indexService.loadIndex(projectDir)) {
-            indexService.buildIndex(projectDir);
+            statusBar.setIndexProgress(-1);
+            indexService.buildIndexAsync(projectDir);
+        } else {
+            tagCloudPanel.updateTags(indexService.getTagCounts());
+            updateStatusBarStats();
         }
-        tagCloudPanel.updateTags(indexService.getTagCounts());
     }
 
     /**
      * Réinitialise l'index du projet : supprime le fichier d'index,
-     * reconstruit l'index et met à jour le tag cloud.
+     * reconstruit l'index en arrière-plan et met à jour le tag cloud.
      */
     private void handleResetIndex() {
         File projectDir = projectExplorerPanel.getProjectDirectory();
         if (projectDir == null) return;
         indexService.resetIndex(projectDir);
-        indexService.buildIndex(projectDir);
-        tagCloudPanel.updateTags(indexService.getTagCounts());
+        statusBar.setIndexProgress(-1);
+        indexService.buildIndexAsync(projectDir);
         projectExplorerPanel.refresh();
     }
 
@@ -712,5 +746,55 @@ public class MarkNote extends Application {
         alert.setTitle(title);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    // ── Status bar helpers ──────────────────────────────────────────
+
+    /**
+     * Met à jour la statusbar pour l'onglet de document donné :
+     * nom du fichier, position du curseur, comptage de lignes et de mots.
+     */
+    private void updateStatusBarForTab(DocumentTab tab) {
+        if (tab == null) return;
+
+        // Nom du fichier
+        String filename = tab.getFile() != null ? tab.getFile().getName() : tab.getText().replaceFirst("^\\*", "");
+
+        // Position du curseur
+        var editor = tab.getEditor();
+        int caretPos = editor.getCaretPosition();
+        String text = editor.getText();
+
+        int line = 1;
+        int col = 1;
+        for (int i = 0; i < caretPos && i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                line++;
+                col = 1;
+            } else {
+                col++;
+            }
+        }
+
+        statusBar.updateDocumentInfo(filename, line, col);
+
+        // Statistiques
+        int totalLines = text.isEmpty() ? 0 : (int) text.lines().count();
+        int words = text.isBlank() ? 0 : text.trim().split("\\s+").length;
+        int docs = indexService.getEntries().size();
+        statusBar.updateStats(docs, totalLines, words);
+    }
+
+    /**
+     * Met à jour uniquement les statistiques de la statusbar
+     * (après un changement d'index, par exemple).
+     */
+    private void updateStatusBarStats() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        if (selected instanceof DocumentTab docTab) {
+            updateStatusBarForTab(docTab);
+        } else {
+            statusBar.updateStats(indexService.getEntries().size(), 0, 0);
+        }
     }
 }

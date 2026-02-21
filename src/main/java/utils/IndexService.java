@@ -9,7 +9,11 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 
 /**
  * Service d'indexation des fichiers d'un projet.
@@ -96,6 +100,28 @@ public class IndexService {
     private final List<IndexEntry> entries = new ArrayList<>();
     private final Map<String, Integer> tagCounts = new LinkedHashMap<>();
 
+    /** Callback de progression (0.0 – 1.0). Appelé sur le FX Application Thread. */
+    private Consumer<Double> onProgress;
+
+    /** Callback de fin d'indexation. Appelé sur le FX Application Thread. */
+    private Runnable onFinished;
+
+    /**
+     * Définit le callback de progression.
+     *
+     * @param onProgress reçoit une valeur entre 0.0 et 1.0
+     */
+    public void setOnProgress(Consumer<Double> onProgress) {
+        this.onProgress = onProgress;
+    }
+
+    /**
+     * Définit le callback de fin d'indexation.
+     */
+    public void setOnFinished(Runnable onFinished) {
+        this.onFinished = onFinished;
+    }
+
     // ── API publique ────────────────────────────────────────────
 
     /**
@@ -112,25 +138,52 @@ public class IndexService {
         if (projectDir == null || !projectDir.isDirectory()) return;
 
         try (Stream<Path> walk = Files.walk(projectDir.toPath())) {
-            walk.filter(Files::isRegularFile)
+            List<Path> mdFiles = walk
+                .filter(Files::isRegularFile)
                 .filter(p -> p.toString().toLowerCase().endsWith(".md"))
                 .filter(p -> !p.getFileName().toString().startsWith("."))
-                .forEach(this::indexFile);
+                .toList();
+
+            int total = mdFiles.size();
+            int done = 0;
+            for (Path p : mdFiles) {
+                indexFile(p);
+                done++;
+                reportProgress(done, total);
+            }
         } catch (IOException e) {
             System.err.println("IndexService: error scanning project: " + e.getMessage());
         }
 
-        // Sort tag counts descending
-        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(tagCounts.entrySet());
-        sorted.sort((a, b) -> b.getValue().compareTo(a.getValue()));
-        LinkedHashMap<String, Integer> sortedMap = new LinkedHashMap<>();
-        for (Map.Entry<String, Integer> entry : sorted) {
-            sortedMap.put(entry.getKey(), entry.getValue());
-        }
-        tagCounts.clear();
-        tagCounts.putAll(sortedMap);
-
+        sortTagCounts();
         saveIndex();
+    }
+
+    /**
+     * Lance l'indexation complète dans un thread séparé pour ne pas bloquer
+     * le fil d'exécution JavaFX.
+     *
+     * @param projectDir le répertoire racine du projet
+     */
+    public void buildIndexAsync(File projectDir) {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                buildIndex(projectDir);
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> {
+            if (onFinished != null) Platform.runLater(onFinished);
+        });
+        task.setOnFailed(e -> {
+            System.err.println("IndexService: async indexing failed: " + task.getException());
+            if (onFinished != null) Platform.runLater(onFinished);
+        });
+
+        Thread thread = new Thread(task, "IndexService-build");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     /**
@@ -389,7 +442,13 @@ public class IndexService {
                 }
             }
         }
-        // Trier par nombre d'occurrences décroissant
+        sortTagCounts();
+    }
+
+    /**
+     * Trie les compteurs de tags par nombre d'occurrences décroissant.
+     */
+    private void sortTagCounts() {
         List<Map.Entry<String, Integer>> sorted = new ArrayList<>(tagCounts.entrySet());
         sorted.sort((a, b) -> b.getValue().compareTo(a.getValue()));
         LinkedHashMap<String, Integer> sortedMap = new LinkedHashMap<>();
@@ -398,6 +457,17 @@ public class IndexService {
         }
         tagCounts.clear();
         tagCounts.putAll(sortedMap);
+    }
+
+    /**
+     * Signale la progression de l'indexation au callback enregistré.
+     * La notification est envoyée sur le FX Application Thread.
+     */
+    private void reportProgress(int done, int total) {
+        if (onProgress != null && total > 0) {
+            double progress = (double) done / total;
+            Platform.runLater(() -> onProgress.accept(progress));
+        }
     }
 
     // ── Résultat de recherche ───────────────────────────────────

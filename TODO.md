@@ -1,4 +1,6 @@
-# TODO
+# MarkNote - TODO
+
+>2026-02-19
 
 - [x] Refactorer la classe principale en multiples classes pour separer les panel, la ui et les traitements des fichiers.
 - [x] Ajout du Drag&Drop dans le navigateur de fichier,
@@ -10,6 +12,8 @@
 - [x] Ajouter une syntax Highlighter,
 - [x] Ajouter la notion de theme pour toute l'application et fournir un set de themes par defaut inspires de gnome-edit avec la gestion des themes dans les options sous un nouvel onglet "Themes". Une liste de theme est affiches, et il est possible d'en creer de nouveau : le theme de base est copie et ouvert en tant que document CSS (avec coloration syntaxique). les themes customs seront sauves dans un repertoir ~/.marknote/themes. Biensur, tous les themes apparaiteront dans la liste.
 - [x] Ajouter un SpashScreen avec Nom de l'application, version, auteur, contact et copyright ( command dans "about")
+
+>2026-02-20
 
 ## Support external markdown extension
 
@@ -31,18 +35,21 @@ Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ai
 - `summary` un résumé de l'article/de la note (optionel)
 - `draft` status de la note (si elle est publiée ou non: publiée si draft=false)
 
-> **IMPORTANT** Tous ces élément pourront être utilisé plus tard dans un moteur de recherche de note.
+  > **IMPORTANT** Tous ces élément pourront être utilisé plus tard dans un moteur de recherche de note.
 
+>2026-02-21
 
 ## UUID and links
 
 - [x] Ajouter le support de lien vers d'autres document via "Front Matter" avec l'attribut `links` qui contient un seul ou une liste de lien vers d'autres documents; e.x: `links: [4567-6789-8903-6784]`
 
-> **NOTE1** Les liens pointent vers un UUID
+  > **NOTE1** Les liens pointent vers un UUID
 
-> **NOTE2** Cet uuid est généré à la création d'un document : c'est un nouvel attribute Front Matter" : `uuid`.
+  > **NOTE2** Cet uuid est généré à la création d'un document : c'est un nouvel attribute Front Matter" : `uuid`.
 
-> **NOTE3** Le lien sera créé par drag-and-drop depuis l'explorateur de projet vers la zone "Front Matter" en haut du DocumentTab cible. Si le champs uuid n'existe poas ldans le document à lier, il faut le créer et l'ajouter; et renseigner le lien dans le document cible.
+  > **NOTE3** Le lien sera créé par drag-and-drop depuis l'explorateur de projet vers la zone "Front Matter" en haut du DocumentTab cible. Si le champs uuid n'existe poas ldans le document à lier, il faut le créer et l'ajouter; et renseigner le lien dans le document cible.
+
+
 
 ## Indexing to local project database
 

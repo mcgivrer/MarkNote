@@ -11,12 +11,13 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 5. [Project Explorer](#project-explorer)
 6. [Search & Indexing](#search--indexing)
 7. [Tag Cloud](#tag-cloud)
-8. [Live Preview](#live-preview)
-9. [Splash Screen & About](#splash-screen--about)
-10. [Themes](#themes)
-11. [Options & Settings](#options--settings)
-12. [Keyboard Shortcuts](#keyboard-shortcuts)
-13. [Troubleshooting](#troubleshooting)
+8. [Status Bar](#status-bar)
+9. [Live Preview](#live-preview)
+10. [Splash Screen & About](#splash-screen--about)
+11. [Themes](#themes)
+12. [Options & Settings](#options--settings)
+13. [Keyboard Shortcuts](#keyboard-shortcuts)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -37,6 +38,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Project Indexing** - Automatic indexing of Markdown files by front matter and filenames
 - **Search** - Instant full-text search across indexed documents with live results popup
 - **Tag Cloud** - Visual tag cloud showing tag frequency; click to search
+- **Status Bar** - Document info, statistics, and indexing progress at the bottom of the window
 - **Multi-document Tabs** - Work on multiple files simultaneously
 - **Theme Support** - Built-in themes with custom theme creation
 - **Splash Screen** - Themed splash screen at startup (configurable)
@@ -107,6 +109,13 @@ Shows the rendered HTML output of your Markdown in real-time. Features:
 - Navigation buttons (back/forward through history)
 - Refresh button
 - Clickable links that navigate within your project
+
+### 5. Status Bar (Bottom)
+
+A thin bar at the bottom of the window showing:
+- **Document name** and **cursor position** (line:column) on the left
+- **Statistics** (document count, line count, word count) in the center
+- **Indexing progress bar** on the right (visible only during indexing)
 
 ### Toggling Panels
 
@@ -287,6 +296,26 @@ The Tag Cloud updates automatically whenever the project index changes:
 - Opening a project
 - Creating, saving, renaming, or deleting documents
 - Rebuilding the index
+
+---
+
+## Status Bar
+
+The status bar is displayed at the bottom of the main window and provides at-a-glance information about your current work.
+
+![Status Bar](illustrations/status-bar.svg)
+
+### Sections
+
+| Section | Content |
+|---------|----------|
+| **Document & Position** | Name of the active document and cursor position (Ln/Col) |
+| **Statistics** | Number of indexed documents, lines in the current document, and word count |
+| **Indexing Progress** | A progress bar shown while the indexing service is running |
+
+### Background Indexing
+
+When a full index build or rebuild is triggered, the indexing runs in a **background thread** so that your editing is never interrupted. The progress bar shows the indexation progress in real-time. Once complete, the status returns to "Ready".
 
 ---
 
