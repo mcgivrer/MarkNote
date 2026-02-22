@@ -138,14 +138,14 @@ public class VisualLinkPanel extends BasePanel {
         canvasContainer = new Pane(canvas);
         canvasContainer.setPadding(Insets.EMPTY);
 
-        // Redimensionner le canvas avec le conteneur
+        // Redimensionner le canvas avec le conteneur et réajuster le graphe
         canvasContainer.widthProperty().addListener((o, ov, nv) -> {
             canvas.setWidth(nv.doubleValue());
-            draw();
+            if (!nodes.isEmpty()) zoomToFit(); else draw();
         });
         canvasContainer.heightProperty().addListener((o, ov, nv) -> {
             canvas.setHeight(nv.doubleValue());
-            draw();
+            if (!nodes.isEmpty()) zoomToFit(); else draw();
         });
 
         setupInteraction();
