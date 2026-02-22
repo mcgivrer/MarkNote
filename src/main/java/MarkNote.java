@@ -35,6 +35,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -418,18 +419,27 @@ public class MarkNote extends Application {
     private void showWelcomeTab() {
         WelcomeTab welcomeTab = new WelcomeTab(config.getRecentDirs(), config.getMaxRecentItems(), config);
         welcomeTab.setOnProjectSelected(dir -> {
-            // Ouvrir le projet
-            projectExplorerPanel.setProjectDirectory(dir);
-            previewPanel.setBaseDirectory(dir);
-            primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
-            config.addRecentDir(dir);
-            refreshRecentMenu();
-            loadOrBuildIndex(dir);
+            openProjectDirectory(dir);
 
             // Fermer l'onglet Welcome seulement s'il reste d'autres onglets
             if (mainTabPane.getTabs().size() > 1) {
                 mainTabPane.getTabs().remove(welcomeTab);
             }
+        });
+        welcomeTab.setOnCreateProjectRequested(() -> {
+            File newProjectDir = createNewProjectDirectory();
+            if (newProjectDir != null) {
+                openProjectDirectory(newProjectDir);
+                if (mainTabPane.getTabs().size() > 1) {
+                    mainTabPane.getTabs().remove(welcomeTab);
+                }
+            }
+        });
+        welcomeTab.setOnClearProjectsHistoryRequested(() -> {
+            config.clearHistory();
+            refreshRecentMenu();
+            mainTabPane.getTabs().remove(welcomeTab);
+            showWelcomeTab();
         });
         mainTabPane.getTabs().add(0, welcomeTab);
         mainTabPane.getSelectionModel().select(welcomeTab);
@@ -555,13 +565,63 @@ public class MarkNote extends Application {
 
         File dir = chooser.showDialog(primaryStage);
         if (dir != null) {
-            projectExplorerPanel.setProjectDirectory(dir);
-            previewPanel.setBaseDirectory(dir);
-            primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
-            config.addRecentDir(dir);
-            refreshRecentMenu();
-            loadOrBuildIndex(dir);
+            openProjectDirectory(dir);
         }
+    }
+
+    /**
+     * Crée un nouveau répertoire de projet puis le retourne.
+     */
+    private File createNewProjectDirectory() {
+        DirectoryChooser parentChooser = new DirectoryChooser();
+        parentChooser.setTitle(messages.getString("chooser.newProjectParent"));
+
+        File currentDir = projectExplorerPanel.getProjectDirectory();
+        if (currentDir != null && currentDir.exists()) {
+            parentChooser.setInitialDirectory(currentDir);
+        }
+
+        File parentDir = parentChooser.showDialog(primaryStage);
+        if (parentDir == null) {
+            return null;
+        }
+
+        TextInputDialog nameDialog = new TextInputDialog("new-project");
+        nameDialog.setTitle(messages.getString("newproject.title"));
+        nameDialog.setHeaderText(messages.getString("newproject.header"));
+        nameDialog.setContentText(messages.getString("newproject.prompt"));
+
+        Optional<String> result = nameDialog.showAndWait();
+        if (result.isEmpty()) {
+            return null;
+        }
+
+        String projectName = result.get().trim();
+        if (projectName.isEmpty()) {
+            return null;
+        }
+
+        File newProjectDir = new File(parentDir, projectName);
+        if (newProjectDir.exists() || !newProjectDir.mkdirs()) {
+            showError(messages.getString("error.projectCreate.title"),
+                    MessageFormat.format(messages.getString("error.projectCreate.message"),
+                            newProjectDir.getAbsolutePath()));
+            return null;
+        }
+
+        return newProjectDir;
+    }
+
+    /**
+     * Ouvre un répertoire de projet et met à jour l'UI/l'historique.
+     */
+    private void openProjectDirectory(File dir) {
+        projectExplorerPanel.setProjectDirectory(dir);
+        previewPanel.setBaseDirectory(dir);
+        primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
+        config.addRecentDir(dir);
+        refreshRecentMenu();
+        loadOrBuildIndex(dir);
     }
 
     /**
@@ -671,12 +731,7 @@ public class MarkNote extends Application {
                 MenuItem item = new MenuItem(d.getName() + "  (" + d.getParent() + ")");
                 item.setOnAction(e -> {
                     if (d.exists() && d.isDirectory()) {
-                        projectExplorerPanel.setProjectDirectory(d);
-                        previewPanel.setBaseDirectory(d);
-                        primaryStage.setTitle(messages.getString("app.title") + " - " + d.getName());
-                        config.addRecentDir(d);
-                        refreshRecentMenu();
-                        loadOrBuildIndex(d);
+                        openProjectDirectory(d);
                     } else {
                         showError(messages.getString("error.dirNotFound.title"),
                                 MessageFormat.format(messages.getString("error.dirNotFound.message"), path));
