@@ -950,6 +950,38 @@ public class VisualLinkPanel extends BasePanel {
                     nodeTooltip.show(window, screenX + 12, screenY + 12);
                 }
             }
+        } else if (hit != null && hit.type == NodeType.TAG) {
+            if (hit != lastHoveredNode) {
+                lastHoveredNode = hit;
+
+                // Compter le nombre de documents liés à ce tag
+                long docCount = edges.stream()
+                        .filter(e -> e.source == hit || e.target == hit)
+                        .map(e -> e.source == hit ? e.target : e.source)
+                        .filter(n -> n.type == NodeType.DOCUMENT)
+                        .count();
+
+                VBox content = new VBox(2);
+                content.setPadding(new Insets(2, 4, 2, 4));
+
+                Label tagLabel = new Label("#" + hit.label);
+                tagLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px;");
+                content.getChildren().add(tagLabel);
+
+                String tooltipText = String.format(
+                        bundle.getString("networkdiagram.tag.tooltip"), docCount);
+                Label countLabel = new Label(tooltipText);
+                countLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #888888;");
+                content.getChildren().add(countLabel);
+
+                nodeTooltip.setGraphic(content);
+                nodeTooltip.setText(null);
+
+                Window window = getScene() != null ? getScene().getWindow() : null;
+                if (window != null) {
+                    nodeTooltip.show(window, screenX + 12, screenY + 12);
+                }
+            }
         } else {
             hideNodeTooltip();
         }
