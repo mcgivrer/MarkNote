@@ -28,6 +28,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Project Indexing** - Automatic indexing of all Markdown files by front matter metadata (title, tags, authors, summary) and filenames, stored as a local JSON index
 - **Search** - Instant full-text search across indexed documents with a live results popup; matches on title, filename, tags, summary, authors, and UUID
 - **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
+- **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup
 - **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), and indexing progress bar; indexing runs in a background thread
 - **Multi-document Tabs** - Work on multiple documents simultaneously
 - **Theme Support** - Built-in themes (Light, Dark, Solarized, High Contrast) with custom theme creation; syntax highlighting themes coordinate automatically
@@ -36,6 +37,8 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Recent Projects** - Quick access to recently opened projects
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
+- **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), and Network Diagram (`Ctrl+L`) via the View menu
+- **Close Tab** - Close the active document tab with `Ctrl+W`
 
 ## Supported Languages
 
@@ -155,8 +158,8 @@ MarkNote/
 │   │   ├── Main.java
 │   │   ├── MarkNote.java
 │   │   ├── config/          # Configuration (AppConfig, ThemeManager)
-│   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud...)
-│   │   └── utils/           # Utilities (DocumentService, IndexService, PlantUmlEncoder)
+│   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud, VisualLinkPanel...)
+│   │   └── utils/           # Utilities (DocumentService, FrontMatter, IndexService, PlantUmlEncoder)
 │   └── resources/
 │       ├── css/             # Stylesheets
 │       │   ├── markdown-editor.css

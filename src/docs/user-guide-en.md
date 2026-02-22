@@ -11,13 +11,14 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 5. [Project Explorer](#project-explorer)
 6. [Search & Indexing](#search--indexing)
 7. [Tag Cloud](#tag-cloud)
-8. [Status Bar](#status-bar)
-9. [Live Preview](#live-preview)
-10. [Splash Screen & About](#splash-screen--about)
-11. [Themes](#themes)
-12. [Options & Settings](#options--settings)
-13. [Keyboard Shortcuts](#keyboard-shortcuts)
-14. [Troubleshooting](#troubleshooting)
+8. [Network Diagram](#network-diagram)
+9. [Status Bar](#status-bar)
+10. [Live Preview](#live-preview)
+11. [Splash Screen & About](#splash-screen--about)
+12. [Themes](#themes)
+13. [Options & Settings](#options--settings)
+14. [Keyboard Shortcuts](#keyboard-shortcuts)
+15. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -38,6 +39,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Project Indexing** - Automatic indexing of Markdown files by front matter and filenames
 - **Search** - Instant full-text search across indexed documents with live results popup
 - **Tag Cloud** - Visual tag cloud showing tag frequency; click to search
+- **Network Diagram** - Interactive force-directed graph of document links and shared tags
 - **Status Bar** - Document info, statistics, and indexing progress at the bottom of the window
 - **Multi-document Tabs** - Work on multiple files simultaneously
 - **Theme Support** - Built-in themes with custom theme creation
@@ -84,12 +86,13 @@ MarkNote's interface is divided into three main areas:
 
 ![Main Interface](illustrations/main-interface.svg)
 
-### 1. Project Explorer & Tag Cloud (Left Panel)
+### 1. Project Explorer, Tag Cloud & Network Diagram (Left Panel)
 
-The left panel contains two sub-panels:
+The left panel contains three sub-panels arranged vertically in a resizable split:
 
 - **Project Explorer** (top) - Displays your project's file structure in a tree view. Navigate through folders, double-click files to open them, and right-click for context menu options.
-- **Tag Cloud** (bottom) - Shows all tags found in your project's Markdown front matter, with font size proportional to frequency. Click a tag to search for it.
+- **Tag Cloud** (middle) - Shows all tags found in your project's Markdown front matter, with font size proportional to frequency. Click a tag to search for it.
+- **Network Diagram** (bottom) - An interactive force-directed graph showing the relationships between documents (via links) and shared tags. See [Network Diagram](#network-diagram) for details.
 
 ### 2. Search Box (Top Bar)
 
@@ -119,9 +122,19 @@ A thin bar at the bottom of the window showing:
 
 ### Toggling Panels
 
-You can show or hide panels using the **View** menu:
-- **View → Project explorer** - Toggle the left panel
-- **View → Preview panel** - Toggle the right panel
+You can show or hide panels using the **View** menu or by clicking the **×** close button on each panel header:
+
+![View Menu](illustrations/view-menu.svg)
+
+| Shortcut | Action |
+|----------|--------|
+| **View → Project explorer** (`Ctrl+E`) | Toggle the left Project Explorer |
+| **View → Preview panel** (`Ctrl+P`) | Toggle the right Preview pane |
+| **View → Tag Cloud** (`Ctrl+T`) | Toggle the Tag Cloud sub-panel |
+| **View → Network Diagram** (`Ctrl+L`) | Toggle the Network Diagram sub-panel |
+| **View → Show Welcome** | Open the Welcome tab |
+
+Each panel can also be closed by clicking the **×** button in its header. Re-opening it from the View menu restores it to the layout.
 
 ---
 
@@ -158,6 +171,7 @@ When you try to close a modified document without saving, MarkNote will prompt y
 
 - Click on a tab to switch to that document
 - Click the **×** button on a tab to close it
+- Press `Ctrl+W` to close the active tab
 - Modified documents show a **•** indicator in the tab
 
 ---
@@ -296,6 +310,68 @@ The Tag Cloud updates automatically whenever the project index changes:
 - Opening a project
 - Creating, saving, renaming, or deleting documents
 - Rebuilding the index
+
+---
+
+## Network Diagram
+
+The Network Diagram panel provides an interactive visualization of the relationships between your documents.
+
+![Network Diagram](illustrations/network-diagram.svg)
+
+### How It Works
+
+The Network Diagram uses a **force-directed layout** algorithm to arrange your documents as a graph:
+
+- **Document nodes** (📄 icon) represent each Markdown file in your project
+- **Tag nodes** (blue circles with `#`) represent shared tags
+- **Solid edges** connect documents that reference each other via `links:` in their front matter
+- **Dashed edges** connect documents to the tags they share
+
+The physics simulation runs until the layout stabilizes, then the view automatically zooms to fit all nodes.
+
+### Navigation & Interaction
+
+| Action | Description |
+|--------|-------------|
+| **Click a document node** | Open that document in the editor |
+| **Click a tag node** | Show a search popup listing all documents with that tag |
+| **Drag a node** | Move a node to rearrange the layout |
+| **Middle-click + drag** | Pan the view |
+| **Scroll wheel** | Zoom in/out |
+| **Ctrl + Click** | Zoom to fit all nodes in view |
+
+### Tag Search Popup
+
+When you click a tag node in the diagram, a popup appears showing all documents that contain that tag. Each result displays:
+- **Document title** (bold)
+- **Match type** (e.g., "tag: java")
+- **File path** (relative to the project root)
+
+Click a result to open the document directly.
+
+### Front Matter Links
+
+To create links between documents, add a `links:` field in your YAML front matter:
+
+```yaml
+---
+title: My Document
+tags: java, tutorial
+links:
+  - docs/related-guide.md
+  - notes/reference.md
+---
+```
+
+These links appear as solid lines connecting the two documents in the diagram.
+
+### Keeping the Diagram Updated
+
+The Network Diagram updates automatically whenever:
+- A project is opened
+- Files are created, saved, renamed, moved, or deleted
+- The index is rebuilt
 
 ---
 
@@ -591,6 +667,15 @@ To change the language:
 | `Ctrl+Tab` | Next tab |
 | `Ctrl+Shift+Tab` | Previous tab |
 | `F5` | Refresh preview |
+
+### View
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+E` | Toggle Project Explorer |
+| `Ctrl+P` | Toggle Preview panel |
+| `Ctrl+T` | Toggle Tag Cloud |
+| `Ctrl+L` | Toggle Network Diagram |
 
 > **Note:** On macOS, use `Cmd` instead of `Ctrl`.
 
