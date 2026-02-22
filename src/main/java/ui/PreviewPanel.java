@@ -260,6 +260,15 @@ public class PreviewPanel extends BasePanel {
                     .front-matter .fm-summary { cursor: pointer; font-weight: bold; font-size: 0.9em;
                                                 color: #666; padding: 0.2em 0; }
                     .front-matter .fm-summary:hover { color: #333; }
+                    /* Copy button on code blocks */
+                    pre { position: relative; }
+                    pre .copy-btn { position: absolute; top: 4px; right: 4px; padding: 2px 8px;
+                                    font-size: 0.75em; cursor: pointer; background: rgba(128,128,128,0.2);
+                                    border: 1px solid rgba(128,128,128,0.3); border-radius: 4px;
+                                    color: inherit; opacity: 0; transition: opacity 0.2s; }
+                    pre:hover .copy-btn { opacity: 1; }
+                    pre .copy-btn:hover { background: rgba(128,128,128,0.35); }
+                    pre .copy-btn.copied { background: rgba(76,175,80,0.3); border-color: rgba(76,175,80,0.5); }
                   </style>
                 </head>
                 <body>%s%s
@@ -297,6 +306,33 @@ public class PreviewPanel extends BasePanel {
                     }
                     renderMath(document.body);
                   })();
+                  // Copy buttons on code blocks
+                  document.querySelectorAll('pre > code').forEach(function(codeEl) {
+                    var pre = codeEl.parentElement;
+                    if (pre.querySelector('.copy-btn')) return;
+                    var btn = document.createElement('button');
+                    btn.className = 'copy-btn';
+                    btn.textContent = 'Copy';
+                    btn.addEventListener('click', function() {
+                      var text = codeEl.textContent;
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(function() {
+                          btn.textContent = '\u2713 Copied';
+                          btn.classList.add('copied');
+                          setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+                        });
+                      } else {
+                        var ta = document.createElement('textarea');
+                        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                        document.body.appendChild(ta); ta.select();
+                        document.execCommand('copy'); document.body.removeChild(ta);
+                        btn.textContent = '\u2713 Copied';
+                        btn.classList.add('copied');
+                        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+                      }
+                    });
+                    pre.appendChild(btn);
+                  });
                 </script>
                 </body>
                 </html>
