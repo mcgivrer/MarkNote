@@ -17,27 +17,31 @@ A lightweight and modern Markdown editor built with JavaFX.
 
 ## Features
 
-- **Markdown Editing** - Full-featured Markdown editor with syntax highlighting
+- **Markdown Editing** - Full-featured Markdown editor with syntax highlighting (headings, bold, italic, strikethrough, code, blockquotes, lists, links, images, horizontal rules)
 - **Live Preview** - Real-time HTML preview with WebView rendering
-- **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/))
+- **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/)); each app theme maps to a matching highlight.js style
+- **Code Block Copy Button** - One-click copy for code blocks in preview, with visual "✓ Copied" feedback
 - **Markdown Tables** - Full GFM table support with styled rendering
-- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview (server-side rendering)
-- **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview (server-side rendering, auto-wrapped with `@startuml`/`@enduml` if absent)
+- **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview; Mermaid theme auto-matches app theme
 - **Math Equations** - LaTeX/MathML support via KaTeX for inline (`$...$`) and block (`$$...$$`) equations
-- **Project Explorer** - Browse and manage your project files with drag & drop support
-- **Project Indexing** - Automatic indexing of all Markdown files by front matter metadata (title, tags, authors, summary) and filenames, stored as a local JSON index
-- **Search** - Instant full-text search across indexed documents with a live results popup; matches on title, filename, tags, summary, authors, and UUID
+- **Front Matter Panel** - Collapsible panel above the editor for visual editing of YAML front matter (title, tags, authors, summary, UUID, created date, draft); supports custom fields and UUID-based document linking via drag & drop
+- **Collapsible Front Matter Preview** - Front matter rendered as a styled, collapsible block at the top of the preview showing title, draft badge, tags, summary, author, date, and linked documents
+- **Project Explorer** - Browse and manage your project files with drag & drop support; `.md` files display front matter titles; directories first, alphabetically sorted; hidden file filtering; multi-file selection
+- **Project Indexing** - Automatic incremental indexing of all Markdown files by front matter metadata (title, tags, authors, summary, created date, draft, links) and filenames, stored as a persistent local JSON index (`.marknote-index.json`)
+- **Search** - Instant full-text search across indexed documents with a live results popup (up to 20 results); matches on title, filename, tags, summary, authors, and UUID; keyboard navigation
 - **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
-- **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup
+- **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup; tooltips with title/author/date; current document highlighted with orange border; isolated nodes hidden; auto zoom-to-fit
 - **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), and indexing progress bar; indexing runs in a background thread
-- **Multi-document Tabs** - Work on multiple documents simultaneously
-- **Theme Support** - Built-in themes (Light, Dark, Solarized, High Contrast) with custom theme creation; syntax highlighting themes coordinate automatically
-- **Splash Screen** - Themed splash screen at startup (can be disabled in options), also used as About dialog
-- **Image Preview** - Quick preview for images with zoom and pan
-- **Recent Projects** - Quick access to recently opened projects
+- **Multi-document Tabs** - Work on multiple documents simultaneously; drag tabs to reorder; tab name truncation with tooltip; modified indicator (`*` prefix)
+- **Drag & Drop into Editor** - Drop files from Project Explorer into the editor to insert Markdown image or link syntax at the drop position
+- **Theme Support** - Built-in themes (Light, Dark, Solarized Light, Solarized Dark, High Contrast) with custom theme creation via a full CSS theme editor with syntax highlighting; syntax highlighting themes coordinate automatically
+- **Splash Screen** - Themed splash screen at startup (can be disabled in options), also used as About dialog (modal with Close button)
+- **Image Preview** - Quick preview for images with zoom (10%–1000%) and pan; info banner showing format and dimensions; zoom level overlay with fade-out
+- **Recent Files & Projects** - Quick access to recently opened files and projects, organized in separate sections with Clear History
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
-- **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), and Network Diagram (`Ctrl+L`) via the View menu
+- **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), and Network Diagram (`Ctrl+L`) via the View menu; Show Welcome
 - **Close Tab** - Close the active document tab with `Ctrl+W`
 
 ## Supported Languages
