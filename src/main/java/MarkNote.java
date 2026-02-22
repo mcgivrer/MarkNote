@@ -469,10 +469,20 @@ public class MarkNote extends Application {
             if (newTab instanceof DocumentTab docTab) {
                 previewPanel.updatePreview(docTab.getFullContent());
                 updateStatusBarForTab(docTab);
+                // Mettre en valeur le document dans le diagramme réseau
+                File docFile = docTab.getFile();
+                File projectDir = projectExplorerPanel.getProjectDirectory();
+                if (docFile != null && projectDir != null) {
+                    String relativePath = projectDir.toPath().relativize(docFile.toPath()).toString();
+                    visualLinkPanel.setCurrentDocument(relativePath);
+                } else {
+                    visualLinkPanel.setCurrentDocument(null);
+                }
             } else {
                 statusBar.clearDocumentInfo();
                 statusBar.updateStats(
                         indexService.getEntries().size(), 0, 0);
+                visualLinkPanel.setCurrentDocument(null);
             }
         });
 
