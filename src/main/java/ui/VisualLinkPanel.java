@@ -23,6 +23,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.ScrollEvent;
@@ -35,6 +36,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Popup;
 import javafx.stage.Screen;
 import javafx.stage.Window;
+import javafx.util.Duration;
 
 /**
  * Panneau affichant un diagramme réseau des liens entre documents.
@@ -92,6 +94,12 @@ public class VisualLinkPanel extends BasePanel {
     private Popup tagPopup;
     private ListView<SearchResult> tagResultsList;
 
+    // ── Document courant et métadonnées tooltip ─────────────────
+    private String currentDocumentPath = null;
+    private final Map<String, IndexEntry> entryByPath = new HashMap<>();
+    private Tooltip nodeTooltip;
+    private GraphNode lastHoveredNode = null;
+
     // ── Modèle interne ──────────────────────────────────────────
 
     enum NodeType { DOCUMENT, TAG }
@@ -142,6 +150,7 @@ public class VisualLinkPanel extends BasePanel {
 
         setupInteraction();
         setupTagPopup();
+        setupTooltip();
         setContent(canvasContainer);
         setPrefHeight(250);
 
@@ -250,7 +259,11 @@ public class VisualLinkPanel extends BasePanel {
             } else {
                 canvas.setCursor(Cursor.DEFAULT);
             }
+            // Tooltip sur les nœuds document
+            updateNodeTooltip(hit, e.getScreenX(), e.getScreenY());
         });
+
+        canvas.setOnMouseExited(e -> hideNodeTooltip());
 
         canvas.setOnScroll((ScrollEvent e) -> e.consume());
         // Intercepter le scroll au niveau du panel lui-même
@@ -380,12 +393,14 @@ public class VisualLinkPanel extends BasePanel {
         // 1. Créer les nœuds document (ceux qui ont un UUID)
         Map<String, GraphNode> nodeByUuid = new HashMap<>();
         Map<String, GraphNode> nodeByPath = new HashMap<>();
+        entryByPath.clear();
 
         for (IndexEntry entry : entries) {
             String id = !entry.getUuid().isBlank() ? entry.getUuid() : entry.getRelativePath();
             GraphNode node = new GraphNode(entry.getRelativePath(), entry.getDisplayTitle(), NodeType.DOCUMENT);
             nodes.add(node);
             nodeByPath.put(entry.getRelativePath(), node);
+            entryByPath.put(entry.getRelativePath(), entry);
             if (!entry.getUuid().isBlank()) {
                 nodeByUuid.put(entry.getUuid(), node);
             }
@@ -623,7 +638,8 @@ public class VisualLinkPanel extends BasePanel {
             double sy = toScreenY(node.y);
 
             if (node.type == NodeType.DOCUMENT) {
-                drawDocumentNode(gc, sx, sy, node.label);
+                boolean isCurrent = node.id.equals(currentDocumentPath);
+                drawDocumentNode(gc, sx, sy, node.label, isCurrent);
             } else {
                 drawTagNode(gc, sx, sy, node.label);
             }
@@ -632,19 +648,30 @@ public class VisualLinkPanel extends BasePanel {
 
     /**
      * Dessine un nœud document : icône doc stylisée + label.
+     * Si {@code highlight} est vrai, le nœud est entouré d'un trait épais
+     * pour indiquer qu'il s'agit du document en cours d'édition.
      */
-    private void drawDocumentNode(GraphicsContext gc, double x, double y, String label) {
+    private void drawDocumentNode(GraphicsContext gc, double x, double y, String label, boolean highlight) {
         double r = NODE_RADIUS * zoom;
         double iconW = r * 1.2;
         double iconH = r * 1.6;
         double foldSize = iconW * 0.3;
+
+        // Bordure épaisse de mise en valeur (document actif)
+        if (highlight) {
+            double pad = 3.0;
+            gc.setStroke(Color.web("#ff8800"));
+            gc.setLineWidth(3.0);
+            gc.strokeRoundRect(x - iconW / 2 - pad, y - iconH / 2 - pad,
+                    iconW + pad * 2, iconH + pad * 2, 5, 5);
+        }
 
         // Ombre
         gc.setFill(Color.web("#00000030"));
         gc.fillRoundRect(x - iconW / 2 + 1.5, y - iconH / 2 + 1.5, iconW, iconH, 2, 2);
 
         // Corps du document
-        gc.setFill(Color.web("#e8e8e8"));
+        gc.setFill(highlight ? Color.web("#fff3e0") : Color.web("#e8e8e8"));
         gc.setStroke(Color.web("#555555"));
         gc.setLineWidth(1.0);
 
@@ -727,6 +754,17 @@ public class VisualLinkPanel extends BasePanel {
     }
 
     // ── API publique ────────────────────────────────────────────
+
+    /**
+     * Définit le chemin relatif du document actuellement en cours d'édition.
+     * Ce document sera mis en valeur dans le diagramme avec un trait épais.
+     *
+     * @param relativePath le chemin relatif du document courant, ou {@code null}
+     */
+    public void setCurrentDocument(String relativePath) {
+        this.currentDocumentPath = relativePath;
+        draw();
+    }
 
     /**
      * Définit le callback pour le clic sur un document.
@@ -859,6 +897,68 @@ public class VisualLinkPanel extends BasePanel {
                 tagPopup.hide();
                 onFileSelected.accept(file);
             }
+        }
+    }
+
+    // ── Tooltip sur les nœuds ──────────────────────────────────────
+
+    private void setupTooltip() {
+        nodeTooltip = new Tooltip();
+        nodeTooltip.setShowDelay(Duration.millis(400));
+        nodeTooltip.setHideDelay(Duration.millis(200));
+        nodeTooltip.setAutoHide(true);
+        nodeTooltip.setWrapText(true);
+        nodeTooltip.setMaxWidth(350);
+    }
+
+    private void updateNodeTooltip(GraphNode hit, double screenX, double screenY) {
+        if (hit != null && hit.type == NodeType.DOCUMENT) {
+            if (hit != lastHoveredNode) {
+                lastHoveredNode = hit;
+                // Construire le contenu du tooltip avec VBox
+                IndexEntry entry = entryByPath.get(hit.id);
+                VBox content = new VBox(2);
+                content.setPadding(new Insets(2, 4, 2, 4));
+
+                // Ligne 1 : nom complet du document
+                Label nameLabel = new Label(hit.label);
+                nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 12px;");
+                content.getChildren().add(nameLabel);
+
+                // Ligne 2 : auteur et date de création
+                if (entry != null) {
+                    String authorStr = String.join(", ", entry.getAuthors());
+                    String dateStr = entry.getCreatedAt();
+                    StringBuilder details = new StringBuilder();
+                    if (!authorStr.isBlank()) details.append(authorStr);
+                    if (!dateStr.isBlank()) {
+                        if (details.length() > 0) details.append(" \u2014 ");
+                        details.append(dateStr);
+                    }
+                    if (details.length() > 0) {
+                        Label detailLabel = new Label(details.toString());
+                        detailLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #888888;");
+                        content.getChildren().add(detailLabel);
+                    }
+                }
+
+                nodeTooltip.setGraphic(content);
+                nodeTooltip.setText(null);
+
+                Window window = getScene() != null ? getScene().getWindow() : null;
+                if (window != null) {
+                    nodeTooltip.show(window, screenX + 12, screenY + 12);
+                }
+            }
+        } else {
+            hideNodeTooltip();
+        }
+    }
+
+    private void hideNodeTooltip() {
+        if (lastHoveredNode != null) {
+            lastHoveredNode = null;
+            nodeTooltip.hide();
         }
     }
 
