@@ -79,16 +79,13 @@ public class SearchReplaceBar extends VBox {
         matchLabel.getStyleClass().add("search-match-label");
         matchLabel.setMinWidth(60);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Button closeBtn = new Button("✕");
+        Button closeBtn = new Button("\u2715");
         closeBtn.getStyleClass().add("search-close-btn");
         closeBtn.setOnAction(e -> hide());
 
         HBox searchRow = new HBox(6,
                 searchField, regexBtn, fullWordBtn, caseBtn,
-                prevBtn, nextBtn, matchLabel, spacer, closeBtn);
+                prevBtn, nextBtn, matchLabel, closeBtn);
         searchRow.setAlignment(Pos.CENTER_LEFT);
         searchRow.setPadding(new Insets(5, 8, 3, 8));
 
@@ -111,6 +108,18 @@ public class SearchReplaceBar extends VBox {
         replaceRow.setPadding(new Insets(3, 8, 5, 8));
 
         getChildren().addAll(searchRow, replaceRow);
+
+        // Empêcher le StackPane d'étirer la barre : seule la taille préférée est utilisée
+        setMaxHeight(Region.USE_PREF_SIZE);
+        setMaxWidth(Region.USE_PREF_SIZE);
+
+        // Fond inline : garantit l'affichage même si le CSS externe n'est pas hérité
+        setStyle("-fx-background-color: rgba(245,245,245,0.93);"
+               + "-fx-border-color: #b0b0b0;"
+               + "-fx-border-width: 0 0 1 1;"
+               + "-fx-background-radius: 0 0 0 6;"
+               + "-fx-border-radius: 0 0 0 6;"
+               + "-fx-effect: dropshadow(gaussian,rgba(0,0,0,0.22),8,0,-2,3);");
 
         // Caché par défaut
         setVisible(false);
@@ -267,6 +276,15 @@ public class SearchReplaceBar extends VBox {
             editor.replaceText(range[0], range[1], replaceField.getText());
         }
         performSearch();
+    }
+
+    /** Met à jour le label "X / N" indiquant la position courante. */
+    private void updateMatchLabel() {
+        if (matches.isEmpty()) {
+            matchLabel.setText(getMessages().getString("searchbar.no.match"));
+        } else {
+            matchLabel.setText((currentMatchIndex + 1) + " / " + matches.size());
+        }
     }
 
     /**

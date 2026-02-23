@@ -155,14 +155,20 @@ public class DocumentTab extends Tab {
         searchReplaceBar.setEditor(editor);
         searchReplaceBar.setOnClearHighlights(this::applyHighlighting);
 
-        // Layout : front matter + éditeur dans un VBox,
-        //          puis barre overlay dans un StackPane
-        javafx.scene.layout.VBox editorBox = new javafx.scene.layout.VBox(frontMatterPanel, scrollPane);
-        javafx.scene.layout.VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
-
-        javafx.scene.layout.StackPane contentStack = new javafx.scene.layout.StackPane(editorBox, searchReplaceBar);
+        // La barre flotte au-dessus de l'éditeur uniquement (pas du FrontMatter).
+        // StackPane enveloppe uniquement scrollPane + barre → la barre apparaît
+        // juste en-dessous du panneau FrontMatter.
+        javafx.scene.layout.StackPane editorStack = new javafx.scene.layout.StackPane(scrollPane, searchReplaceBar);
         javafx.scene.layout.StackPane.setAlignment(searchReplaceBar, javafx.geometry.Pos.TOP_RIGHT);
-        setContent(contentStack);
+
+        javafx.scene.layout.VBox contentBox = new javafx.scene.layout.VBox(frontMatterPanel, editorStack);
+        javafx.scene.layout.VBox.setVgrow(editorStack, javafx.scene.layout.Priority.ALWAYS);
+
+        // Le CSS doit être sur contentBox (ancêtre de SearchReplaceBar) pour que
+        // les règles .search-replace-bar soient visibles par le composant.
+        contentBox.getStylesheets().add(cssPath);
+
+        setContent(contentBox);
 
         // Listener pour détecter les modifications
         editor.textProperty().addListener((obs, oldText, newText) -> {
