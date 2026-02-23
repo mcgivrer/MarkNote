@@ -71,3 +71,85 @@
     -fx-fill: #999999;
     -fx-strikethrough: true;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Barre de Recherche / Remplacement
+   ───────────────────────────────────────────────────────────────────────── */
+
+.search-replace-bar {
+    -fx-background-color: rgba(245, 245, 245, 0.93);
+    -fx-border-color: #b0b0b0;
+    -fx-border-width: 0 0 1 1;
+    -fx-background-radius: 0 0 0 6;
+    -fx-border-radius: 0 0 0 6;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 8, 0, -2, 3);
+    -fx-max-width: 620px;
+    -fx-padding: 0;
+}
+
+.search-field {
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-pref-width: 220px;
+}
+
+/* Champ en erreur (regex invalide) */
+.search-field:error {
+    -fx-border-color: #e53935;
+    -fx-border-width: 1.5;
+}
+
+.search-toggle-btn {
+    -fx-background-radius: 4;
+    -fx-font-family: "Consolas", "Monospace";
+    -fx-font-size: 11px;
+    -fx-padding: 2 6 2 6;
+    -fx-cursor: hand;
+}
+
+.search-toggle-btn:selected {
+    -fx-background-color: #1565c0;
+    -fx-text-fill: white;
+}
+
+.search-nav-btn {
+    -fx-background-radius: 4;
+    -fx-padding: 2 8 2 8;
+    -fx-cursor: hand;
+}
+
+.search-close-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #666;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 2 6 2 6;
+}
+
+.search-close-btn:hover {
+    -fx-text-fill: #c00;
+}
+
+.search-match-label {
+    -fx-text-fill: #555;
+    -fx-font-size: 12px;
+    -fx-min-width: 60px;
+}
+
+.search-action-btn {
+    -fx-background-radius: 4;
+    -fx-padding: 2 10 2 10;
+    -fx-cursor: hand;
+}
+
+/* Surbrillance des occurrences trouvées */
+.search-highlight {
+    -fx-background-color: #fff59d;
+    -fx-fill: #222;
+}
+
+/* Occurrence couramment sélectionnée */
+.search-highlight-current {
+    -fx-background-color: #ff9800;
+    -fx-fill: #fff;
+}

@@ -28,6 +28,7 @@ le `=100x20` permet de fixer les attribtus Width et Height de la balise image. i
 - [x] Ajouter un editeur de "Front Matter" pour les docs Markdown (voir plus bas).
 
 Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ainsi on peu ajouter des attributs:
+
 - `title` pour le titre de l'article (il devra être utilisé dans l'explorateur de projet si celui-ci existe)
 - `author` un auteur ou une liste d'auteurs
 - `created_at` la date de création de la note au `formaat YYYY-MM-DD (hh:mm)`   l'heure étant optionnelle,
@@ -49,8 +50,6 @@ Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ai
 
   > **NOTE3** Le lien sera créé par drag-and-drop depuis l'explorateur de projet vers la zone "Front Matter" en haut du DocumentTab cible. Si le champs uuid n'existe poas ldans le document à lier, il faut le créer et l'ajouter; et renseigner le lien dans le document cible.
 
-
-
 ## Indexing to local project database
 
 - [x] Index all files (primarily by front matter attributes and filenames). The index is stored as a JSON file in the project's root folder and is hidden from the Project Explorer panel.
@@ -63,20 +62,29 @@ Ajouter le support des attributes de "Front Matter" dans le fichier markdown, ai
   - **Indexing progress** — a progress bar showing advancement while the indexing service is running.
     > **IMPORTANT** The indexing service must run in a separate thread so as not to interrupt the user's note-taking experience.
 
-## Add Visual Network Diagram 
+## Add Visual Network Diagram
 
-- [x] Add a new Network Diagram in a new VisualLinkPanel which can, be dsiplayed in the same side as Tags. 
+- [x] Add a new Network Diagram in a new VisualLinkPanel which can, be dsiplayed in the same side as Tags.
 This link diagram is representing all the links betweek document in a project. each line is link, each node is a doc. use doc icon for nodes and black line for links.
   - if link is a link to a tag, add tag name as node on the corresponding line
   - if link is a simple link between docs, draw a simple line.
-  - the diagram must try to keep all nodes distances equals in a dynamic way. 
+  - the diagram must try to keep all nodes distances equals in a dynamic way.
+  -
   > **NOTE1** As IndexService, the visual Network diagram is dynamically updated.
-  
+
   > **NOTE2** Use the same component to open/clkose panel like in "Front Matter".
 
+## Add Applicaiton Icon
+
+- [x] Add an SVG and PNG icons (16,32,64,128px) anbd add it to the MarkNote class.
+
+## Add Search & Replace
+
+- [x] In the DocumentTab, Add a "Search en replace" feature (CTRL+F) to find a text to be replaced by another one. The search field must propose optional toggles for "Regular Expression",  "Full Word", "Respect Casing" for search operation, and the Replace text field is a full text input. The both field must be a laver upon the DocumentTab, show only when search Opeartion are required.
+- [x] add a new menu item "Edit" -> "Search..." and "Replace..." menu entries. "Search" entry will only show the "Search" Field (with search options) while the "Replace..." entry will show both.
 
 ## Optional
 
 - [ ] Ajouter le support de template de pages
 - [ ] Ajouter un panel "Assistant" permettant la connexion à un LLM via un MCP agent (ajouter un onlget "MCP agent" dans le dialogue "Options" pour configurer url, parameètres et clé d'API).
-- [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options. 
+- [ ] Ajouter des themes pour le syntax highligther avec gestion dans les options.

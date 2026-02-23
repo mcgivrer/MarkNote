@@ -6,17 +6,10 @@
     "configurations": [
         {
             "type": "java",
-            "name": "MarkNote",
-            "request": "launch",
-            "mainClass": "MarkNote",
-            "projectName": "MarkNote_738e7d3"
-        },
-        {
-            "type": "java",
             "name": "Main",
             "request": "launch",
             "mainClass": "Main",
-            "projectName": "MarkNote_738e7d3"
+            "projectName": "MarkNote_e6d1cd91"
         },
         {
             "type": "java",

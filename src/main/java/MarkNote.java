@@ -395,9 +395,34 @@ public class MarkNote extends Application {
 
         helpMenu.getItems().addAll(optionsItem, new SeparatorMenuItem(), aboutItem);
 
-        menuBar.getMenus().addAll(fileMenu, viewMenu, helpMenu);
+        // == Menu Édition ==
+        Menu editMenu = new Menu(messages.getString("menu.edit"));
+
+        MenuItem searchItem = new MenuItem(messages.getString("menu.edit.search"));
+        searchItem.setAccelerator(KeyCombination.keyCombination("Ctrl+F"));
+        searchItem.setOnAction(e -> {
+            if (getActiveDocumentTab() != null) getActiveDocumentTab().openSearch();
+        });
+
+        MenuItem replaceItem = new MenuItem(messages.getString("menu.edit.replace"));
+        replaceItem.setAccelerator(KeyCombination.keyCombination("Ctrl+H"));
+        replaceItem.setOnAction(e -> {
+            if (getActiveDocumentTab() != null) getActiveDocumentTab().openReplace();
+        });
+
+        editMenu.getItems().addAll(searchItem, replaceItem);
+
+        menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu, helpMenu);
 
         return menuBar;
+    }
+
+    /**
+     * Retourne le DocumentTab actif, ou null si l'onglet courant n'en est pas un.
+     */
+    private DocumentTab getActiveDocumentTab() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        return (selected instanceof DocumentTab docTab) ? docTab : null;
     }
 
     /**
