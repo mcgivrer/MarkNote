@@ -4,6 +4,7 @@
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![JavaFX](https://img.shields.io/badge/JavaFX-24-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![i18n](https://img.shields.io/badge/i18n-EN_|_FR_|_ES_|_DE_|_IT-blueviolet)
 
 A lightweight and modern Markdown editor built with JavaFX.
 
