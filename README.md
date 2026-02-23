@@ -1,9 +1,11 @@
 # MarkNote
+![MarkNote icon](src/main/resources/images/icons/marknote.svg)
 
 [![Java build](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml)
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![JavaFX](https://img.shields.io/badge/JavaFX-24-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+
 
 A lightweight and modern Markdown editor built with JavaFX.
 

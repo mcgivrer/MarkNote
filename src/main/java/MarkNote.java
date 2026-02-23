@@ -26,6 +26,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckMenuItem;
@@ -178,7 +179,8 @@ public class MarkNote extends Application {
             visualLinkPanel.updateDiagram(indexService.getEntries());
         });
 
-        // Conteneur gauche : explorateur + tag cloud + diagramme réseau (redimensionnable)
+        // Conteneur gauche : explorateur + tag cloud + diagramme réseau
+        // (redimensionnable)
         leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
         leftSplit.setOrientation(Orientation.VERTICAL);
         leftSplit.setDividerPositions(0.55, 0.78);
@@ -214,6 +216,17 @@ public class MarkNote extends Application {
             stage.setTitle(messages.getString("app.title.editor"));
         }
         stage.setScene(scene);
+
+        // Icônes de fenêtre / barre des tâches (du plus petit au plus grand)
+        String[] iconSizes = { "16", "32", "64", "128" };
+        for (String size : iconSizes) {
+            try (var is = getClass().getResourceAsStream("/images/icons/marknote-" + size + ".png")) {
+                if (is != null) {
+                    stage.getIcons().add(new Image(is));
+                }
+            } catch (Exception ignored) {
+            }
+        }
 
         // Afficher le splash screen ; la fenêtre principale et la logique de
         // démarrage s'exécutent une fois le splash fermé.
@@ -298,7 +311,8 @@ public class MarkNote extends Application {
             // The project explorer and tag cloud are in a vertical SplitPane (leftSplit).
             // We need to find it — it's the parent of projectExplorerPanel.
             javafx.scene.Parent leftPane = projectExplorerPanel.getParent();
-            if (leftPane == null) leftPane = projectExplorerPanel; // fallback
+            if (leftPane == null)
+                leftPane = projectExplorerPanel; // fallback
             if (isSelected) {
                 if (!mainSplit.getItems().contains(leftPane)) {
                     mainSplit.getItems().addFirst(leftPane);
@@ -367,9 +381,8 @@ public class MarkNote extends Application {
         MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
         showWelcomeItem.setOnAction(e -> showWelcomeTab());
 
-        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel,
-                new SeparatorMenuItem(), showTagCloud, showNetworkDiagram,
-                new SeparatorMenuItem(), showWelcomeItem);
+        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, new SeparatorMenuItem(), showTagCloud,
+                showNetworkDiagram, new SeparatorMenuItem(), showWelcomeItem);
 
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
@@ -480,8 +493,7 @@ public class MarkNote extends Application {
                 }
             } else {
                 statusBar.clearDocumentInfo();
-                statusBar.updateStats(
-                        indexService.getEntries().size(), 0, 0);
+                statusBar.updateStats(indexService.getEntries().size(), 0, 0);
                 visualLinkPanel.setCurrentDocument(null);
             }
         });
@@ -579,7 +591,8 @@ public class MarkNote extends Application {
      * L'indexation complète s'exécute dans un thread séparé.
      */
     private void loadOrBuildIndex(File projectDir) {
-        if (projectDir == null) return;
+        if (projectDir == null)
+            return;
         if (!indexService.loadIndex(projectDir)) {
             statusBar.setIndexProgress(-1);
             indexService.buildIndexAsync(projectDir);
@@ -591,12 +604,13 @@ public class MarkNote extends Application {
     }
 
     /**
-     * Réinitialise l'index du projet : supprime le fichier d'index,
-     * reconstruit l'index en arrière-plan et met à jour le tag cloud.
+     * Réinitialise l'index du projet : supprime le fichier d'index, reconstruit
+     * l'index en arrière-plan et met à jour le tag cloud.
      */
     private void handleResetIndex() {
         File projectDir = projectExplorerPanel.getProjectDirectory();
-        if (projectDir == null) return;
+        if (projectDir == null)
+            return;
         indexService.resetIndex(projectDir);
         statusBar.setIndexProgress(-1);
         indexService.buildIndexAsync(projectDir);
@@ -718,7 +732,8 @@ public class MarkNote extends Application {
                 Alert reopenAlert = new Alert(Alert.AlertType.CONFIRMATION);
                 reopenAlert.setTitle(messages.getString("reopen.title"));
                 reopenAlert.setHeaderText(messages.getString("reopen.header"));
-                reopenAlert.setContentText(MessageFormat.format(messages.getString("reopen.content"), lastDir.getName()));
+                reopenAlert
+                        .setContentText(MessageFormat.format(messages.getString("reopen.content"), lastDir.getName()));
                 Optional<ButtonType> result = reopenAlert.showAndWait();
                 if (result.isPresent() && result.get() == ButtonType.OK) {
                     projectExplorerPanel.setProjectDirectory(lastDir);
@@ -753,10 +768,10 @@ public class MarkNote extends Application {
     private void restartApplication() {
         // Clear ResourceBundle cache
         ResourceBundle.clearCache();
-        
+
         // Close current stage
         primaryStage.close();
-        
+
         // Start a new instance
         Platform.runLater(() -> {
             try {
@@ -791,7 +806,7 @@ public class MarkNote extends Application {
                 }
             }
         }
-        
+
         // Charger le contenu
         Optional<String> content = DocumentService.readFile(file);
         if (content.isPresent()) {
@@ -818,7 +833,7 @@ public class MarkNote extends Application {
         ThemeManager themeManager = ThemeManager.getInstance();
         String currentTheme = config.getCurrentTheme();
         String themeCssUrl = themeManager.getThemeCssUrl(currentTheme);
-        
+
         scene.getStylesheets().clear();
         if (themeCssUrl != null) {
             scene.getStylesheets().add(themeCssUrl);
@@ -841,11 +856,12 @@ public class MarkNote extends Application {
     // ── Status bar helpers ──────────────────────────────────────────
 
     /**
-     * Met à jour la statusbar pour l'onglet de document donné :
-     * nom du fichier, position du curseur, comptage de lignes et de mots.
+     * Met à jour la statusbar pour l'onglet de document donné : nom du fichier,
+     * position du curseur, comptage de lignes et de mots.
      */
     private void updateStatusBarForTab(DocumentTab tab) {
-        if (tab == null) return;
+        if (tab == null)
+            return;
 
         // Nom du fichier
         String filename = tab.getFile() != null ? tab.getFile().getName() : tab.getText().replaceFirst("^\\*", "");
@@ -876,8 +892,8 @@ public class MarkNote extends Application {
     }
 
     /**
-     * Met à jour uniquement les statistiques de la statusbar
-     * (après un changement d'index, par exemple).
+     * Met à jour uniquement les statistiques de la statusbar (après un changement
+     * d'index, par exemple).
      */
     private void updateStatusBarStats() {
         var selected = mainTabPane.getSelectionModel().getSelectedItem();
