@@ -32,17 +32,19 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Project Explorer** - Browse and manage your project files with drag & drop support; `.md` files display front matter titles; directories first, alphabetically sorted; hidden file filtering; multi-file selection
 - **Project Indexing** - Automatic incremental indexing of all Markdown files by front matter metadata (title, tags, authors, summary, created date, draft, links) and filenames, stored as a persistent local JSON index (`.marknote-index.json`)
 - **Search** - Instant full-text search across indexed documents with a live results popup (up to 20 results); matches on title, filename, tags, summary, authors, and UUID; keyboard navigation
+- **Search & Replace** - In-editor search/replace overlay (`Ctrl+F` / `Ctrl+H`) with optional **Regular Expression**, **Full Word**, and **Match Case** toggles; navigate occurrences with `▲`/`▼`; replace current match or all matches at once; result counter; closes with `Escape`
 - **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
 - **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup; tooltips with title/author/date; current document highlighted with orange border; isolated nodes hidden; auto zoom-to-fit
 - **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), and indexing progress bar; indexing runs in a background thread
 - **Multi-document Tabs** - Work on multiple documents simultaneously; drag tabs to reorder; tab name truncation with tooltip; modified indicator (`*` prefix)
 - **Drag & Drop into Editor** - Drop files from Project Explorer into the editor to insert Markdown image or link syntax at the drop position
 - **Theme Support** - Built-in themes (Light, Dark, Solarized Light, Solarized Dark, High Contrast) with custom theme creation via a full CSS theme editor with syntax highlighting; syntax highlighting themes coordinate automatically
-- **Splash Screen** - Themed splash screen at startup (can be disabled in options), also used as About dialog (modal with Close button)
+- **Splash Screen** - Themed splash screen at startup with application logo (can be disabled in options), also used as About dialog (modal with Close button)
 - **Image Preview** - Quick preview for images with zoom (10%–1000%) and pan; info banner showing format and dimensions; zoom level overlay with fade-out
 - **Recent Files & Projects** - Quick access to recently opened files and projects, organized in separate sections with Clear History
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
+- **Application Icon** - Custom SVG icon with PNG exports (16, 32, 64, 128 px) shown in the title bar, taskbar, and Alt+Tab switcher
 - **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), and Network Diagram (`Ctrl+L`) via the View menu; Show Welcome
 - **Close Tab** - Close the active document tab with `Ctrl+W`
 
@@ -101,7 +103,7 @@ Or use the build script:
 ### Running with a specific language
 
 ```bash
-java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.0.1.jar:target/build/libs/*" Main
+java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.0.6.jar:target/build/libs/*" Main
 ```
 
 ## Packaging
@@ -134,8 +136,8 @@ Where `{platform}` is:
 1. Download or build the package for your platform
 2. Extract the ZIP archive:
    ```bash
-   unzip MarkNote-0.0.1-linux.zip
-   cd MarkNote-0.0.1-linux
+   unzip MarkNote-0.0.6-linux.zip
+   cd MarkNote-0.0.6-linux
    ```
 3. Run the application:
    - **Linux/macOS:** `./MarkNote.sh`

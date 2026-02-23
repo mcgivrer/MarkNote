@@ -8,18 +8,19 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 2. [Getting Started](#getting-started)
 3. [Main Interface](#main-interface)
 4. [Working with Documents](#working-with-documents)
-5. [Front Matter Panel](#front-matter-panel)
-6. [Project Explorer](#project-explorer)
-7. [Search & Indexing](#search--indexing)
-8. [Tag Cloud](#tag-cloud)
-9. [Network Diagram](#network-diagram)
-10. [Status Bar](#status-bar)
-11. [Live Preview](#live-preview)
-12. [Splash Screen & About](#splash-screen--about)
-13. [Themes](#themes)
-14. [Options & Settings](#options--settings)
-15. [Keyboard Shortcuts](#keyboard-shortcuts)
-16. [Troubleshooting](#troubleshooting)
+5. [Search & Replace in Editor](#search--replace-in-editor)
+6. [Front Matter Panel](#front-matter-panel)
+7. [Project Explorer](#project-explorer)
+8. [Search & Indexing](#search--indexing)
+9. [Tag Cloud](#tag-cloud)
+10. [Network Diagram](#network-diagram)
+11. [Status Bar](#status-bar)
+12. [Live Preview](#live-preview)
+13. [Splash Screen & About](#splash-screen--about)
+14. [Themes](#themes)
+15. [Options & Settings](#options--settings)
+16. [Keyboard Shortcuts](#keyboard-shortcuts)
+17. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -41,6 +42,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Project Explorer** - Browse and manage your project files, with front matter titles displayed for `.md` files
 - **Project Indexing** - Automatic incremental indexing of Markdown files by front matter and filenames
 - **Search** - Instant full-text search across indexed documents with live results popup (up to 20 results)
+- **Search & Replace in Editor** - In-editor overlay bar (`Ctrl+F` / `Ctrl+H`) with Regex, Full Word, and Match Case toggles, occurrence navigation and bulk replace
 - **Tag Cloud** - Visual tag cloud showing tag frequency; click to search
 - **Network Diagram** - Interactive force-directed graph of document links and shared tags, with tooltips and current document highlighting
 - **Status Bar** - Document info, statistics, and indexing progress at the bottom of the window
@@ -101,6 +103,15 @@ The left panel contains three sub-panels arranged vertically in a resizable spli
 ### 2. Search Box (Top Bar)
 
 Located to the right of the menu bar, the search box lets you instantly search across all indexed documents. Results appear in a popup as you type.
+
+### 2b. Edit Menu
+
+The **Edit** menu provides in-document text operations:
+
+| Item | Shortcut | Description |
+|------|----------|-------------|
+| **Search...** | `Ctrl+F` | Open the Search bar overlay (search field + options) |
+| **Search and Replace...** | `Ctrl+H` | Open the Search & Replace overlay (both fields) |
 
 ### 3. Editor (Center Panel)
 
@@ -213,6 +224,58 @@ You can drag files from the Project Explorer directly into the editor to insert 
 - **Markdown files** (`.md`) → inserts `[front matter title](relative/path)` (uses the front matter title if available, otherwise the filename)
 
 The link is inserted at the exact drop position in the text.
+
+---
+
+## Search & Replace in Editor
+
+MarkNote includes a **Search & Replace overlay bar** that floats over the editor without interrupting your layout. It appears just below the Front Matter panel and only takes up the space it needs.
+
+### Opening the Bar
+
+| Method | Result |
+|--------|--------|
+| `Ctrl+F` or **Edit → Search...** | Opens the bar with the **search field only** |
+| `Ctrl+H` or **Edit → Search and Replace...** | Opens the bar with **both search and replace fields** |
+| `Escape` or **✕ button** | Closes the bar and removes all highlights |
+
+### Search Field & Options
+
+The search row contains:
+
+| Control | Description |
+|---------|-------------|
+| **Search field** | Type your query here; results are highlighted as you type |
+| `.*` toggle | Enable **Regular Expression** mode |
+| `\b` toggle | Enable **Full Word** matching |
+| `Aa` toggle | Enable **Match Case** (case-sensitive search) |
+| `▲` button | Navigate to the **previous** occurrence (`Shift+Enter` also works) |
+| `▼` button | Navigate to the **next** occurrence (`Enter` also works) |
+| **Counter** | Shows the current position and total count (e.g., `2 / 7`) or `No results` |
+| `✕` button | Close the bar |
+
+### Replace Field
+
+Visible only when opened via `Ctrl+H` or **Edit → Search and Replace...**:
+
+| Control | Description |
+|---------|-------------|
+| **Replace field** | The replacement text (plain text, no regex syntax required) |
+| **Replace** button | Replace the **currently highlighted** occurrence and move to the next |
+| **Replace all** button | Replace **all** occurrences at once |
+
+### Occurrence Highlighting
+
+- All occurrences are highlighted in **yellow** (`search-highlight`)
+- The **currently selected** occurrence is highlighted in **orange** (`search-highlight-current`) and the editor scrolls to it
+- When the bar is closed, all highlights are removed and normal syntax highlighting is restored
+
+### Regex Mode
+
+When the `.*` toggle is active:
+- The query is interpreted as a Java regular expression
+- If the pattern is invalid, the search field turns **red** and a `⚠` warning is shown
+- Capture groups can be used in the Replace field (e.g., `$1`)
 
 ---
 
@@ -689,6 +752,7 @@ You can also specify only width or only height:
 ### Splash Screen
 
 When MarkNote starts, a themed splash screen is displayed showing:
+- The **application logo** (centered at the top)
 - The application name and version
 - Author and contact information
 - Copyright notice
@@ -845,6 +909,8 @@ To change the language:
 | `Ctrl+C` | Copy |
 | `Ctrl+V` | Paste |
 | `Ctrl+A` | Select all |
+| `Ctrl+F` | Open Search bar (search only) |
+| `Ctrl+H` | Open Search & Replace bar |
 
 ### Navigation
 
@@ -907,7 +973,7 @@ If you encounter issues not covered here:
 
 ## About MarkNote
 
-**Version:** 0.0.5
+**Version:** 0.0.6
 **Author:** Frédéric Delorme  
 **Copyright:** © SnapGames 2026  
 **License:** MIT  
