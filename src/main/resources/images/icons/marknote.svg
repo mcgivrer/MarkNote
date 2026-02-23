@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+
+    <!-- Fond du document : dégradé violet-bleu profond -->
+    <linearGradient id="docGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1A1A3E"/>
+      <stop offset="60%"  stop-color="#1F2D5A"/>
+      <stop offset="100%" stop-color="#16324F"/>
+    </linearGradient>
+
+    <!-- Coin replié sombre -->
+    <linearGradient id="foldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0A0A20"/>
+      <stop offset="100%" stop-color="#111830"/>
+    </linearGradient>
+
+    <!-- Dégradé du # : teal lumineux -->
+    <linearGradient id="hashGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#4FFFC4"/>
+      <stop offset="100%" stop-color="#00C896"/>
+    </linearGradient>
+
+    <!-- Dégradé de l'accent coloré en haut -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7B61FF"/>
+      <stop offset="50%"  stop-color="#00C896"/>
+      <stop offset="100%" stop-color="#7B61FF"/>
+    </linearGradient>
+
+    <!-- Ombre portée du document (SVG 1.1 compatible) -->
+    <filter id="docShadow" x="-15%" y="-10%" width="130%" height="130%">
+      <feFlood flood-color="#000000" flood-opacity="0.55" result="flood"/>
+      <feComposite in="flood" in2="SourceGraphic" operator="in" result="shadow"/>
+      <feGaussianBlur in="shadow" stdDeviation="6" result="blur"/>
+      <feOffset dx="0" dy="5" result="offset"/>
+      <feMerge>
+        <feMergeNode in="offset"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Lueur sur le # -->
+    <filter id="hashGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Lueur sur la barre d'accent -->
+    <filter id="accentGlow" x="-5%" y="-100%" width="110%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Masque pour arrondir le reflet interne -->
+    <clipPath id="docClip">
+      <path d="M18 14 L86 14 L110 38 L110 116 Q110 122 104 122 L24 122 Q18 122 18 116 Z"/>
+    </clipPath>
+
+  </defs>
+
+  <!-- ============================================================
+       Corps du document avec coin replié
+       ============================================================ -->
+  <path d="M18 14
+           L86 14
+           L110 38
+           L110 116
+           Q110 122 104 122
+           L24 122
+           Q18 122 18 116 Z"
+        fill="url(#docGrad)"
+        filter="url(#docShadow)"/>
+
+  <!-- Reflet lumineux interne (haut gauche) -->
+  <ellipse cx="42" cy="30" rx="30" ry="18"
+           fill="#FFFFFF" opacity="0.04"
+           clip-path="url(#docClip)"/>
+
+  <!-- Triangle du coin replié -->
+  <path d="M86 14 L110 38 L86 38 Z"
+        fill="url(#foldGrad)"/>
+
+  <!-- Trait de pli -->
+  <path d="M86 14 L86 38 L110 38"
+        fill="none"
+        stroke="#3A5580"
+        stroke-width="1"
+        opacity="0.5"/>
+
+  <!-- Accent diagonal subtil sur le coin -->
+  <path d="M86 14 L99 27"
+        fill="none"
+        stroke="#5580AA"
+        stroke-width="1"
+        opacity="0.35"/>
+
+  <!-- ============================================================
+       Barre d'accent dégradée en haut du document
+       ============================================================ -->
+  <rect x="18" y="14" width="68" height="4" rx="0"
+        fill="url(#accentGrad)"
+        filter="url(#accentGlow)"
+        clip-path="url(#docClip)"
+        opacity="0.9"/>
+
+  <!-- ============================================================
+       Symbole # centré, grand, avec lueur
+       ============================================================ -->
+  <g filter="url(#hashGlow)">
+    <!-- Barres horizontales -->
+    <rect x="30" y="45" width="50" height="9" rx="4.5" fill="url(#hashGrad)"/>
+    <rect x="30" y="61" width="50" height="9" rx="4.5" fill="url(#hashGrad)"/>
+    <!-- Barres verticales -->
+    <rect x="42" y="36" width="9" height="46" rx="4.5" fill="url(#hashGrad)"/>
+    <rect x="62" y="36" width="9" height="46" rx="4.5" fill="url(#hashGrad)"/>
+  </g>
+
+  <!-- ============================================================
+       Lignes de texte stylisées (contenu de la note)
+       ============================================================ -->
+  <rect x="28" y="83"  width="60" height="5" rx="2.5" fill="#5599CC" opacity="0.80"/>
+  <rect x="28" y="93"  width="44" height="5" rx="2.5" fill="#4480AA" opacity="0.65"/>
+  <rect x="28" y="103" width="52" height="5" rx="2.5" fill="#4480AA" opacity="0.55"/>
+  <rect x="28" y="113" width="32" height="5" rx="2.5" fill="#4480AA" opacity="0.40"/>
+
+  <!-- ============================================================
+       Contour externe du document (finition)
+       ============================================================ -->
+  <path d="M18 14
+           L86 14
+           L110 38
+           L110 116
+           Q110 122 104 122
+           L24 122
+           Q18 122 18 116 Z"
+        fill="none"
+        stroke="#4A70A0"
+        stroke-width="1"
+        opacity="0.30"/>
+
+</svg>
