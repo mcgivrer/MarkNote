@@ -28,6 +28,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.TransferMode;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -78,6 +79,7 @@ public class DocumentTab extends Tab {
 
     private final StyleClassedTextArea editor;
     private final FrontMatterPanel frontMatterPanel;
+    private SearchReplaceBar searchReplaceBar;
     private File file;
     private String savedContent;
     private Consumer<String> onTextChanged;
@@ -135,12 +137,32 @@ public class DocumentTab extends Tab {
         // Drag & drop : insertion de liens markdown depuis l'explorateur
         setupEditorDragAndDrop();
 
+        // Ctrl+F → Recherche  |  Ctrl+H → Recherche & Remplacement
+        editor.setOnKeyPressed(e -> {
+            if (e.isControlDown() && e.getCode() == KeyCode.F) {
+                searchReplaceBar.showSearchOnly();
+                e.consume();
+            } else if (e.isControlDown() && e.getCode() == KeyCode.H) {
+                searchReplaceBar.showSearchAndReplace();
+                e.consume();
+            }
+        });
+
         VirtualizedScrollPane<StyleClassedTextArea> scrollPane = new VirtualizedScrollPane<>(editor);
 
-        // Layout : front matter panel au-dessus de l'éditeur
+        // Barre de recherche/remplacement (overlay)
+        searchReplaceBar = new SearchReplaceBar();
+        searchReplaceBar.setEditor(editor);
+        searchReplaceBar.setOnClearHighlights(this::applyHighlighting);
+
+        // Layout : front matter + éditeur dans un VBox,
+        //          puis barre overlay dans un StackPane
         javafx.scene.layout.VBox editorBox = new javafx.scene.layout.VBox(frontMatterPanel, scrollPane);
         javafx.scene.layout.VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
-        setContent(editorBox);
+
+        javafx.scene.layout.StackPane contentStack = new javafx.scene.layout.StackPane(editorBox, searchReplaceBar);
+        javafx.scene.layout.StackPane.setAlignment(searchReplaceBar, javafx.geometry.Pos.TOP_RIGHT);
+        setContent(contentStack);
 
         // Listener pour détecter les modifications
         editor.textProperty().addListener((obs, oldText, newText) -> {
@@ -169,8 +191,10 @@ public class DocumentTab extends Tab {
 
     /**
      * Applique la coloration syntaxique au texte.
+     * Public pour permettre à la SearchReplaceBar de réappliquer le highlighting
+     * après suppression des surbrillances de recherche.
      */
-    private void applyHighlighting() {
+    public void applyHighlighting() {
         editor.setStyleSpans(0, computeHighlighting(editor.getText()));
     }
 
@@ -536,6 +560,20 @@ public class DocumentTab extends Tab {
     private static String truncateTabName(String name) {
         if (name.length() <= MAX_TAB_NAME_LENGTH) return name;
         return name.substring(0, MAX_TAB_NAME_LENGTH - 1) + "\u2026";
+    }
+
+    /**
+     * Ouvre la barre en mode "Recherche uniquement" (Ctrl+F).
+     */
+    public void openSearch() {
+        searchReplaceBar.showSearchOnly();
+    }
+
+    /**
+     * Ouvre la barre en mode "Recherche et Remplacement" (Ctrl+H).
+     */
+    public void openReplace() {
+        searchReplaceBar.showSearchAndReplace();
     }
 
     private void showError(String title, String message) {
