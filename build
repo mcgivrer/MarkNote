@@ -198,6 +198,340 @@ UNIXLAUNCHER_START
         chmod +x "${DIST_DIR}/${project_name}.sh"
     fi
     
+    # Copy application icons into distribution
+    echo "Copying application icons..."
+    mkdir -p "${DIST_DIR}/icons"
+    cp ${SRC}/main/resources/images/icons/marknote.svg "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-128.png "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-64.png "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-32.png "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-16.png "${DIST_DIR}/icons/" 2>/dev/null || true
+
+    # Generate OS-specific installer script
+    echo "Generating installer script for ${JFX_OS_SUFFIX}..."
+
+    if [[ "$JFX_OS_SUFFIX" == "linux" ]]; then
+        #----- Linux installer: install to ~/.local and create desktop shortcut -----
+        cat > "${DIST_DIR}/install.sh" << 'LINUX_INSTALL_EOF'
+#!/bin/bash
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_NAME="MarkNote"
+LINUX_INSTALL_EOF
+        echo "APP_VERSION=\"${project_version}\"" >> "${DIST_DIR}/install.sh"
+        cat >> "${DIST_DIR}/install.sh" << 'LINUX_INSTALL_EOF2'
+INSTALL_DIR="${HOME}/.local/share/${APP_NAME}"
+BIN_DIR="${HOME}/.local/bin"
+DESKTOP_DIR="${HOME}/.local/share/applications"
+ICON_DIR="${HOME}/.local/share/icons/hicolor"
+
+echo "========================================="
+echo "  ${APP_NAME} ${APP_VERSION} - Installer"
+echo "========================================="
+echo ""
+echo "This will install ${APP_NAME} to:"
+echo "  ${INSTALL_DIR}"
+echo ""
+read -p "Continue? [Y/n] " confirm
+if [[ "$confirm" =~ ^[Nn] ]]; then
+    echo "Installation cancelled."
+    exit 0
+fi
+
+# Create installation directory
+echo "Installing ${APP_NAME}..."
+mkdir -p "${INSTALL_DIR}"
+mkdir -p "${BIN_DIR}"
+mkdir -p "${DESKTOP_DIR}"
+
+# Copy application files
+cp -r "${SCRIPT_DIR}"/*.jar "${INSTALL_DIR}/"
+cp -r "${SCRIPT_DIR}/libs" "${INSTALL_DIR}/"
+cp -r "${SCRIPT_DIR}/jre" "${INSTALL_DIR}/"
+cp -r "${SCRIPT_DIR}/icons" "${INSTALL_DIR}/"
+cp "${SCRIPT_DIR}/${APP_NAME}.sh" "${INSTALL_DIR}/"
+chmod +x "${INSTALL_DIR}/${APP_NAME}.sh"
+
+# Install icons at standard sizes
+for size in 16 32 64 128; do
+    icon_file="${INSTALL_DIR}/icons/marknote-${size}.png"
+    if [[ -f "${icon_file}" ]]; then
+        mkdir -p "${ICON_DIR}/${size}x${size}/apps"
+        cp "${icon_file}" "${ICON_DIR}/${size}x${size}/apps/marknote.png"
+    fi
+done
+# Install SVG icon
+if [[ -f "${INSTALL_DIR}/icons/marknote.svg" ]]; then
+    mkdir -p "${ICON_DIR}/scalable/apps"
+    cp "${INSTALL_DIR}/icons/marknote.svg" "${ICON_DIR}/scalable/apps/marknote.svg"
+fi
+
+# Create symlink in ~/.local/bin
+ln -sf "${INSTALL_DIR}/${APP_NAME}.sh" "${BIN_DIR}/marknote"
+
+# Create .desktop file for application menu
+cat > "${DESKTOP_DIR}/marknote.desktop" << DESKTOP_EOF
+[Desktop Entry]
+Type=Application
+Name=${APP_NAME}
+Comment=Markdown Note Editor
+Exec=${INSTALL_DIR}/${APP_NAME}.sh %F
+Icon=${INSTALL_DIR}/icons/marknote.svg
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/markdown;text/x-markdown;text/plain;
+StartupWMClass=MarkNote
+DESKTOP_EOF
+
+# Create desktop shortcut
+DESKTOP_SHORTCUT="${HOME}/Desktop/marknote.desktop"
+if [[ -d "${HOME}/Desktop" ]]; then
+    cp "${DESKTOP_DIR}/marknote.desktop" "${DESKTOP_SHORTCUT}"
+    chmod +x "${DESKTOP_SHORTCUT}"
+    # Mark as trusted on GNOME-based desktops
+    if command -v gio &> /dev/null; then
+        gio set "${DESKTOP_SHORTCUT}" metadata::trusted true 2>/dev/null || true
+    fi
+    echo "Desktop shortcut created."
+fi
+
+# Update icon cache if available
+if command -v gtk-update-icon-cache &> /dev/null; then
+    gtk-update-icon-cache -f -t "${ICON_DIR}" 2>/dev/null || true
+fi
+# Update desktop database if available
+if command -v update-desktop-database &> /dev/null; then
+    update-desktop-database "${DESKTOP_DIR}" 2>/dev/null || true
+fi
+
+echo ""
+echo "========================================="
+echo "  ${APP_NAME} installed successfully!"
+echo "========================================="
+echo ""
+echo "  Location : ${INSTALL_DIR}"
+echo "  Command  : marknote (if ~/.local/bin is in PATH)"
+echo "  Shortcut : Desktop & Application Menu"
+echo ""
+echo "To uninstall, run:"
+echo "  rm -rf ${INSTALL_DIR}"
+echo "  rm -f ${BIN_DIR}/marknote"
+echo "  rm -f ${DESKTOP_DIR}/marknote.desktop"
+echo "  rm -f ${DESKTOP_SHORTCUT}"
+LINUX_INSTALL_EOF2
+        chmod +x "${DIST_DIR}/install.sh"
+        echo -e "  ${GREEN}Linux installer created.${NC}"
+
+    elif [[ "$JFX_OS_SUFFIX" == "win" ]]; then
+        #----- Windows installer: install to %LOCALAPPDATA% (no admin required) -----
+        cat > "${DIST_DIR}/install.bat" << 'WIN_INSTALL_EOF'
+@echo off
+setlocal EnableDelayedExpansion
+
+set APP_NAME=MarkNote
+WIN_INSTALL_EOF
+        echo "set APP_VERSION=${project_version}" >> "${DIST_DIR}/install.bat"
+        cat >> "${DIST_DIR}/install.bat" << 'WIN_INSTALL_EOF2'
+set INSTALL_DIR=%LOCALAPPDATA%\%APP_NAME%
+set SCRIPT_DIR=%~dp0
+
+echo =========================================
+echo   %APP_NAME% %APP_VERSION% - Installer
+echo =========================================
+echo.
+echo This will install %APP_NAME% to:
+echo   %INSTALL_DIR%
+echo.
+set /p CONFIRM="Continue? [Y/n] "
+if /i "%CONFIRM%"=="n" (
+    echo Installation cancelled.
+    exit /b 0
+)
+
+echo Installing %APP_NAME%...
+
+:: Create installation directory
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+if not exist "%INSTALL_DIR%\libs" mkdir "%INSTALL_DIR%\libs"
+if not exist "%INSTALL_DIR%\icons" mkdir "%INSTALL_DIR%\icons"
+
+:: Copy application files
+xcopy /Y /Q "%SCRIPT_DIR%*.jar" "%INSTALL_DIR%\"
+xcopy /Y /Q /E "%SCRIPT_DIR%libs\*" "%INSTALL_DIR%\libs\"
+xcopy /Y /Q /E /I "%SCRIPT_DIR%jre" "%INSTALL_DIR%\jre"
+xcopy /Y /Q /E "%SCRIPT_DIR%icons\*" "%INSTALL_DIR%\icons\"
+copy /Y "%SCRIPT_DIR%%APP_NAME%.bat" "%INSTALL_DIR%\"
+
+:: Create Desktop shortcut using PowerShell
+echo Creating Desktop shortcut...
+powershell -NoProfile -Command ^
+  "$ws = New-Object -ComObject WScript.Shell; ^
+   $sc = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), '%APP_NAME%.lnk')); ^
+   $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; ^
+   $sc.WorkingDirectory = '%INSTALL_DIR%'; ^
+   $sc.IconLocation = '%INSTALL_DIR%\icons\marknote-128.png'; ^
+   $sc.Description = 'MarkNote - Markdown Note Editor'; ^
+   $sc.Save()"
+
+:: Create Start Menu shortcut
+echo Creating Start Menu shortcut...
+set START_MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs
+powershell -NoProfile -Command ^
+  "$ws = New-Object -ComObject WScript.Shell; ^
+   $sc = $ws.CreateShortcut('%START_MENU%\%APP_NAME%.lnk'); ^
+   $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; ^
+   $sc.WorkingDirectory = '%INSTALL_DIR%'; ^
+   $sc.IconLocation = '%INSTALL_DIR%\icons\marknote-128.png'; ^
+   $sc.Description = 'MarkNote - Markdown Note Editor'; ^
+   $sc.Save()"
+
+echo.
+echo =========================================
+echo   %APP_NAME% installed successfully!
+echo =========================================
+echo.
+echo   Location : %INSTALL_DIR%
+echo   Shortcuts: Desktop ^& Start Menu
+echo.
+echo To uninstall, delete:
+echo   %INSTALL_DIR%
+echo   Desktop shortcut: %APP_NAME%.lnk
+echo   Start Menu: %START_MENU%\%APP_NAME%.lnk
+echo.
+pause
+WIN_INSTALL_EOF2
+        echo -e "  ${GREEN}Windows installer created.${NC}"
+
+    elif [[ "$JFX_OS_SUFFIX" == "mac" ]]; then
+        #----- macOS installer: create .app bundle in ~/Applications -----
+        cat > "${DIST_DIR}/install.sh" << 'MAC_INSTALL_EOF'
+#!/bin/bash
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_NAME="MarkNote"
+MAC_INSTALL_EOF
+        # Inject build-time values
+        echo "APP_VERSION=\"${project_version}\"" >> "${DIST_DIR}/install.sh"
+        echo "JAR_NAME=\"${project_name}-${project_version}.jar\"" >> "${DIST_DIR}/install.sh"
+        echo "JFX_MODULES=\"${JFX_MODULES}\"" >> "${DIST_DIR}/install.sh"
+        echo "MAIN_CLASS=\"${main_class}\"" >> "${DIST_DIR}/install.sh"
+        cat >> "${DIST_DIR}/install.sh" << 'MAC_INSTALL_EOF2'
+APP_BUNDLE="${HOME}/Applications/${APP_NAME}.app"
+
+echo "========================================="
+echo "  ${APP_NAME} ${APP_VERSION} - Installer"
+echo "========================================="
+echo ""
+echo "This will install ${APP_NAME} as an application bundle to:"
+echo "  ${APP_BUNDLE}"
+echo ""
+read -p "Continue? [Y/n] " confirm
+if [[ "$confirm" =~ ^[Nn] ]]; then
+    echo "Installation cancelled."
+    exit 0
+fi
+
+echo "Installing ${APP_NAME}..."
+
+# Create .app bundle structure
+mkdir -p "${APP_BUNDLE}/Contents/MacOS"
+mkdir -p "${APP_BUNDLE}/Contents/Resources"
+
+# Copy application files into Resources
+cp -r "${SCRIPT_DIR}"/*.jar "${APP_BUNDLE}/Contents/Resources/"
+cp -r "${SCRIPT_DIR}/libs" "${APP_BUNDLE}/Contents/Resources/"
+cp -r "${SCRIPT_DIR}/jre" "${APP_BUNDLE}/Contents/Resources/"
+
+# Convert PNG icon to .icns if possible, otherwise use PNG
+ICON_SRC="${SCRIPT_DIR}/icons/marknote-128.png"
+ICNS_FILE="${APP_BUNDLE}/Contents/Resources/marknote.icns"
+if command -v sips &> /dev/null && command -v iconutil &> /dev/null; then
+    echo "Creating macOS icon..."
+    ICONSET_DIR=$(mktemp -d)/marknote.iconset
+    mkdir -p "${ICONSET_DIR}"
+    for size in 16 32 64 128 256 512; do
+        sips -z ${size} ${size} "${ICON_SRC}" --out "${ICONSET_DIR}/icon_${size}x${size}.png" 2>/dev/null || true
+    done
+    for size in 16 32 128 256; do
+        double=$((size * 2))
+        sips -z ${double} ${double} "${ICON_SRC}" --out "${ICONSET_DIR}/icon_${size}x${size}@2x.png" 2>/dev/null || true
+    done
+    iconutil -c icns "${ICONSET_DIR}" -o "${ICNS_FILE}" 2>/dev/null || true
+    rm -rf "$(dirname "${ICONSET_DIR}")"
+fi
+if [[ ! -f "${ICNS_FILE}" ]]; then
+    cp "${ICON_SRC}" "${APP_BUNDLE}/Contents/Resources/marknote.png"
+fi
+
+# Create Info.plist
+cat > "${APP_BUNDLE}/Contents/Info.plist" << PLIST_EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>${APP_NAME}</string>
+    <key>CFBundleDisplayName</key>
+    <string>${APP_NAME}</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.snapgames.marknote</string>
+    <key>CFBundleVersion</key>
+    <string>${APP_VERSION}</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${APP_VERSION}</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>MarkNote</string>
+    <key>CFBundleIconFile</key>
+    <string>marknote</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>md</string>
+                <string>markdown</string>
+                <string>txt</string>
+            </array>
+            <key>CFBundleTypeName</key>
+            <string>Markdown Document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+        </dict>
+    </array>
+</dict>
+</plist>
+PLIST_EOF
+
+# Create launcher executable in MacOS/
+cat > "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" << MACOS_LAUNCHER_EOF
+#!/bin/bash
+CONTENTS_DIR="\$(cd "\$(dirname "\$0")/.." && pwd)"
+RESOURCES="\${CONTENTS_DIR}/Resources"
+JRE_PATH="\${RESOURCES}/jre/bin/java"
+"\${JRE_PATH}" --module-path "\${RESOURCES}/libs" --add-modules ${JFX_MODULES} -cp "\${RESOURCES}/${JAR_NAME}:\${RESOURCES}/libs/*" ${MAIN_CLASS} "\$@"
+MACOS_LAUNCHER_EOF
+chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
+
+echo ""
+echo "========================================="
+echo "  ${APP_NAME} installed successfully!"
+echo "========================================="
+echo ""
+echo "  Location: ${APP_BUNDLE}"
+echo "  Launch  : Open from ~/Applications or Spotlight"
+echo ""
+echo "To uninstall, run:"
+echo "  rm -rf ${APP_BUNDLE}"
+MAC_INSTALL_EOF2
+        chmod +x "${DIST_DIR}/install.sh"
+        echo -e "  ${GREEN}macOS installer created.${NC}"
+    fi
+
     # Create ZIP archive
     echo "Creating ZIP archive..."
     PACKAGE_NAME="${project_name}-${project_version}-${JFX_OS_SUFFIX}.zip"
