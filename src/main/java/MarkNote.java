@@ -104,6 +104,9 @@ public class MarkNote extends Application {
         // Panel de prévisualisation
         previewPanel = new PreviewPanel();
         previewPanel.setOnMarkdownLinkClick(this::openFileInTab);
+        previewPanel.setAppConfig(config);
+        previewPanel.setOnPlantUmlRenderingChanged(
+                rendering -> Platform.runLater(() -> statusBar.setPlantUmlRendering(rendering)));
 
         // Panel d'exploration de projet
         projectExplorerPanel = new ProjectExplorerPanel();
@@ -133,6 +136,8 @@ public class MarkNote extends Application {
 
         // Status bar (en bas de la fenêtre)
         statusBar = new StatusBar();
+        statusBar.setPlantUmlIndicator(
+                config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
 
         // Callbacks de progression de l'indexation
         indexService.setOnProgress(progress -> statusBar.setIndexProgress(progress));
@@ -839,6 +844,11 @@ public class MarkNote extends Application {
             if (!previousTheme.equals(config.getCurrentTheme())) {
                 applyTheme(primaryStage.getScene());
             }
+            // Refresh preview in case PlantUML settings changed
+            previewPanel.refresh();
+            // Update PlantUML status bar indicator
+            statusBar.setPlantUmlIndicator(
+                    config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
         }
     }
 

@@ -83,6 +83,21 @@ This link diagram is representing all the links betweek document in a project. e
 - [x] In the DocumentTab, Add a "Search en replace" feature (CTRL+F) to find a text to be replaced by another one. The search field must propose optional toggles for "Regular Expression",  "Full Word", "Respect Casing" for search operation, and the Replace text field is a full text input. The both field must be a laver upon the DocumentTab, show only when search Opeartion are required.
 - [x] add a new menu item "Edit" -> "Search..." and "Replace..." menu entries. "Search" entry will only show the "Search" Field (with search options) while the "Replace..." entry will show both.
 
+## Add per OS Installer script.
+
+- [x] Dans le scripts "build"; suir l'action package, peux-tu ajouter la génération d'un script d'installation pour chaque OS.  
+- Sous Linux ajouter un racourcis au bureau avec l'icone par défaut de l'application (src/main/resources/images/icons/MarkNote.svg)
+- sous Windows installer l'application dans un répertoire srandard pour l'utlisateur  connecté uniquemlent (pas de compte admin nécessaire)
+- sous macos, je te laisse faire une , proposition pour créer un raccourci de lancement avec l'icone de l'application.
+
+Ce script de "build package" créant l'installeur par OS  est bien sur réalisé en bash.
+
+## Add Standalone plantuml jar
+
+- [x] Add a new configuration to define a standalone PlantUML local instance jar to generate PLANTUML diagram without using offical internet server.
+The configuration of the PlantUML( path to the user JAR) will be defined through a new tab in the Options dialog named "Tools", The user will use a file selector to define pantuml.jar full path.
+A checkbox willl be used to activate or not usarge of internal plantuml jar to generate plantUML diagram for the preview tab.
+
 ## Optional
 
 - [ ] Ajouter le support de template de pages
