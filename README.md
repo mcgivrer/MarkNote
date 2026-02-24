@@ -24,7 +24,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/)); each app theme maps to a matching highlight.js style
 - **Code Block Copy Button** - One-click copy for code blocks in preview, with visual "✓ Copied" feedback
 - **Markdown Tables** - Full GFM table support with styled rendering
-- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview (server-side rendering, auto-wrapped with `@startuml`/`@enduml` if absent)
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview; supports both the **official PlantUML online server** and a **local PlantUML jar** (configurable in Options → Tools); when local rendering is active a spinning ⚙ gear icon and a status indicator are shown in the status bar during generation
 - **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview; Mermaid theme auto-matches app theme
 - **Math Equations** - LaTeX/MathML support via KaTeX for inline (`$...$`) and block (`$$...$$`) equations
 - **Front Matter Panel** - Collapsible panel above the editor for visual editing of YAML front matter (title, tags, authors, summary, UUID, created date, draft); supports custom fields and UUID-based document linking via drag & drop
@@ -35,7 +35,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Search & Replace** - In-editor search/replace overlay (`Ctrl+F` / `Ctrl+H`) with optional **Regular Expression**, **Full Word**, and **Match Case** toggles; navigate occurrences with `▲`/`▼`; replace current match or all matches at once; result counter; closes with `Escape`
 - **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
 - **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup; tooltips with title/author/date; current document highlighted with orange border; isolated nodes hidden; auto zoom-to-fit
-- **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), and indexing progress bar; indexing runs in a background thread
+- **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), indexing progress bar, and a **PlantUML local-jar indicator** (⚙ spinning gear during rendering + "● PlantUML: local jar" badge when local mode is active); indexing runs in a background thread
 - **Multi-document Tabs** - Work on multiple documents simultaneously; drag tabs to reorder; tab name truncation with tooltip; modified indicator (`*` prefix)
 - **Drag & Drop into Editor** - Drop files from Project Explorer into the editor to insert Markdown image or link syntax at the drop position
 - **Theme Support** - Built-in themes (Light, Dark, Solarized Light, Solarized Dark, High Contrast) with custom theme creation via a full CSS theme editor with syntax highlighting; syntax highlighting themes coordinate automatically

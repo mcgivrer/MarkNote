@@ -24,12 +24,14 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
@@ -298,6 +300,59 @@ public class OptionsDialog {
         themesTab.setContent(themesBox);
         optionsTabs.getTabs().add(themesTab);
 
+        // --- Onglet Tools ---
+        Tab toolsTab = new Tab(getMessages().getString("options.tab.tools"));
+
+        GridPane toolsGrid = new GridPane();
+        toolsGrid.setHgap(10);
+        toolsGrid.setVgap(10);
+        toolsGrid.setPadding(new Insets(20));
+
+        // Section PlantUML
+        Label plantUmlHeader = new Label(getMessages().getString("options.tools.plantuml.header"));
+        plantUmlHeader.setStyle("-fx-font-weight: bold;");
+        toolsGrid.add(plantUmlHeader, 0, 0, 3, 1);
+
+        // Checkbox : use local plantuml jar
+        Label useLocalLabel = new Label(getMessages().getString("options.tools.plantuml.useLocal"));
+        CheckBox useLocalCheck = new CheckBox();
+        useLocalCheck.setSelected(config.isUseLocalPlantUml());
+        toolsGrid.add(useLocalLabel, 0, 1);
+        toolsGrid.add(useLocalCheck, 1, 1);
+
+        // Path field + Browse button
+        Label jarPathLabel = new Label(getMessages().getString("options.tools.plantuml.jarPath"));
+        TextField jarPathField = new TextField(config.getPlantUmlJarPath());
+        jarPathField.setPromptText(getMessages().getString("options.tools.plantuml.jarPath.prompt"));
+        jarPathField.setPrefWidth(280);
+        GridPane.setHgrow(jarPathField, Priority.ALWAYS);
+
+        Button browseJarBtn = new Button(getMessages().getString("options.tools.plantuml.browse"));
+        browseJarBtn.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle(getMessages().getString("options.tools.plantuml.browse.title"));
+            fc.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("JAR files (*.jar)", "*.jar"));
+            String current = jarPathField.getText().trim();
+            if (!current.isEmpty()) {
+                File currentFile = new File(current);
+                if (currentFile.getParentFile() != null && currentFile.getParentFile().exists()) {
+                    fc.setInitialDirectory(currentFile.getParentFile());
+                }
+            }
+            File selected = fc.showOpenDialog(dialog);
+            if (selected != null) {
+                jarPathField.setText(selected.getAbsolutePath());
+            }
+        });
+
+        toolsGrid.add(jarPathLabel, 0, 2);
+        toolsGrid.add(jarPathField, 1, 2);
+        toolsGrid.add(browseJarBtn, 2, 2);
+
+        toolsTab.setContent(toolsGrid);
+        optionsTabs.getTabs().add(toolsTab);
+
         // --- Boutons OK / Annuler ---
         Button okBtn = new Button(getMessages().getString("options.ok"));
         Button cancelBtn = new Button(getMessages().getString("options.cancel"));
@@ -316,6 +371,8 @@ public class OptionsDialog {
             if (selectedTheme != null) {
                 config.setCurrentTheme(selectedTheme);
             }
+            config.setUseLocalPlantUml(useLocalCheck.isSelected());
+            config.setPlantUmlJarPath(jarPathField.getText().trim());
             config.save();
             saved = true;
             dialog.close();

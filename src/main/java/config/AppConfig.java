@@ -26,6 +26,8 @@ public class AppConfig {
     private String currentTheme = "light";
     private String language = "system";
     private boolean frontMatterExpandedByDefault = true;
+    private boolean useLocalPlantUml = false;
+    private String plantUmlJarPath = "";
 
     /**
      * Charge la configuration depuis le fichier.
@@ -68,6 +70,10 @@ public class AppConfig {
                     language = line.substring("language=".length()).trim();
                 } else if (line.startsWith("frontMatterExpandedByDefault=")) {
                     frontMatterExpandedByDefault = Boolean.parseBoolean(line.substring("frontMatterExpandedByDefault=".length()).trim());
+                } else if (line.startsWith("useLocalPlantUml=")) {
+                    useLocalPlantUml = Boolean.parseBoolean(line.substring("useLocalPlantUml=".length()).trim());
+                } else if (line.startsWith("plantUmlJarPath=")) {
+                    plantUmlJarPath = line.substring("plantUmlJarPath=".length()).trim();
                 }
             }
         } catch (IOException ignored) {
@@ -94,6 +100,8 @@ public class AppConfig {
             lines.add("currentTheme=" + currentTheme);
             lines.add("language=" + language);
             lines.add("frontMatterExpandedByDefault=" + frontMatterExpandedByDefault);
+            lines.add("useLocalPlantUml=" + useLocalPlantUml);
+            lines.add("plantUmlJarPath=" + plantUmlJarPath);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -225,6 +233,22 @@ public class AppConfig {
 
     public void setFrontMatterExpandedByDefault(boolean frontMatterExpandedByDefault) {
         this.frontMatterExpandedByDefault = frontMatterExpandedByDefault;
+    }
+
+    public boolean isUseLocalPlantUml() {
+        return useLocalPlantUml;
+    }
+
+    public void setUseLocalPlantUml(boolean useLocalPlantUml) {
+        this.useLocalPlantUml = useLocalPlantUml;
+    }
+
+    public String getPlantUmlJarPath() {
+        return plantUmlJarPath;
+    }
+
+    public void setPlantUmlJarPath(String plantUmlJarPath) {
+        this.plantUmlJarPath = plantUmlJarPath;
     }
 
     /**

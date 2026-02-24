@@ -1,12 +1,19 @@
 package ui;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,11 +23,13 @@ import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 
+import config.AppConfig;
 import config.ThemeManager;
 import config.ThemeManager.SyntaxTheme;
 import utils.FrontMatter;
 import utils.PlantUmlEncoder;
 
+import javafx.application.Platform;
 import javafx.concurrent.Worker;
 import javafx.scene.control.Button;
 import javafx.scene.control.Tooltip;
@@ -38,6 +47,15 @@ public class PreviewPanel extends BasePanel {
     private final HtmlRenderer htmlRenderer;
     private File baseDirectory;
     private Consumer<File> onMarkdownLinkClick;
+    private AppConfig appConfig;
+    /** Callback fired with {@code true} when local-jar PlantUML rendering starts, {@code false} when all blocks are done. */
+    private Consumer<Boolean> onPlantUmlRenderingChanged;
+    /** Global ID sequence for placeholder divs; never resets so stale threads find no element in a new page. */
+    private final AtomicInteger blockIdSequence = new AtomicInteger(0);
+    /** Blocks queued for the next page load (local jar mode). Thread-safe because populated on FX thread, consumed on FX thread after load. */
+    private final CopyOnWriteArrayList<String[]> pendingLocalPumlBlocks = new CopyOnWriteArrayList<>();
+    /** Number of background PlantUML render threads still running. */
+    private final AtomicInteger pendingPumlCount = new AtomicInteger(0);
     
     // Historique de navigation
     private final List<String> history = new ArrayList<>();
@@ -103,7 +121,7 @@ public class PreviewPanel extends BasePanel {
         header.getChildren().add(closeIndex + 1, nextButton);
         header.getChildren().add(closeIndex + 2, refreshButton);
         
-        // Intercepter les clics sur les liens
+        // Intercepter les clics sur les liens + déclencher le rendu async PlantUML local
         webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
             if (newState == Worker.State.SCHEDULED) {
                 String location = webView.getEngine().getLocation();
@@ -139,6 +157,9 @@ public class PreviewPanel extends BasePanel {
                         }
                     }
                 }
+            } else if (newState == Worker.State.SUCCEEDED && !pendingLocalPumlBlocks.isEmpty()) {
+                // Page chargée : déclencher le rendu async des blocs PlantUML locaux
+                dispatchLocalPumlRendering();
             }
         });
         
@@ -342,10 +363,20 @@ public class PreviewPanel extends BasePanel {
 
     /**
      * Remplace les blocs {@code <pre><code class="language-plantuml">...}
-     * par des balises {@code <img>} pointant vers le serveur PlantUML en ligne.
-     * Le texte est décodé des entités HTML avant l'encodage.
+     * par des balises {@code <img>} (serveur en ligne) ou par des placeholders
+     * ({@code <div id="puml-N">}) quand le rendu local est activé.
+     * Dans ce dernier cas, les blocs sont ajoutés à {@link #pendingLocalPumlBlocks}
+     * pour être rendus de façon asynchrone une fois la page chargée.
      */
     private String processPlantUmlBlocks(String html) {
+        // Vider les blocs en attente du rendu précédent (sécurité)
+        pendingLocalPumlBlocks.clear();
+
+        boolean useLocal = appConfig != null
+                && appConfig.isUseLocalPlantUml()
+                && appConfig.getPlantUmlJarPath() != null
+                && !appConfig.getPlantUmlJarPath().isBlank();
+
         Matcher m = PLANTUML_BLOCK.matcher(html);
         StringBuilder sb = new StringBuilder();
         while (m.find()) {
@@ -358,17 +389,131 @@ public class PreviewPanel extends BasePanel {
                     .replace("&quot;", "\"")
                     .replace("&#39;", "'")
                     .trim();
-            // Si le texte ne commence pas par @startuml, l'ajouter
             if (!puml.startsWith("@start")) {
                 puml = "@startuml\n" + puml + "\n@enduml";
             }
-            String url = PlantUmlEncoder.toSvgUrl(puml);
-            m.appendReplacement(sb,
-                    Matcher.quoteReplacement(
-                            "<div class=\"plantuml-diagram\"><img src=\"" + url + "\" alt=\"PlantUML diagram\"></div>"));
+
+            String diagramHtml;
+            if (useLocal) {
+                // Insérer un placeholder: rendu différé dans un thread de fond
+                String id = "puml-" + blockIdSequence.getAndIncrement();
+                pendingLocalPumlBlocks.add(new String[]{id, puml});
+                diagramHtml = "<div id=\"" + id + "\" class=\"plantuml-diagram plantuml-pending\">" +
+                        "<em style=\"opacity:0.45;\">&#8987; Rendering diagram…</em></div>";
+            } else {
+                String url = PlantUmlEncoder.toSvgUrl(puml);
+                diagramHtml = "<div class=\"plantuml-diagram\"><img src=\"" + url + "\" alt=\"PlantUML diagram\"></div>";
+            }
+            m.appendReplacement(sb, Matcher.quoteReplacement(diagramHtml));
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+
+    /**
+     * Démarre un thread de fond par bloc PlantUML en attente.
+     * Chaque thread génère le SVG via le jar local, puis l'injecte dans la page
+     * via {@code executeScript}. Quand tous les blocs sont rendus, le callback
+     * {@link #onPlantUmlRenderingChanged} est appelé avec {@code false}.
+     */
+    private void dispatchLocalPumlRendering() {
+        List<String[]> blocks = new ArrayList<>(pendingLocalPumlBlocks);
+        pendingLocalPumlBlocks.clear();
+        if (blocks.isEmpty()) return;
+
+        pendingPumlCount.set(blocks.size());
+        if (onPlantUmlRenderingChanged != null) {
+            onPlantUmlRenderingChanged.accept(true);
+        }
+
+        String jarPath = appConfig.getPlantUmlJarPath();
+        for (String[] block : blocks) {
+            String id    = block[0];
+            String puml  = block[1];
+            Thread t = new Thread(() -> {
+                String svg = renderWithLocalJar(puml, jarPath);
+                Platform.runLater(() -> {
+                    try {
+                        if (svg != null) {
+                            // Encoder en base64 pour éviter tout problème d'échappement JS
+                            String b64 = Base64.getEncoder().encodeToString(
+                                    svg.getBytes(StandardCharsets.UTF_8));
+                            String js = "var el=document.getElementById('" + id + "');"
+                                    + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
+                                    + "<img src=\"data:image/svg+xml;base64," + b64 + "\""
+                                    + " alt=\"PlantUML diagram\"></div>';";
+                            webView.getEngine().executeScript(js);
+                        } else {
+                            // Repli : serveur en ligne
+                            String url = PlantUmlEncoder.toSvgUrl(puml);
+                            String js = "var el=document.getElementById('" + id + "');"
+                                    + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
+                                    + "<img src=\"" + url + "\""
+                                    + " alt=\"PlantUML diagram\"></div>';";
+                            webView.getEngine().executeScript(js);
+                        }
+                    } catch (Exception ignored) {
+                    } finally {
+                        if (pendingPumlCount.decrementAndGet() == 0
+                                && onPlantUmlRenderingChanged != null) {
+                            onPlantUmlRenderingChanged.accept(false);
+                        }
+                    }
+                });
+            });
+            t.setDaemon(true);
+            t.start();
+        }
+    }
+
+    /**
+     * Génère un SVG en exécutant un jar PlantUML local via un sous-processus.
+     * Retourne le SVG inline (chaîne commençant par {@code <svg}),
+     * ou {@code null} si l'exécution échoue.
+     *
+     * @param pumlSource texte PlantUML complet (avec {@code @startuml/@enduml})
+     * @param jarPath    chemin absolu vers {@code plantuml.jar}
+     * @return SVG inline ou null en cas d'erreur
+     */
+    private String renderWithLocalJar(String pumlSource, String jarPath) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                    "java", "-jar", jarPath, "-pipe", "-tsvg");
+            pb.redirectErrorStream(false);
+            Process process = pb.start();
+
+            // Écrire la source PlantUML sur stdin
+            try (OutputStream stdin = process.getOutputStream()) {
+                stdin.write(pumlSource.getBytes(StandardCharsets.UTF_8));
+            }
+
+            // Lire stdout (SVG)
+            byte[] svgBytes;
+            try (InputStream stdout = process.getInputStream()) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = stdout.read(buf)) != -1) {
+                    baos.write(buf, 0, n);
+                }
+                svgBytes = baos.toByteArray();
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                return null;
+            }
+
+            String svg = new String(svgBytes, StandardCharsets.UTF_8).trim();
+            // Extraire uniquement le contenu <svg>...</svg> (éliminer le prologue XML)
+            int svgStart = svg.indexOf("<svg");
+            if (svgStart >= 0) {
+                return svg.substring(svgStart);
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -572,6 +717,23 @@ public class PreviewPanel extends BasePanel {
     }
 
     /**
+     * Définit le callback appelé quand un rendu PlantUML local démarre ({@code true})
+     * ou se termine ({@code false}).
+     */
+    public void setOnPlantUmlRenderingChanged(Consumer<Boolean> callback) {
+        this.onPlantUmlRenderingChanged = callback;
+    }
+
+    /**
+     * Définit la configuration de l'application (utilisée pour PlantUML local).
+     *
+     * @param appConfig La configuration de l'application
+     */
+    public void setAppConfig(AppConfig appConfig) {
+        this.appConfig = appConfig;
+    }
+
+    /**
      * Définit le répertoire de base pour résoudre les chemins relatifs (images, etc.).
      *
      * @param directory Le répertoire de base du projet
@@ -638,7 +800,7 @@ public class PreviewPanel extends BasePanel {
     /**
      * Rafraîchit la prévisualisation actuelle.
      */
-    private void refresh() {
+    public void refresh() {
         if (!currentMarkdown.isEmpty()) {
             updatePreview(currentMarkdown, false);
         }
