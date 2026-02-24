@@ -35,7 +35,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Syntax Highlighting** - Code blocks with automatic language detection and theme-coordinated coloring
 - **Code Block Copy Button** - One-click copy for code blocks in preview
 - **Markdown Tables** - Full GFM table support with styled rendering
-- **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview (auto-wrapped with `@startuml`/`@enduml` if absent)
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview; switch between the **online PlantUML server** (default) or a **local `plantuml.jar`** configured in Options → Tools; local rendering is asynchronous (per-block background threads) and shows a ⚙ spinning gear icon in the status bar during generation
 - **Mermaid Diagrams** - Render Mermaid flowcharts, sequences, and more in the preview (theme auto-matches app theme)
 - **Math Equations** - LaTeX/MathML support via KaTeX (`$...$` inline, `$$...$$` block)
 - **Front Matter Panel** - Collapsible panel above the editor showing and editing YAML front matter metadata, with UUID-based document linking via drag & drop
@@ -142,6 +142,9 @@ Shows the rendered HTML output of your Markdown in real-time. Features:
 A thin bar at the bottom of the window showing:
 - **Document name** and **cursor position** (line:column) on the left
 - **Statistics** (document count, line count, word count) in the center
+- **PlantUML local-jar indicator** (right of center, visible only when local PlantUML mode is active):
+  - **⚙ spinning gear** — animated during diagram rendering via the local jar
+  - **● PlantUML: local jar** — static badge confirming local mode is on
 - **Indexing progress bar** on the right (visible only during indexing)
 
 ### Toggling Panels
@@ -576,6 +579,7 @@ The status bar is displayed at the bottom of the main window and provides at-a-g
 |---------|----------|
 | **Document & Position** | Name of the active document and cursor position (Ln/Col) |
 | **Statistics** | Number of indexed documents, lines in the current document, and word count |
+| **PlantUML indicator** | Spinning ⚙ gear during local-jar rendering + "● PlantUML: local jar" badge (only visible when local mode is active in Options → Tools) |
 | **Indexing Progress** | A progress bar shown while the indexing service is running |
 
 ### Background Indexing
@@ -693,9 +697,25 @@ Bob --> Alice: Hi!
 ```
 ````
 
-Diagrams are rendered as SVG images via the PlantUML server.
-
 > **Note:** If a PlantUML code block doesn't start with `@start`, it is **automatically wrapped** with `@startuml` / `@enduml`.
+
+#### Rendering Mode
+
+By default, diagrams are rendered by the **official PlantUML online server** (`https://www.plantuml.com/plantuml/svg/`). If an internet connection is unavailable or you prefer privacy, you can configure a **local `plantuml.jar`** instead.
+
+| Mode | How it works | Setup needed |
+|------|-------------|---------------|
+| **Online server** (default) | Encodes the diagram source and fetches an SVG from plantuml.com | None |
+| **Local jar** | Runs `java -jar plantuml.jar -pipe -tsvg` in a background process per diagram block; injects the SVG directly into the page when ready | Configure in **Options → Tools** |
+
+When local rendering is active:
+- Each diagram is replaced temporarily by a *"⏳ Rendering diagram…"* placeholder
+- Background threads render each block independently
+- The **⚙ spinning gear** icon in the status bar is visible during rendering
+- On completion the placeholders are replaced inline with the SVG (no page reload)
+- If the local jar fails, the diagram falls back silently to the online server
+
+See [Options → Tools Tab](#tools-tab) to configure the local jar.
 
 ### Mermaid Diagrams
 
@@ -867,6 +887,33 @@ Access settings via **Help → Options...** or by pressing the shortcut shown in
 - Create new custom themes based on existing ones
 - Delete custom themes (built-in themes cannot be deleted)
 - Double-click a custom theme to open it in the CSS editor
+
+### Tools Tab
+
+The **Tools** tab lets you configure external tools used by MarkNote.
+
+#### PlantUML Local Jar
+
+| Option | Description |
+|--------|-------------|
+| **Use local PlantUML jar** | Checkbox — when checked, MarkNote uses your local `plantuml.jar` instead of the online server for rendering diagrams in the preview |
+| **PlantUML jar path** | Full path to your `plantuml.jar` file. Use the **Browse…** button to open a file selector filtered to `*.jar` |
+
+**Steps to configure:**
+
+1. Download `plantuml.jar` from [https://plantuml.com/download](https://plantuml.com/download)
+2. Open **Help → Options…**
+3. Select the **Tools** tab
+4. Click **Browse…** and select your `plantuml.jar`
+5. Check **Use local PlantUML jar**
+6. Click **OK**
+
+Once enabled:
+- The status bar shows **● PlantUML: local jar** on the right side
+- A **⚙ spinning gear** appears next to it while diagrams are being rendered
+- The preview refreshes automatically to apply the new setting
+
+> **Note:** Java must be on your system `PATH` since the jar is executed as `java -jar plantuml.jar`.
 
 ### Language Settings
 
