@@ -98,6 +98,21 @@ Ce script de "build package" créant l'installeur par OS  est bien sur réalisé
 The configuration of the PlantUML( path to the user JAR) will be defined through a new tab in the Options dialog named "Tools", The user will use a file selector to define pantuml.jar full path.
 A checkbox willl be used to activate or not usarge of internal plantuml jar to generate plantUML diagram for the preview tab.
 
+## Add git support
+
+- [ ] The project is contrainerd in a folder. if the folder contains .git/ subfolder, then  the git support for the project is activated. 
+Each file :
+  -  with the git repo will be added with a green bullet on left of the item icon( folder of file). 
+  -  if filthe item is not managed by git, a red bullet is displayed,
+  -  if the file has been modified and is under git control, show an orange or yellow bullet.
+In top of the ProjectExplorer panel, add a toolbar with 2 new button: pull and push to sync with git repo. 
+The 2 buttons are diplsayed only if the project is a git repo.
+A new tab "Git" in the Options dialog will allow to define credentials for remote git repos, supporting:
+  - SSH key authentication (path to private key file + optional passphrase stored in `~/.marknote/config`)
+  - Username / password (basic HTTP(S) authentication)
+  - Personal access token (GitHub / GitLab — used as password with a `token` or `oauth2` username)
+  Credentials are passed to the git subprocess via environment variables (`GIT_SSH_COMMAND`, `GIT_ASKPASS` wrapper, or `GIT_TERMINAL_PROMPT=0`).
+
 ## Optional
 
 - [ ] Ajouter le support de template de pages
