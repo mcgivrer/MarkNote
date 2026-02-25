@@ -85,7 +85,8 @@ cd marknote
 | `./build` | Compile the project and create the JAR |
 | `./build run` | Compile and run the application |
 | `./build test` | Run unit tests |
-| `./build package` | Create a distributable package with embedded JRE |
+| `./build package` | Create a distributable package for the **current platform** with embedded JRE |
+| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win) |
 
 ## Running
 
@@ -109,7 +110,9 @@ java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-
 
 ## Packaging
 
-Create a distributable package with an embedded minimal JRE:
+### Single platform
+
+Create a distributable package for the current host platform with an embedded minimal JRE:
 
 ```bash
 ./build package
@@ -117,11 +120,34 @@ Create a distributable package with an embedded minimal JRE:
 
 This creates a ZIP archive in `target/` containing:
 - The application JAR
-- Required libraries
-- Embedded minimal JRE (created with jlink)
-- Platform-specific launcher script
+- Common platform-independent libraries (`libs/common/`)
+- Platform-specific JavaFX native libraries (`libs/{platform}/`)
+- Embedded minimal JRE (created with `jlink`)
+- Platform-specific launcher script (`MarkNote.sh` or `MarkNote.bat`)
+- Platform-specific installer script (`install.sh` or `install.bat`)
 
-### Package Output
+### All platforms
+
+Create packages for **all three platforms** in one shot:
+
+```bash
+./build package-all
+```
+
+This produces three ZIP archives in `target/`:
+
+| Archive | Platform |
+|---------|----------|
+| `MarkNote-{version}-linux.zip` | Linux x64 |
+| `MarkNote-{version}-mac.zip` | macOS |
+| `MarkNote-{version}-win.zip` | Windows x64 |
+
+> **Note:** A minimal embedded JRE (via `jlink`) is bundled only for the current host platform.
+> Cross-platform packages include all required JARs but require a compatible Java runtime already
+> installed on the target system.  Cross-platform JRE bundling requires a JDK for each target OS
+> to be available on the build host.
+
+### Package contents
 
 The package is named: `MarkNote-{version}-{platform}.zip`
 
