@@ -541,6 +541,7 @@ public class MarkNote extends Application {
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
                 previewPanel.updatePreview(docTab.getFullContent());
+                previewPanel.setCurrentFile(docTab.getFile());
                 updateStatusBarForTab(docTab);
                 // Mettre en valeur le document dans le diagramme réseau
                 File docFile = docTab.getFile();
@@ -560,6 +561,7 @@ public class MarkNote extends Application {
 
         // Initial preview
         previewPanel.updatePreview(tab.getFullContent());
+        previewPanel.setCurrentFile(tab.getFile());
         updateStatusBarForTab(tab);
     }
 

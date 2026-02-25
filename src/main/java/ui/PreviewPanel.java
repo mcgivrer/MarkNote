@@ -2,21 +2,28 @@ package ui;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
@@ -31,10 +38,18 @@ import utils.PlantUmlEncoder;
 
 import javafx.application.Platform;
 import javafx.concurrent.Worker;
+import javafx.print.Printer;
+import javafx.print.PrinterJob;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Button;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.web.WebView;
+import javafx.stage.FileChooser;
 
 /**
  * Panel de prévisualisation Markdown.
@@ -65,6 +80,12 @@ public class PreviewPanel extends BasePanel {
     
     private final Button prevButton;
     private final Button nextButton;
+
+    /** Dernier HTML généré, utilisé pour l'export. */
+    private String currentHtml = "";
+
+    /** Fichier source Markdown courant (peut être null pour les documents non sauvegardés). */
+    private File currentFile;
 
     /** Thème highlight.js courant, synchronisé avec le thème applicatif. */
     private SyntaxTheme syntaxTheme = new SyntaxTheme("github", "#f6f8fa", "#24292e");
@@ -113,13 +134,27 @@ public class PreviewPanel extends BasePanel {
         refreshButton.getStyleClass().add("panel-nav-button");
         refreshButton.setTooltip(new Tooltip(getMessages().getString("preview.refresh.tooltip")));
         refreshButton.setOnAction(e -> refresh());
-        
+
+        // Bouton d'export (menu déroulant)
+        MenuButton exportButton = new MenuButton("\u2913");
+        exportButton.getStyleClass().add("panel-nav-button");
+        exportButton.setTooltip(new Tooltip(getMessages().getString("preview.export.tooltip")));
+
+        MenuItem pdfItem = new MenuItem(getMessages().getString("preview.export.pdf"));
+        pdfItem.setOnAction(e -> exportToPdf());
+
+        MenuItem htmlZipItem = new MenuItem(getMessages().getString("preview.export.html.zip"));
+        htmlZipItem.setOnAction(e -> exportToHtmlZip());
+
+        exportButton.getItems().addAll(pdfItem, new SeparatorMenuItem(), htmlZipItem);
+
         // Insérer les boutons avant le bouton de fermeture
         HBox header = getHeader();
         int closeIndex = header.getChildren().indexOf(getCloseButton());
         header.getChildren().add(closeIndex, prevButton);
         header.getChildren().add(closeIndex + 1, nextButton);
         header.getChildren().add(closeIndex + 2, refreshButton);
+        header.getChildren().add(closeIndex + 3, exportButton);
         
         // Intercepter les clics sur les liens + déclencher le rendu async PlantUML local
         webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
@@ -359,6 +394,7 @@ public class PreviewPanel extends BasePanel {
                 </html>
                 """.formatted(baseTag, hljsStyle, preBg, codeFg, frontMatterHtml, html, mermaidTheme);
         webView.getEngine().loadContent(htmlPage);
+        this.currentHtml = htmlPage;
     }
 
     /**
@@ -806,6 +842,154 @@ public class PreviewPanel extends BasePanel {
         }
     }
     
+    /**
+     * Définit le fichier Markdown source actuellement affiché.
+     * Utilisé pour nommer les fichiers exportés.
+     *
+     * @param file Le fichier source, ou null pour un document non sauvegardé
+     */
+    public void setCurrentFile(File file) {
+        this.currentFile = file;
+    }
+
+    /**
+     * Exporte le contenu courant de la preview vers un PDF via la boîte de dialogue d'impression.
+     * Sur Linux, l'utilisateur peut choisir "Imprimer dans un fichier" pour obtenir un PDF.
+     */
+    private void exportToPdf() {
+        if (currentHtml.isEmpty()) return;
+
+        // createPrinterJob() sans argument n'utilise que l'imprimante par défaut
+        // et retourne null si aucune n'est configurée (fréquent sur Linux).
+        // On tente un repli sur n'importe quelle imprimante disponible (incl. virtuelles/PDF).
+        PrinterJob job = PrinterJob.createPrinterJob();
+        if (job == null) {
+            Printer fallback = Printer.getAllPrinters()
+                    .stream().findFirst().orElse(null);
+            if (fallback != null) {
+                job = PrinterJob.createPrinterJob(fallback);
+            }
+        }
+        if (job == null) {
+            showExportAlert(Alert.AlertType.ERROR,
+                    getMessages().getString("preview.export.error.title"),
+                    getMessages().getString("preview.export.error.noprinter"));
+            return;
+        }
+        if (job.showPrintDialog(getScene().getWindow())) {
+            webView.getEngine().print(job);
+            job.endJob();
+        }
+    }
+
+    /**
+     * Exporte le contenu courant en une archive ZIP contenant la page HTML
+     * et toutes les images locales référencées dans le document.
+     * La structure du ZIP est : &lt;name&gt;.html + images/&lt;filename&gt;
+     */
+    private void exportToHtmlZip() {
+        if (currentHtml.isEmpty()) return;
+
+        // Déterminer le nom de base du fichier exporté
+        String baseName = (currentFile != null)
+                ? currentFile.getName().replaceFirst("\\.[^.]+$", "")
+                : "export";
+
+        // Choisir la destination
+        FileChooser fc = new FileChooser();
+        fc.setTitle(getMessages().getString("preview.export.chooser.html.zip"));
+        fc.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("ZIP Archive", "*.zip"));
+        fc.setInitialFileName(baseName + ".zip");
+        if (baseDirectory != null && baseDirectory.isDirectory()) {
+            fc.setInitialDirectory(baseDirectory);
+        }
+
+        File dest = fc.showSaveDialog(getScene().getWindow());
+        if (dest == null) return;
+
+        // Traitement HTML : enlever la balise <base>, réécrire les chemins d'images locales
+        String html = currentHtml.replaceAll("<base\\s+href=\"[^\"]*\">", "");
+
+        List<File> localImages = new ArrayList<>();
+        Map<String, String> pathMap = new HashMap<>();
+        Set<String> seen = new HashSet<>();
+
+        Pattern imgPat = Pattern.compile("<img\\s[^>]*src=\"([^\"]+)\"");
+        Matcher m = imgPat.matcher(html);
+        while (m.find()) {
+            String src = m.group(1);
+            if (src.startsWith("http://") || src.startsWith("https://")
+                    || src.startsWith("data:") || seen.contains(src)) {
+                continue;
+            }
+            seen.add(src);
+
+            File imgFile = null;
+            try {
+                if (src.startsWith("file:")) {
+                    imgFile = new File(new URI(src));
+                } else if (baseDirectory != null) {
+                    imgFile = new File(baseDirectory, src);
+                }
+            } catch (Exception ignored) { }
+
+            if (imgFile != null && imgFile.exists() && imgFile.isFile()) {
+                localImages.add(imgFile);
+                pathMap.put(src, "images/" + imgFile.getName());
+            }
+        }
+
+        // Remplacer les chemins dans le HTML
+        for (Map.Entry<String, String> entry : pathMap.entrySet()) {
+            html = html.replace("src=\"" + entry.getKey() + "\"",
+                               "src=\"" + entry.getValue() + "\"");
+        }
+
+        final String finalHtml = html;
+        final List<File> finalImages = new ArrayList<>(localImages);
+        final String finalBaseName = baseName;
+
+        Thread t = new Thread(() -> {
+            try (ZipOutputStream zos = new ZipOutputStream(
+                    new FileOutputStream(dest))) {
+
+                // Page HTML
+                zos.putNextEntry(new ZipEntry(finalBaseName + ".html"));
+                zos.write(finalHtml.getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+
+                // Images locales
+                for (File img : finalImages) {
+                    zos.putNextEntry(new ZipEntry("images/" + img.getName()));
+                    Files.copy(img.toPath(), zos);
+                    zos.closeEntry();
+                }
+
+                Platform.runLater(() -> showExportAlert(Alert.AlertType.INFORMATION,
+                        getMessages().getString("preview.export.success.title"),
+                        getMessages().getString("preview.export.success.html")));
+
+            } catch (Exception e) {
+                Platform.runLater(() -> showExportAlert(Alert.AlertType.ERROR,
+                        getMessages().getString("preview.export.error.title"),
+                        MessageFormat.format(
+                                getMessages().getString("preview.export.error.message"),
+                                e.getMessage())));
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /** Affiche une boîte de dialogue simple pour les résultats d'export. */
+    private void showExportAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type, message, ButtonType.OK);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.showAndWait();
+    }
+
     /**
      * Met à jour l'état des boutons de navigation.
      */
