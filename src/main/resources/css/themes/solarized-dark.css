@@ -159,6 +159,10 @@
     -fx-background-color: #002b36;
 }
 
+.markdown-editor .content {
+    -fx-padding: 10px;
+}
+
 .virtual-flow .clipped-container .sheet .cell {
     -fx-background-color: #002b36;
 }

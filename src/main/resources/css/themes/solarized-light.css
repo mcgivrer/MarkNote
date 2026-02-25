@@ -173,6 +173,10 @@
     -fx-background-color: #fdf6e3;
 }
 
+.markdown-editor .content {
+    -fx-padding: 10px;
+}
+
 /* === Buttons === */
 .button {
     -fx-background-color: #eee8d5;

@@ -116,6 +116,16 @@ public class MarkNote extends Application {
         projectExplorerPanel = new ProjectExplorerPanel();
         projectExplorerPanel.setOnFileDoubleClick(this::openFileInTab);
 
+        // Synchronise l'arbre de l'explorateur avec l'onglet actif
+        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab instanceof DocumentTab docTab) {
+                File activeFile = docTab.getFile();
+                if (activeFile != null) {
+                    projectExplorerPanel.revealFile(activeFile);
+                }
+            }
+        });
+
         // Git service
         gitService = new GitService();
         gitService.setOnStatusUpdated(() -> projectExplorerPanel.refresh());
@@ -837,10 +847,7 @@ public class MarkNote extends Application {
                         .setContentText(MessageFormat.format(messages.getString("reopen.content"), lastDir.getName()));
                 Optional<ButtonType> result = reopenAlert.showAndWait();
                 if (result.isPresent() && result.get() == ButtonType.OK) {
-                    projectExplorerPanel.setProjectDirectory(lastDir);
-                    previewPanel.setBaseDirectory(lastDir);
-                    primaryStage.setTitle(messages.getString("app.title") + " - " + lastDir.getName());
-                    loadOrBuildIndex(lastDir);
+                    openProjectDirectory(lastDir);
                 }
             }
         }

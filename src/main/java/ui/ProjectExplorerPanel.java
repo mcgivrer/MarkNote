@@ -376,6 +376,42 @@ public class ProjectExplorerPanel extends BasePanel {
         updateGitToolbar();
     }
 
+    /**
+     * Fait défiler et sélectionne l'entrée correspondant au fichier donné dans
+     * l'arborescence : tous les nœuds parents sont dépliés et le nœud est mis
+     * en surbrillance et rendu visible.
+     *
+     * @param file Fichier à révéler (peut être {@code null}, auquel cas rien ne se passe).
+     */
+    public void revealFile(File file) {
+        if (file == null || treeView.getRoot() == null) return;
+        TreeItem<File> item = findTreeItem(treeView.getRoot(), file);
+        if (item == null) return;
+        // Déplie tous les ancêtres
+        TreeItem<File> parent = item.getParent();
+        while (parent != null) {
+            parent.setExpanded(true);
+            parent = parent.getParent();
+        }
+        // Sélectionne et fait défiler jusqu'au nœud
+        treeView.getSelectionModel().clearSelection();
+        treeView.getSelectionModel().select(item);
+        int row = treeView.getRow(item);
+        if (row >= 0) {
+            treeView.scrollTo(row);
+        }
+    }
+
+    /** Recherche récursivement le {@link TreeItem} dont la valeur correspond à {@code target}. */
+    private TreeItem<File> findTreeItem(TreeItem<File> node, File target) {
+        if (node.getValue() != null && node.getValue().equals(target)) return node;
+        for (TreeItem<File> child : node.getChildren()) {
+            TreeItem<File> found = findTreeItem(child, target);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
     /** Met à jour la visibilité de la barre d'outils git. */
     private void updateGitToolbar() {
         boolean isGit = gitService != null && gitService.isGitRepo();
