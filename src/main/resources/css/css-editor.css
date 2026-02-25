@@ -6,50 +6,57 @@
     -fx-background-color: #fafafa;
 }
 
+/* Texte de base — sera écrasé par les règles de coloration ci-dessous
+   qui ont la même spécificité (0,2,0) mais sont déclarées après. */
 .css-editor .text {
     -fx-fill: #2e3436;
 }
 
+/* ─── Coloration syntaxique CSS ──────────────────────────────────────────────
+   Toutes les règles sont préfixées .css-editor pour atteindre (0,2,0)
+   et l'emporter sur .css-editor .text pour les nœuds portant les deux classes.
+   ────────────────────────────────────────────────────────────────────────── */
+
 /* CSS Selectors (.class, #id, element) */
-.css-selector {
+.css-editor .css-selector {
     -fx-fill: #a40000;
     -fx-font-weight: bold;
 }
 
 /* CSS Properties (-fx-background-color, color, etc.) */
-.css-property {
+.css-editor .css-property {
     -fx-fill: #3465a4;
 }
 
 /* CSS Pseudo-selectors (:hover, :selected, etc.) */
-.css-pseudo {
+.css-editor .css-pseudo {
     -fx-fill: #75507b;
 }
 
 /* Colors (#fff, #3584e4) */
-.css-color {
+.css-editor .css-color {
     -fx-fill: #c4a000;
     -fx-font-weight: bold;
 }
 
 /* Numbers and units (10px, 1.5em, 50%) */
-.css-number {
+.css-editor .css-number {
     -fx-fill: #4e9a06;
 }
 
 /* Strings ("value") */
-.css-string {
+.css-editor .css-string {
     -fx-fill: #c17d11;
 }
 
 /* Comments */
-.css-comment {
+.css-editor .css-comment {
     -fx-fill: #8f5902;
     -fx-font-style: italic;
 }
 
 /* Braces {} */
-.css-brace {
+.css-editor .css-brace {
     -fx-fill: #555753;
     -fx-font-weight: bold;
 }

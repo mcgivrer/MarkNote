@@ -1,10 +1,12 @@
 # MarkNote
+![MarkNote icon](src/main/resources/images/icons/marknote.svg)
 
 [![Java build](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml)
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![JavaFX](https://img.shields.io/badge/JavaFX-24-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![i18n](https://img.shields.io/badge/i18n-EN_|_FR_|_ES_|_DE_|_IT-blueviolet)
+
 
 A lightweight and modern Markdown editor built with JavaFX.
 
@@ -18,25 +20,35 @@ A lightweight and modern Markdown editor built with JavaFX.
 
 ## Features
 
-- **Markdown Editing** - Full-featured Markdown editor with syntax highlighting
+- **Markdown Editing** - Full-featured Markdown editor with syntax highlighting (headings, bold, italic, strikethrough, code, blockquotes, lists, links, images, horizontal rules)
 - **Live Preview** - Real-time HTML preview with WebView rendering
-- **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/))
+- **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/)); each app theme maps to a matching highlight.js style
+- **Code Block Copy Button** - One-click copy for code blocks in preview, with visual "✓ Copied" feedback
 - **Markdown Tables** - Full GFM table support with styled rendering
-- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview (server-side rendering)
-- **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview; supports both the **official PlantUML online server** and a **local PlantUML jar** (configurable in Options → Tools); when local rendering is active a spinning ⚙ gear icon and a status indicator are shown in the status bar during generation
+- **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview; Mermaid theme auto-matches app theme
 - **Math Equations** - LaTeX/MathML support via KaTeX for inline (`$...$`) and block (`$$...$$`) equations
-- **Project Explorer** - Browse and manage your project files with drag & drop support
-- **Project Indexing** - Automatic indexing of all Markdown files by front matter metadata (title, tags, authors, summary) and filenames, stored as a local JSON index
-- **Search** - Instant full-text search across indexed documents with a live results popup; matches on title, filename, tags, summary, authors, and UUID
+- **Front Matter Panel** - Collapsible panel above the editor for visual editing of YAML front matter (title, tags, authors, summary, UUID, created date, draft); supports custom fields and UUID-based document linking via drag & drop
+- **Collapsible Front Matter Preview** - Front matter rendered as a styled, collapsible block at the top of the preview showing title, draft badge, tags, summary, author, date, and linked documents
+- **Project Explorer** - Browse and manage your project files with drag & drop support; `.md` files display front matter titles; directories first, alphabetically sorted; hidden file filtering; multi-file selection
+- **Git Integration** - Automatic git detection (presence of `.git/`); files annotated with colored status dots (🟢 clean, 🟡 modified, 🔵 staged, 🔴 untracked); a **⇅ Sync** button in the Project Explorer toolbar commits all local changes (auto-generated message including date, hostname and file list), pulls latest remote changes (rebase) and pushes; SSH (passphrase-less key) and HTTPS personal access token authentication configured in Options → Git; status dots refresh automatically after every file operation
+- **Project Indexing** - Automatic incremental indexing of all Markdown files by front matter metadata (title, tags, authors, summary, created date, draft, links) and filenames, stored as a persistent local JSON index (`.marknote-index.json`)
+- **Search** - Instant full-text search across indexed documents with a live results popup (up to 20 results); matches on title, filename, tags, summary, authors, and UUID; keyboard navigation
+- **Search & Replace** - In-editor search/replace overlay (`Ctrl+F` / `Ctrl+H`) with optional **Regular Expression**, **Full Word**, and **Match Case** toggles; navigate occurrences with `▲`/`▼`; replace current match or all matches at once; result counter; closes with `Escape`
 - **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
-- **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), and indexing progress bar; indexing runs in a background thread
-- **Multi-document Tabs** - Work on multiple documents simultaneously
-- **Theme Support** - Built-in themes (Light, Dark, Solarized, High Contrast) with custom theme creation; syntax highlighting themes coordinate automatically
-- **Splash Screen** - Themed splash screen at startup (can be disabled in options), also used as About dialog
-- **Image Preview** - Quick preview for images with zoom and pan
-- **Recent Projects** - Quick access to recently opened projects
+- **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup; tooltips with title/author/date; current document highlighted with orange border; isolated nodes hidden; auto zoom-to-fit
+- **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), indexing progress bar, and a **PlantUML local-jar indicator** (⚙ spinning gear during rendering + "● PlantUML: local jar" badge when local mode is active); indexing runs in a background thread
+- **Multi-document Tabs** - Work on multiple documents simultaneously; drag tabs to reorder; tab name truncation with tooltip; modified indicator (`*` prefix)
+- **Drag & Drop into Editor** - Drop files from Project Explorer into the editor to insert Markdown image or link syntax at the drop position
+- **Theme Support** - Built-in themes (Light, Dark, Solarized Light, Solarized Dark, High Contrast) with custom theme creation via a full CSS theme editor with syntax highlighting; syntax highlighting themes coordinate automatically
+- **Splash Screen** - Themed splash screen at startup with application logo (can be disabled in options), also used as About dialog (modal with Close button)
+- **Image Preview** - Quick preview for images with zoom (10%–1000%) and pan; info banner showing format and dimensions; zoom level overlay with fade-out
+- **Recent Files & Projects** - Quick access to recently opened files and projects, organized in separate sections with Clear History
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
+- **Application Icon** - Custom SVG icon with PNG exports (16, 32, 64, 128 px) shown in the title bar, taskbar, and Alt+Tab switcher
+- **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), and Network Diagram (`Ctrl+L`) via the View menu; Show Welcome
+- **Close Tab** - Close the active document tab with `Ctrl+W`
 
 ## Supported Languages
 
@@ -74,7 +86,8 @@ cd marknote
 | `./build` | Compile the project and create the JAR |
 | `./build run` | Compile and run the application |
 | `./build test` | Run unit tests |
-| `./build package` | Create a distributable package with embedded JRE |
+| `./build package` | Create a distributable package for the **current platform** with embedded JRE |
+| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win) |
 
 ## Running
 
@@ -93,12 +106,14 @@ Or use the build script:
 ### Running with a specific language
 
 ```bash
-java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.0.1.jar:target/build/libs/*" Main
+java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.0-snapshot.jar:target/build/libs/*" Main
 ```
 
 ## Packaging
 
-Create a distributable package with an embedded minimal JRE:
+### Single platform
+
+Create a distributable package for the current host platform with an embedded minimal JRE:
 
 ```bash
 ./build package
@@ -106,11 +121,34 @@ Create a distributable package with an embedded minimal JRE:
 
 This creates a ZIP archive in `target/` containing:
 - The application JAR
-- Required libraries
-- Embedded minimal JRE (created with jlink)
-- Platform-specific launcher script
+- Common platform-independent libraries (`libs/common/`)
+- Platform-specific JavaFX native libraries (`libs/{platform}/`)
+- Embedded minimal JRE (created with `jlink`)
+- Platform-specific launcher script (`MarkNote.sh` or `MarkNote.bat`)
+- Platform-specific installer script (`install.sh` or `install.bat`)
 
-### Package Output
+### All platforms
+
+Create packages for **all three platforms** in one shot:
+
+```bash
+./build package-all
+```
+
+This produces three ZIP archives in `target/`:
+
+| Archive | Platform |
+|---------|----------|
+| `MarkNote-{version}-linux.zip` | Linux x64 |
+| `MarkNote-{version}-mac.zip` | macOS |
+| `MarkNote-{version}-win.zip` | Windows x64 |
+
+> **Note:** A minimal embedded JRE (via `jlink`) is bundled only for the current host platform.
+> Cross-platform packages include all required JARs but require a compatible Java runtime already
+> installed on the target system.  Cross-platform JRE bundling requires a JDK for each target OS
+> to be available on the build host.
+
+### Package contents
 
 The package is named: `MarkNote-{version}-{platform}.zip`
 
@@ -126,8 +164,8 @@ Where `{platform}` is:
 1. Download or build the package for your platform
 2. Extract the ZIP archive:
    ```bash
-   unzip MarkNote-0.0.1-linux.zip
-   cd MarkNote-0.0.1-linux
+   unzip MarkNote-0.1.0-snapshot-linux.zip
+   cd MarkNote-0.1.0-snapshot-linux
    ```
 3. Run the application:
    - **Linux/macOS:** `./MarkNote.sh`
@@ -156,8 +194,8 @@ MarkNote/
 │   │   ├── Main.java
 │   │   ├── MarkNote.java
 │   │   ├── config/          # Configuration (AppConfig, ThemeManager)
-│   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud...)
-│   │   └── utils/           # Utilities (DocumentService, IndexService, PlantUmlEncoder)
+│   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud, VisualLinkPanel...)
+│   │   └── utils/           # Utilities (DocumentService, FrontMatter, IndexService, PlantUmlEncoder, GitService)
 │   └── resources/
 │       ├── css/             # Stylesheets
 │       │   ├── markdown-editor.css

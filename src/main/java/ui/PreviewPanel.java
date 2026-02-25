@@ -1,31 +1,55 @@
 package ui;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 
+import config.AppConfig;
 import config.ThemeManager;
 import config.ThemeManager.SyntaxTheme;
 import utils.FrontMatter;
 import utils.PlantUmlEncoder;
 
+import javafx.application.Platform;
 import javafx.concurrent.Worker;
+import javafx.print.Printer;
+import javafx.print.PrinterJob;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Button;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.web.WebView;
+import javafx.stage.FileChooser;
 
 /**
  * Panel de prévisualisation Markdown.
@@ -38,6 +62,15 @@ public class PreviewPanel extends BasePanel {
     private final HtmlRenderer htmlRenderer;
     private File baseDirectory;
     private Consumer<File> onMarkdownLinkClick;
+    private AppConfig appConfig;
+    /** Callback fired with {@code true} when local-jar PlantUML rendering starts, {@code false} when all blocks are done. */
+    private Consumer<Boolean> onPlantUmlRenderingChanged;
+    /** Global ID sequence for placeholder divs; never resets so stale threads find no element in a new page. */
+    private final AtomicInteger blockIdSequence = new AtomicInteger(0);
+    /** Blocks queued for the next page load (local jar mode). Thread-safe because populated on FX thread, consumed on FX thread after load. */
+    private final CopyOnWriteArrayList<String[]> pendingLocalPumlBlocks = new CopyOnWriteArrayList<>();
+    /** Number of background PlantUML render threads still running. */
+    private final AtomicInteger pendingPumlCount = new AtomicInteger(0);
     
     // Historique de navigation
     private final List<String> history = new ArrayList<>();
@@ -47,6 +80,12 @@ public class PreviewPanel extends BasePanel {
     
     private final Button prevButton;
     private final Button nextButton;
+
+    /** Dernier HTML généré, utilisé pour l'export. */
+    private String currentHtml = "";
+
+    /** Fichier source Markdown courant (peut être null pour les documents non sauvegardés). */
+    private File currentFile;
 
     /** Thème highlight.js courant, synchronisé avec le thème applicatif. */
     private SyntaxTheme syntaxTheme = new SyntaxTheme("github", "#f6f8fa", "#24292e");
@@ -95,15 +134,29 @@ public class PreviewPanel extends BasePanel {
         refreshButton.getStyleClass().add("panel-nav-button");
         refreshButton.setTooltip(new Tooltip(getMessages().getString("preview.refresh.tooltip")));
         refreshButton.setOnAction(e -> refresh());
-        
+
+        // Bouton d'export (menu déroulant)
+        MenuButton exportButton = new MenuButton("\u2913");
+        exportButton.getStyleClass().add("panel-nav-button");
+        exportButton.setTooltip(new Tooltip(getMessages().getString("preview.export.tooltip")));
+
+        MenuItem pdfItem = new MenuItem(getMessages().getString("preview.export.pdf"));
+        pdfItem.setOnAction(e -> exportToPdf());
+
+        MenuItem htmlZipItem = new MenuItem(getMessages().getString("preview.export.html.zip"));
+        htmlZipItem.setOnAction(e -> exportToHtmlZip());
+
+        exportButton.getItems().addAll(pdfItem, new SeparatorMenuItem(), htmlZipItem);
+
         // Insérer les boutons avant le bouton de fermeture
         HBox header = getHeader();
         int closeIndex = header.getChildren().indexOf(getCloseButton());
         header.getChildren().add(closeIndex, prevButton);
         header.getChildren().add(closeIndex + 1, nextButton);
         header.getChildren().add(closeIndex + 2, refreshButton);
+        header.getChildren().add(closeIndex + 3, exportButton);
         
-        // Intercepter les clics sur les liens
+        // Intercepter les clics sur les liens + déclencher le rendu async PlantUML local
         webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
             if (newState == Worker.State.SCHEDULED) {
                 String location = webView.getEngine().getLocation();
@@ -139,6 +192,9 @@ public class PreviewPanel extends BasePanel {
                         }
                     }
                 }
+            } else if (newState == Worker.State.SUCCEEDED && !pendingLocalPumlBlocks.isEmpty()) {
+                // Page chargée : déclencher le rendu async des blocs PlantUML locaux
+                dispatchLocalPumlRendering();
             }
         });
         
@@ -260,6 +316,15 @@ public class PreviewPanel extends BasePanel {
                     .front-matter .fm-summary { cursor: pointer; font-weight: bold; font-size: 0.9em;
                                                 color: #666; padding: 0.2em 0; }
                     .front-matter .fm-summary:hover { color: #333; }
+                    /* Copy button on code blocks */
+                    pre { position: relative; }
+                    pre .copy-btn { position: absolute; top: 4px; right: 4px; padding: 2px 8px;
+                                    font-size: 0.75em; cursor: pointer; background: rgba(128,128,128,0.2);
+                                    border: 1px solid rgba(128,128,128,0.3); border-radius: 4px;
+                                    color: inherit; opacity: 0; transition: opacity 0.2s; }
+                    pre:hover .copy-btn { opacity: 1; }
+                    pre .copy-btn:hover { background: rgba(128,128,128,0.35); }
+                    pre .copy-btn.copied { background: rgba(76,175,80,0.3); border-color: rgba(76,175,80,0.5); }
                   </style>
                 </head>
                 <body>%s%s
@@ -297,19 +362,57 @@ public class PreviewPanel extends BasePanel {
                     }
                     renderMath(document.body);
                   })();
+                  // Copy buttons on code blocks
+                  document.querySelectorAll('pre > code').forEach(function(codeEl) {
+                    var pre = codeEl.parentElement;
+                    if (pre.querySelector('.copy-btn')) return;
+                    var btn = document.createElement('button');
+                    btn.className = 'copy-btn';
+                    btn.textContent = 'Copy';
+                    btn.addEventListener('click', function() {
+                      var text = codeEl.textContent;
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(function() {
+                          btn.textContent = '\u2713 Copied';
+                          btn.classList.add('copied');
+                          setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+                        });
+                      } else {
+                        var ta = document.createElement('textarea');
+                        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                        document.body.appendChild(ta); ta.select();
+                        document.execCommand('copy'); document.body.removeChild(ta);
+                        btn.textContent = '\u2713 Copied';
+                        btn.classList.add('copied');
+                        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+                      }
+                    });
+                    pre.appendChild(btn);
+                  });
                 </script>
                 </body>
                 </html>
                 """.formatted(baseTag, hljsStyle, preBg, codeFg, frontMatterHtml, html, mermaidTheme);
         webView.getEngine().loadContent(htmlPage);
+        this.currentHtml = htmlPage;
     }
 
     /**
      * Remplace les blocs {@code <pre><code class="language-plantuml">...}
-     * par des balises {@code <img>} pointant vers le serveur PlantUML en ligne.
-     * Le texte est décodé des entités HTML avant l'encodage.
+     * par des balises {@code <img>} (serveur en ligne) ou par des placeholders
+     * ({@code <div id="puml-N">}) quand le rendu local est activé.
+     * Dans ce dernier cas, les blocs sont ajoutés à {@link #pendingLocalPumlBlocks}
+     * pour être rendus de façon asynchrone une fois la page chargée.
      */
     private String processPlantUmlBlocks(String html) {
+        // Vider les blocs en attente du rendu précédent (sécurité)
+        pendingLocalPumlBlocks.clear();
+
+        boolean useLocal = appConfig != null
+                && appConfig.isUseLocalPlantUml()
+                && appConfig.getPlantUmlJarPath() != null
+                && !appConfig.getPlantUmlJarPath().isBlank();
+
         Matcher m = PLANTUML_BLOCK.matcher(html);
         StringBuilder sb = new StringBuilder();
         while (m.find()) {
@@ -322,17 +425,131 @@ public class PreviewPanel extends BasePanel {
                     .replace("&quot;", "\"")
                     .replace("&#39;", "'")
                     .trim();
-            // Si le texte ne commence pas par @startuml, l'ajouter
             if (!puml.startsWith("@start")) {
                 puml = "@startuml\n" + puml + "\n@enduml";
             }
-            String url = PlantUmlEncoder.toSvgUrl(puml);
-            m.appendReplacement(sb,
-                    Matcher.quoteReplacement(
-                            "<div class=\"plantuml-diagram\"><img src=\"" + url + "\" alt=\"PlantUML diagram\"></div>"));
+
+            String diagramHtml;
+            if (useLocal) {
+                // Insérer un placeholder: rendu différé dans un thread de fond
+                String id = "puml-" + blockIdSequence.getAndIncrement();
+                pendingLocalPumlBlocks.add(new String[]{id, puml});
+                diagramHtml = "<div id=\"" + id + "\" class=\"plantuml-diagram plantuml-pending\">" +
+                        "<em style=\"opacity:0.45;\">&#8987; Rendering diagram…</em></div>";
+            } else {
+                String url = PlantUmlEncoder.toSvgUrl(puml);
+                diagramHtml = "<div class=\"plantuml-diagram\"><img src=\"" + url + "\" alt=\"PlantUML diagram\"></div>";
+            }
+            m.appendReplacement(sb, Matcher.quoteReplacement(diagramHtml));
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+
+    /**
+     * Démarre un thread de fond par bloc PlantUML en attente.
+     * Chaque thread génère le SVG via le jar local, puis l'injecte dans la page
+     * via {@code executeScript}. Quand tous les blocs sont rendus, le callback
+     * {@link #onPlantUmlRenderingChanged} est appelé avec {@code false}.
+     */
+    private void dispatchLocalPumlRendering() {
+        List<String[]> blocks = new ArrayList<>(pendingLocalPumlBlocks);
+        pendingLocalPumlBlocks.clear();
+        if (blocks.isEmpty()) return;
+
+        pendingPumlCount.set(blocks.size());
+        if (onPlantUmlRenderingChanged != null) {
+            onPlantUmlRenderingChanged.accept(true);
+        }
+
+        String jarPath = appConfig.getPlantUmlJarPath();
+        for (String[] block : blocks) {
+            String id    = block[0];
+            String puml  = block[1];
+            Thread t = new Thread(() -> {
+                String svg = renderWithLocalJar(puml, jarPath);
+                Platform.runLater(() -> {
+                    try {
+                        if (svg != null) {
+                            // Encoder en base64 pour éviter tout problème d'échappement JS
+                            String b64 = Base64.getEncoder().encodeToString(
+                                    svg.getBytes(StandardCharsets.UTF_8));
+                            String js = "var el=document.getElementById('" + id + "');"
+                                    + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
+                                    + "<img src=\"data:image/svg+xml;base64," + b64 + "\""
+                                    + " alt=\"PlantUML diagram\"></div>';";
+                            webView.getEngine().executeScript(js);
+                        } else {
+                            // Repli : serveur en ligne
+                            String url = PlantUmlEncoder.toSvgUrl(puml);
+                            String js = "var el=document.getElementById('" + id + "');"
+                                    + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
+                                    + "<img src=\"" + url + "\""
+                                    + " alt=\"PlantUML diagram\"></div>';";
+                            webView.getEngine().executeScript(js);
+                        }
+                    } catch (Exception ignored) {
+                    } finally {
+                        if (pendingPumlCount.decrementAndGet() == 0
+                                && onPlantUmlRenderingChanged != null) {
+                            onPlantUmlRenderingChanged.accept(false);
+                        }
+                    }
+                });
+            });
+            t.setDaemon(true);
+            t.start();
+        }
+    }
+
+    /**
+     * Génère un SVG en exécutant un jar PlantUML local via un sous-processus.
+     * Retourne le SVG inline (chaîne commençant par {@code <svg}),
+     * ou {@code null} si l'exécution échoue.
+     *
+     * @param pumlSource texte PlantUML complet (avec {@code @startuml/@enduml})
+     * @param jarPath    chemin absolu vers {@code plantuml.jar}
+     * @return SVG inline ou null en cas d'erreur
+     */
+    private String renderWithLocalJar(String pumlSource, String jarPath) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                    "java", "-jar", jarPath, "-pipe", "-tsvg");
+            pb.redirectErrorStream(false);
+            Process process = pb.start();
+
+            // Écrire la source PlantUML sur stdin
+            try (OutputStream stdin = process.getOutputStream()) {
+                stdin.write(pumlSource.getBytes(StandardCharsets.UTF_8));
+            }
+
+            // Lire stdout (SVG)
+            byte[] svgBytes;
+            try (InputStream stdout = process.getInputStream()) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = stdout.read(buf)) != -1) {
+                    baos.write(buf, 0, n);
+                }
+                svgBytes = baos.toByteArray();
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                return null;
+            }
+
+            String svg = new String(svgBytes, StandardCharsets.UTF_8).trim();
+            // Extraire uniquement le contenu <svg>...</svg> (éliminer le prologue XML)
+            int svgStart = svg.indexOf("<svg");
+            if (svgStart >= 0) {
+                return svg.substring(svgStart);
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -536,6 +753,23 @@ public class PreviewPanel extends BasePanel {
     }
 
     /**
+     * Définit le callback appelé quand un rendu PlantUML local démarre ({@code true})
+     * ou se termine ({@code false}).
+     */
+    public void setOnPlantUmlRenderingChanged(Consumer<Boolean> callback) {
+        this.onPlantUmlRenderingChanged = callback;
+    }
+
+    /**
+     * Définit la configuration de l'application (utilisée pour PlantUML local).
+     *
+     * @param appConfig La configuration de l'application
+     */
+    public void setAppConfig(AppConfig appConfig) {
+        this.appConfig = appConfig;
+    }
+
+    /**
      * Définit le répertoire de base pour résoudre les chemins relatifs (images, etc.).
      *
      * @param directory Le répertoire de base du projet
@@ -602,12 +836,160 @@ public class PreviewPanel extends BasePanel {
     /**
      * Rafraîchit la prévisualisation actuelle.
      */
-    private void refresh() {
+    public void refresh() {
         if (!currentMarkdown.isEmpty()) {
             updatePreview(currentMarkdown, false);
         }
     }
     
+    /**
+     * Définit le fichier Markdown source actuellement affiché.
+     * Utilisé pour nommer les fichiers exportés.
+     *
+     * @param file Le fichier source, ou null pour un document non sauvegardé
+     */
+    public void setCurrentFile(File file) {
+        this.currentFile = file;
+    }
+
+    /**
+     * Exporte le contenu courant de la preview vers un PDF via la boîte de dialogue d'impression.
+     * Sur Linux, l'utilisateur peut choisir "Imprimer dans un fichier" pour obtenir un PDF.
+     */
+    private void exportToPdf() {
+        if (currentHtml.isEmpty()) return;
+
+        // createPrinterJob() sans argument n'utilise que l'imprimante par défaut
+        // et retourne null si aucune n'est configurée (fréquent sur Linux).
+        // On tente un repli sur n'importe quelle imprimante disponible (incl. virtuelles/PDF).
+        PrinterJob job = PrinterJob.createPrinterJob();
+        if (job == null) {
+            Printer fallback = Printer.getAllPrinters()
+                    .stream().findFirst().orElse(null);
+            if (fallback != null) {
+                job = PrinterJob.createPrinterJob(fallback);
+            }
+        }
+        if (job == null) {
+            showExportAlert(Alert.AlertType.ERROR,
+                    getMessages().getString("preview.export.error.title"),
+                    getMessages().getString("preview.export.error.noprinter"));
+            return;
+        }
+        if (job.showPrintDialog(getScene().getWindow())) {
+            webView.getEngine().print(job);
+            job.endJob();
+        }
+    }
+
+    /**
+     * Exporte le contenu courant en une archive ZIP contenant la page HTML
+     * et toutes les images locales référencées dans le document.
+     * La structure du ZIP est : &lt;name&gt;.html + images/&lt;filename&gt;
+     */
+    private void exportToHtmlZip() {
+        if (currentHtml.isEmpty()) return;
+
+        // Déterminer le nom de base du fichier exporté
+        String baseName = (currentFile != null)
+                ? currentFile.getName().replaceFirst("\\.[^.]+$", "")
+                : "export";
+
+        // Choisir la destination
+        FileChooser fc = new FileChooser();
+        fc.setTitle(getMessages().getString("preview.export.chooser.html.zip"));
+        fc.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("ZIP Archive", "*.zip"));
+        fc.setInitialFileName(baseName + ".zip");
+        if (baseDirectory != null && baseDirectory.isDirectory()) {
+            fc.setInitialDirectory(baseDirectory);
+        }
+
+        File dest = fc.showSaveDialog(getScene().getWindow());
+        if (dest == null) return;
+
+        // Traitement HTML : enlever la balise <base>, réécrire les chemins d'images locales
+        String html = currentHtml.replaceAll("<base\\s+href=\"[^\"]*\">", "");
+
+        List<File> localImages = new ArrayList<>();
+        Map<String, String> pathMap = new HashMap<>();
+        Set<String> seen = new HashSet<>();
+
+        Pattern imgPat = Pattern.compile("<img\\s[^>]*src=\"([^\"]+)\"");
+        Matcher m = imgPat.matcher(html);
+        while (m.find()) {
+            String src = m.group(1);
+            if (src.startsWith("http://") || src.startsWith("https://")
+                    || src.startsWith("data:") || seen.contains(src)) {
+                continue;
+            }
+            seen.add(src);
+
+            File imgFile = null;
+            try {
+                if (src.startsWith("file:")) {
+                    imgFile = new File(new URI(src));
+                } else if (baseDirectory != null) {
+                    imgFile = new File(baseDirectory, src);
+                }
+            } catch (Exception ignored) { }
+
+            if (imgFile != null && imgFile.exists() && imgFile.isFile()) {
+                localImages.add(imgFile);
+                pathMap.put(src, "images/" + imgFile.getName());
+            }
+        }
+
+        // Remplacer les chemins dans le HTML
+        for (Map.Entry<String, String> entry : pathMap.entrySet()) {
+            html = html.replace("src=\"" + entry.getKey() + "\"",
+                               "src=\"" + entry.getValue() + "\"");
+        }
+
+        final String finalHtml = html;
+        final List<File> finalImages = new ArrayList<>(localImages);
+        final String finalBaseName = baseName;
+
+        Thread t = new Thread(() -> {
+            try (ZipOutputStream zos = new ZipOutputStream(
+                    new FileOutputStream(dest))) {
+
+                // Page HTML
+                zos.putNextEntry(new ZipEntry(finalBaseName + ".html"));
+                zos.write(finalHtml.getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+
+                // Images locales
+                for (File img : finalImages) {
+                    zos.putNextEntry(new ZipEntry("images/" + img.getName()));
+                    Files.copy(img.toPath(), zos);
+                    zos.closeEntry();
+                }
+
+                Platform.runLater(() -> showExportAlert(Alert.AlertType.INFORMATION,
+                        getMessages().getString("preview.export.success.title"),
+                        getMessages().getString("preview.export.success.html")));
+
+            } catch (Exception e) {
+                Platform.runLater(() -> showExportAlert(Alert.AlertType.ERROR,
+                        getMessages().getString("preview.export.error.title"),
+                        MessageFormat.format(
+                                getMessages().getString("preview.export.error.message"),
+                                e.getMessage())));
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /** Affiche une boîte de dialogue simple pour les résultats d'export. */
+    private void showExportAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type, message, ButtonType.OK);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.showAndWait();
+    }
+
     /**
      * Met à jour l'état des boutons de navigation.
      */

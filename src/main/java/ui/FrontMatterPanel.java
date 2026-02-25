@@ -3,8 +3,11 @@ package ui;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
@@ -55,6 +58,9 @@ public class FrontMatterPanel extends TitledPane {
     private final ObservableList<String> linksList;
     private final VBox linksBox;
     private final TitledPane linksTitledPane;
+    private final GridPane grid;
+    private int knownFieldsEndRow;
+    private final Map<String, TextField> extraFields = new LinkedHashMap<>();
 
     private Runnable onChanged;
     private java.util.function.Consumer<File> onLinkClick;
@@ -66,7 +72,7 @@ public class FrontMatterPanel extends TitledPane {
         setExpanded(true);
         getStyleClass().add("front-matter-panel");
 
-        GridPane grid = new GridPane();
+        grid = new GridPane();
         grid.setHgap(8);
         grid.setVgap(6);
         grid.setPadding(new Insets(8));
@@ -143,6 +149,9 @@ public class FrontMatterPanel extends TitledPane {
         grid.add(uuidLabel, 0, row);
         grid.add(uuidField, 1, row);
         row++;
+
+        // Marquer la fin des champs connus
+        knownFieldsEndRow = row;
 
         // Links (zone repliable avec liste verticale d'UUIDs)
         linksList = FXCollections.observableArrayList();
@@ -407,6 +416,8 @@ public class FrontMatterPanel extends TitledPane {
         if (!fm.getLinks().isEmpty()) {
             linksTitledPane.setExpanded(true);
         }
+        // Attributs inconnus
+        rebuildExtraFields(fm.getExtraKeys(), fm);
     }
 
     /**
@@ -424,6 +435,10 @@ public class FrontMatterPanel extends TitledPane {
         fm.setSummary(summaryField.getText().trim());
         fm.setDraft(draftCheck.isSelected());
         fm.setLinks(new java.util.ArrayList<>(linksList));
+        // Attributs inconnus
+        for (Map.Entry<String, TextField> entry : extraFields.entrySet()) {
+            fm.put(entry.getKey(), entry.getValue().getText().trim());
+        }
         return fm;
     }
 
@@ -439,6 +454,7 @@ public class FrontMatterPanel extends TitledPane {
         summaryField.clear();
         draftCheck.setSelected(false);
         linksList.clear();
+        clearExtraFields();
     }
 
     /**
@@ -491,6 +507,45 @@ public class FrontMatterPanel extends TitledPane {
     }
 
     // ── Privé ───────────────────────────────────────────────────
+
+    /**
+     * Reconstruit les champs d'attributs inconnus dans la grille.
+     *
+     * @param extraKeys les clés d'attributs non standard
+     * @param fm        le front matter source
+     */
+    private void rebuildExtraFields(List<String> extraKeys, FrontMatter fm) {
+        clearExtraFields();
+        int row = knownFieldsEndRow;
+        for (String key : extraKeys) {
+            Label label = new Label(key);
+            label.setStyle("-fx-font-style: italic;");
+            TextField field = new TextField(fm.get(key));
+            field.textProperty().addListener((o, ov, nv) -> fireChanged());
+            grid.add(label, 0, row);
+            grid.add(field, 1, row);
+            extraFields.put(key, field);
+            row++;
+        }
+    }
+
+    /**
+     * Supprime tous les champs d'attributs inconnus de la grille.
+     */
+    private void clearExtraFields() {
+        for (Map.Entry<String, TextField> entry : extraFields.entrySet()) {
+            grid.getChildren().removeIf(node -> {
+                Integer nodeRow = GridPane.getRowIndex(node);
+                return nodeRow != null && nodeRow >= knownFieldsEndRow;
+            });
+        }
+        // Nettoyage final : supprimer tout nœud au-delà des champs connus
+        grid.getChildren().removeIf(node -> {
+            Integer nodeRow = GridPane.getRowIndex(node);
+            return nodeRow != null && nodeRow >= knownFieldsEndRow;
+        });
+        extraFields.clear();
+    }
 
     private void fireChanged() {
         if (onChanged != null) {

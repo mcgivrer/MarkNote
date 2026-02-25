@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import javafx.animation.Interpolator;
+import javafx.animation.RotateTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -12,6 +14,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.util.Duration;
 
 /**
  * Barre de statut affichée en bas de la fenêtre principale.
@@ -43,6 +46,13 @@ public class StatusBar extends HBox {
     private final Label indexLabel;
     private final ProgressBar progressBar;
 
+    // ── Section 4 : indicateur PlantUML local ──
+
+    private final Label plantUmlLabel;
+    /** Icône engrenage animée, visible pendant le rendu local PlantUML. */
+    private final Label gearLabel;
+    private final RotateTransition gearSpin;
+
     public StatusBar() {
         ResourceBundle msg = getMessages();
 
@@ -71,7 +81,24 @@ public class StatusBar extends HBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // ── Séparateur ──
+        // ── Indicateur PlantUML local ──
+        plantUmlLabel = new Label();
+        plantUmlLabel.getStyleClass().addAll("status-section", "status-plantuml");
+        plantUmlLabel.setVisible(false);
+        plantUmlLabel.setManaged(false);
+
+        // Engrenage animé : visible uniquement pendant le rendu
+        gearLabel = new Label("⚙");
+        gearLabel.getStyleClass().addAll("status-section", "status-plantuml-gear");
+        gearLabel.setStyle("-fx-font-size: 13px;");
+        gearLabel.setVisible(false);
+        gearLabel.setManaged(false);
+
+        gearSpin = new RotateTransition(Duration.seconds(1.5), gearLabel);
+        gearSpin.setByAngle(360);
+        gearSpin.setCycleCount(RotateTransition.INDEFINITE);
+        gearSpin.setInterpolator(Interpolator.LINEAR);
+
         Separator sep2 = new Separator(javafx.geometry.Orientation.VERTICAL);
 
         // ── Section 3 ──
@@ -90,7 +117,7 @@ public class StatusBar extends HBox {
                 sep1,
                 statsLabel,
                 spacer,
-                sep2,
+                gearLabel, plantUmlLabel, sep2,
                 indexLabel, progressBar
         );
 
@@ -156,5 +183,40 @@ public class StatusBar extends HBox {
         progressBar.setVisible(false);
         progressBar.setProgress(0);
         indexLabel.setText(getMessages().getString("statusbar.ready"));
+    }
+
+    /**
+     * Affiche ou masque l'indicateur PlantUML local.
+     *
+     * @param active {@code true} si un jar PlantUML local est configuré et activé
+     */
+    public void setPlantUmlIndicator(boolean active) {
+        plantUmlLabel.setVisible(active);
+        plantUmlLabel.setManaged(active);
+        if (active) {
+            plantUmlLabel.setText(getMessages().getString("statusbar.plantuml.local"));
+        }
+        // Si on désactive la config, éteindre aussi l'engrenage
+        if (!active) {
+            setPlantUmlRendering(false);
+        }
+    }
+
+    /**
+     * Montre/cache l'engrenage animé pendant le rendu PlantUML via jar local.
+     *
+     * @param rendering {@code true} pour démarrer la rotation, {@code false} pour l'arrêter
+     */
+    public void setPlantUmlRendering(boolean rendering) {
+        if (rendering) {
+            gearLabel.setVisible(true);
+            gearLabel.setManaged(true);
+            gearSpin.play();
+        } else {
+            gearSpin.stop();
+            gearLabel.setRotate(0);
+            gearLabel.setVisible(false);
+            gearLabel.setManaged(false);
+        }
     }
 }

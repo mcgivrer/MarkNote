@@ -1,7 +1,7 @@
 #!/bin/bash
 #---- project parameters
 project_name=MarkNote
-project_version=0.0.3
+project_version=0.1.0-snapshot
 main_class=Main
 JARS=
 JFX_VERSION=25
@@ -43,6 +43,7 @@ fi
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 #---- process buid
 GIT_COMMIT_ID=$(git rev-parse HEAD)
@@ -143,69 +144,483 @@ if( [ "$1" == "run" ] ); then
     done
 fi
 
-if( [ "$1" == "package" ] ); then
-    echo "Creating distribution package..."
-    
-    DIST_DIR="${TARGET}/dist/${project_name}-${project_version}-${JFX_OS_SUFFIX}"
-    JRE_DIR="${DIST_DIR}/jre"
-    
+# ─── Helper: package for a given target platform ────────────────────────────
+# Usage: do_package_for_os <linux|mac|win>
+# Bundles the pre-built JAR + platform JavaFX libs + OS-specific launcher and
+# installer.  A minimal JRE is embedded via jlink only when TARGET_OS matches
+# the current host OS; cross-platform packages ship without an embedded JRE
+# (the target machine needs a compatible Java runtime).
+do_package_for_os() {
+    local TARGET_OS="$1"
+    local HOST_OS="${JFX_OS_SUFFIX}"
+
+    local DIST_DIR="${TARGET}/dist/${project_name}-${project_version}-${TARGET_OS}"
+    local JRE_DIR="${DIST_DIR}/jre"
+
     # Clean and create distribution directory
-    rm -rf "${TARGET}/dist"
+    rm -rf "${DIST_DIR}"
     mkdir -p "${DIST_DIR}"
-    
-    # Copy build artifacts
+
+    # ── Build artifacts ──────────────────────────────────────────────────────
     echo "Copying build artifacts..."
     cp "${BUILD}/${project_name}-${project_version}.jar" "${DIST_DIR}/"
     mkdir -p "${DIST_DIR}/libs"
-    cp ${BUILD}/libs/*.jar "${DIST_DIR}/libs/"
-    
-    # Create minimal JRE with jlink
-    echo "Creating minimal JRE with jlink..."
-    # Modules required for JavaFX application
+    # Copy common (platform-independent) libs first
+    if [[ -d "libs/common" ]] && ls libs/common/*.jar &>/dev/null 2>&1; then
+        cp libs/common/*.jar "${DIST_DIR}/libs/"
+        echo "  Copied common libs from libs/common/"
+    fi
+    # Copy platform-specific JavaFX libs
+    if [[ -d "libs/${TARGET_OS}" ]] && ls libs/${TARGET_OS}/*.jar &>/dev/null 2>&1; then
+        cp libs/${TARGET_OS}/*.jar "${DIST_DIR}/libs/"
+        echo "  Using platform JavaFX libs from libs/${TARGET_OS}/"
+    else
+        cp ${BUILD}/libs/*.jar "${DIST_DIR}/libs/"
+        echo -e "  ${YELLOW}Warning: no libs/${TARGET_OS}/ found – using current-build libs.${NC}"
+    fi
+
+    # ── Minimal JRE (jlink, host platform only) ──────────────────────────────
     JRE_MODULES="java.base,java.desktop,java.logging,java.xml,java.net.http,java.scripting,jdk.xml.dom,java.sql,java.naming,java.prefs,jdk.unsupported,jdk.jsobject"
-    
-    # Add JavaFX modules path for jlink
-    jlink --module-path "${TARGET}/jfx-libs" \
-          --add-modules ${JRE_MODULES} \
-          --output "${JRE_DIR}" \
-          --strip-debug \
-          --compress zip-6 \
-          --no-header-files \
-          --no-man-pages
-    
-    echo "JRE created: $(du -sh ${JRE_DIR} | cut -f1)"
-    
-    # Create launcher script using embedded JRE
+    if [[ "$TARGET_OS" == "$HOST_OS" ]]; then
+        echo "Creating minimal JRE with jlink..."
+        jlink --module-path "${TARGET}/jfx-libs" \
+              --add-modules ${JRE_MODULES} \
+              --output "${JRE_DIR}" \
+              --strip-debug \
+              --compress zip-6 \
+              --no-header-files \
+              --no-man-pages
+        echo "JRE created: $(du -sh ${JRE_DIR} | cut -f1)"
+    else
+        echo -e "  ${YELLOW}Skipping jlink for ${TARGET_OS} (requires a ${TARGET_OS} JDK on this host).${NC}"
+        echo -e "  ${YELLOW}The package will require a compatible JRE installed on the target system.${NC}"
+    fi
+
+    # ── Launcher script ──────────────────────────────────────────────────────
     echo "Creating launcher script..."
-    if [[ "$JFX_OS_SUFFIX" == "win" ]]; then
-        # Windows batch script
-        cat > "${DIST_DIR}/${project_name}.bat" << WINLAUNCHER
+    if [[ "$TARGET_OS" == "win" ]]; then
+        if [[ -d "${JRE_DIR}" ]]; then
+            cat > "${DIST_DIR}/${project_name}.bat" << WINLAUNCHER_JRE
 @echo off
 setlocal
 set SCRIPT_DIR=%~dp0
 set JRE_PATH=%SCRIPT_DIR%jre\\bin\\java.exe
 "%JRE_PATH%" --module-path "%SCRIPT_DIR%libs" --add-modules ${JFX_MODULES} -cp "%SCRIPT_DIR%${project_name}-${project_version}.jar;%SCRIPT_DIR%libs\\*" ${main_class} %*
 endlocal
-WINLAUNCHER
+WINLAUNCHER_JRE
+        else
+            cat > "${DIST_DIR}/${project_name}.bat" << WINLAUNCHER_NOJRE
+@echo off
+setlocal
+set SCRIPT_DIR=%~dp0
+java --module-path "%SCRIPT_DIR%libs" --add-modules ${JFX_MODULES} -cp "%SCRIPT_DIR%${project_name}-${project_version}.jar;%SCRIPT_DIR%libs\\*" ${main_class} %*
+endlocal
+WINLAUNCHER_NOJRE
+        fi
     else
-        # Unix shell script
-        cat > "${DIST_DIR}/${project_name}.sh" << 'UNIXLAUNCHER_START'
+        if [[ -d "${JRE_DIR}" ]]; then
+            cat > "${DIST_DIR}/${project_name}.sh" << 'UNIXLAUNCHER_JRE_START'
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 JRE_PATH="${SCRIPT_DIR}/jre/bin/java"
-UNIXLAUNCHER_START
-        echo "\"\${JRE_PATH}\" --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar:\${SCRIPT_DIR}/libs/*\" ${main_class} \"\$@\"" >> "${DIST_DIR}/${project_name}.sh"
+UNIXLAUNCHER_JRE_START
+            echo "\"\${JRE_PATH}\" --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar:\${SCRIPT_DIR}/libs/*\" ${main_class} \"\$@\"" >> "${DIST_DIR}/${project_name}.sh"
+        else
+            cat > "${DIST_DIR}/${project_name}.sh" << 'UNIXLAUNCHER_NOJRE_START'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+UNIXLAUNCHER_NOJRE_START
+            echo "java --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar:\${SCRIPT_DIR}/libs/*\" ${main_class} \"\$@\"" >> "${DIST_DIR}/${project_name}.sh"
+        fi
         chmod +x "${DIST_DIR}/${project_name}.sh"
     fi
-    
-    # Create ZIP archive
+
+    # ── Application icons ────────────────────────────────────────────────────
+    echo "Copying application icons..."
+    mkdir -p "${DIST_DIR}/icons"
+    cp ${SRC}/main/resources/images/icons/marknote.svg "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-128.png "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-64.png "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-32.png "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote-16.png "${DIST_DIR}/icons/" 2>/dev/null || true
+
+    # ── OS-specific installer ────────────────────────────────────────────────
+    echo "Generating installer script for ${TARGET_OS}..."
+
+    if [[ "$TARGET_OS" == "linux" ]]; then
+        #----- Linux installer: install to ~/.local and create desktop shortcut -----
+        cat > "${DIST_DIR}/install.sh" << 'LINUX_INSTALL_EOF'
+#!/bin/bash
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_NAME="MarkNote"
+LINUX_INSTALL_EOF
+        echo "APP_VERSION=\"${project_version}\"" >> "${DIST_DIR}/install.sh"
+        cat >> "${DIST_DIR}/install.sh" << 'LINUX_INSTALL_EOF2'
+INSTALL_DIR="${HOME}/.local/share/${APP_NAME}"
+BIN_DIR="${HOME}/.local/bin"
+DESKTOP_DIR="${HOME}/.local/share/applications"
+ICON_DIR="${HOME}/.local/share/icons/hicolor"
+
+echo "========================================="
+echo "  ${APP_NAME} ${APP_VERSION} - Installer"
+echo "========================================="
+echo ""
+echo "This will install ${APP_NAME} to:"
+echo "  ${INSTALL_DIR}"
+echo ""
+read -p "Continue? [Y/n] " confirm
+if [[ "$confirm" =~ ^[Nn] ]]; then
+    echo "Installation cancelled."
+    exit 0
+fi
+
+# Create installation directory
+echo "Installing ${APP_NAME}..."
+mkdir -p "${INSTALL_DIR}"
+mkdir -p "${BIN_DIR}"
+mkdir -p "${DESKTOP_DIR}"
+
+# Copy application files
+cp -r "${SCRIPT_DIR}"/*.jar "${INSTALL_DIR}/"
+cp -r "${SCRIPT_DIR}/libs" "${INSTALL_DIR}/"
+if [[ -d "${SCRIPT_DIR}/jre" ]]; then cp -r "${SCRIPT_DIR}/jre" "${INSTALL_DIR}/"; fi
+cp -r "${SCRIPT_DIR}/icons" "${INSTALL_DIR}/"
+cp "${SCRIPT_DIR}/${APP_NAME}.sh" "${INSTALL_DIR}/"
+chmod +x "${INSTALL_DIR}/${APP_NAME}.sh"
+
+# Install icons at standard sizes
+for size in 16 32 64 128; do
+    icon_file="${INSTALL_DIR}/icons/marknote-${size}.png"
+    if [[ -f "${icon_file}" ]]; then
+        mkdir -p "${ICON_DIR}/${size}x${size}/apps"
+        cp "${icon_file}" "${ICON_DIR}/${size}x${size}/apps/marknote.png"
+    fi
+done
+# Install SVG icon
+if [[ -f "${INSTALL_DIR}/icons/marknote.svg" ]]; then
+    mkdir -p "${ICON_DIR}/scalable/apps"
+    cp "${INSTALL_DIR}/icons/marknote.svg" "${ICON_DIR}/scalable/apps/marknote.svg"
+fi
+
+# Create symlink in ~/.local/bin
+ln -sf "${INSTALL_DIR}/${APP_NAME}.sh" "${BIN_DIR}/marknote"
+
+# Create .desktop file for application menu
+cat > "${DESKTOP_DIR}/marknote.desktop" << DESKTOP_EOF
+[Desktop Entry]
+Type=Application
+Name=${APP_NAME}
+Comment=Markdown Note Editor
+Exec=${INSTALL_DIR}/${APP_NAME}.sh %F
+Icon=${INSTALL_DIR}/icons/marknote.svg
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/markdown;text/x-markdown;text/plain;
+StartupWMClass=MarkNote
+DESKTOP_EOF
+
+# Create desktop shortcut
+DESKTOP_SHORTCUT="${HOME}/Desktop/marknote.desktop"
+if [[ -d "${HOME}/Desktop" ]]; then
+    cp "${DESKTOP_DIR}/marknote.desktop" "${DESKTOP_SHORTCUT}"
+    chmod +x "${DESKTOP_SHORTCUT}"
+    # Mark as trusted on GNOME-based desktops
+    if command -v gio &> /dev/null; then
+        gio set "${DESKTOP_SHORTCUT}" metadata::trusted true 2>/dev/null || true
+    fi
+    echo "Desktop shortcut created."
+fi
+
+# Update icon cache if available
+if command -v gtk-update-icon-cache &> /dev/null; then
+    gtk-update-icon-cache -f -t "${ICON_DIR}" 2>/dev/null || true
+fi
+# Update desktop database if available
+if command -v update-desktop-database &> /dev/null; then
+    update-desktop-database "${DESKTOP_DIR}" 2>/dev/null || true
+fi
+
+echo ""
+echo "========================================="
+echo "  ${APP_NAME} installed successfully!"
+echo "========================================="
+echo ""
+echo "  Location : ${INSTALL_DIR}"
+echo "  Command  : marknote (if ~/.local/bin is in PATH)"
+echo "  Shortcut : Desktop & Application Menu"
+echo ""
+echo "To uninstall, run:"
+echo "  rm -rf ${INSTALL_DIR}"
+echo "  rm -f ${BIN_DIR}/marknote"
+echo "  rm -f ${DESKTOP_DIR}/marknote.desktop"
+echo "  rm -f ${DESKTOP_SHORTCUT}"
+LINUX_INSTALL_EOF2
+        chmod +x "${DIST_DIR}/install.sh"
+        echo -e "  ${GREEN}Linux installer created.${NC}"
+
+    elif [[ "$TARGET_OS" == "win" ]]; then
+        #----- Windows installer: install to %LOCALAPPDATA% (no admin required) -----
+        cat > "${DIST_DIR}/install.bat" << 'WIN_INSTALL_EOF'
+@echo off
+setlocal EnableDelayedExpansion
+
+set APP_NAME=MarkNote
+WIN_INSTALL_EOF
+        echo "set APP_VERSION=${project_version}" >> "${DIST_DIR}/install.bat"
+        cat >> "${DIST_DIR}/install.bat" << 'WIN_INSTALL_EOF2'
+set INSTALL_DIR=%LOCALAPPDATA%\%APP_NAME%
+set SCRIPT_DIR=%~dp0
+
+echo =========================================
+echo   %APP_NAME% %APP_VERSION% - Installer
+echo =========================================
+echo.
+echo This will install %APP_NAME% to:
+echo   %INSTALL_DIR%
+echo.
+set /p CONFIRM="Continue? [Y/n] "
+if /i "%CONFIRM%"=="n" (
+    echo Installation cancelled.
+    exit /b 0
+)
+
+echo Installing %APP_NAME%...
+
+:: Create installation directory
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+if not exist "%INSTALL_DIR%\libs" mkdir "%INSTALL_DIR%\libs"
+if not exist "%INSTALL_DIR%\icons" mkdir "%INSTALL_DIR%\icons"
+
+:: Copy application files
+xcopy /Y /Q "%SCRIPT_DIR%*.jar" "%INSTALL_DIR%\"
+xcopy /Y /Q /E "%SCRIPT_DIR%libs\*" "%INSTALL_DIR%\libs\"
+if exist "%SCRIPT_DIR%jre" xcopy /Y /Q /E /I "%SCRIPT_DIR%jre" "%INSTALL_DIR%\jre"
+xcopy /Y /Q /E "%SCRIPT_DIR%icons\*" "%INSTALL_DIR%\icons\"
+copy /Y "%SCRIPT_DIR%%APP_NAME%.bat" "%INSTALL_DIR%\"
+
+:: Create Desktop shortcut using PowerShell
+echo Creating Desktop shortcut...
+powershell -NoProfile -Command ^
+  "$ws = New-Object -ComObject WScript.Shell; ^
+   $sc = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), '%APP_NAME%.lnk')); ^
+   $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; ^
+   $sc.WorkingDirectory = '%INSTALL_DIR%'; ^
+   $sc.IconLocation = '%INSTALL_DIR%\icons\marknote-128.png'; ^
+   $sc.Description = 'MarkNote - Markdown Note Editor'; ^
+   $sc.Save()"
+
+:: Create Start Menu shortcut
+echo Creating Start Menu shortcut...
+set START_MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs
+powershell -NoProfile -Command ^
+  "$ws = New-Object -ComObject WScript.Shell; ^
+   $sc = $ws.CreateShortcut('%START_MENU%\%APP_NAME%.lnk'); ^
+   $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; ^
+   $sc.WorkingDirectory = '%INSTALL_DIR%'; ^
+   $sc.IconLocation = '%INSTALL_DIR%\icons\marknote-128.png'; ^
+   $sc.Description = 'MarkNote - Markdown Note Editor'; ^
+   $sc.Save()"
+
+echo.
+echo =========================================
+echo   %APP_NAME% installed successfully!
+echo =========================================
+echo.
+echo   Location : %INSTALL_DIR%
+echo   Shortcuts: Desktop ^& Start Menu
+echo.
+echo To uninstall, delete:
+echo   %INSTALL_DIR%
+echo   Desktop shortcut: %APP_NAME%.lnk
+echo   Start Menu: %START_MENU%\%APP_NAME%.lnk
+echo.
+pause
+WIN_INSTALL_EOF2
+        echo -e "  ${GREEN}Windows installer created.${NC}"
+
+    elif [[ "$TARGET_OS" == "mac" ]]; then
+        #----- macOS installer: create .app bundle in ~/Applications -----
+        cat > "${DIST_DIR}/install.sh" << 'MAC_INSTALL_EOF'
+#!/bin/bash
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_NAME="MarkNote"
+MAC_INSTALL_EOF
+        # Inject build-time values
+        echo "APP_VERSION=\"${project_version}\"" >> "${DIST_DIR}/install.sh"
+        echo "JAR_NAME=\"${project_name}-${project_version}.jar\"" >> "${DIST_DIR}/install.sh"
+        echo "JFX_MODULES=\"${JFX_MODULES}\"" >> "${DIST_DIR}/install.sh"
+        echo "MAIN_CLASS=\"${main_class}\"" >> "${DIST_DIR}/install.sh"
+        cat >> "${DIST_DIR}/install.sh" << 'MAC_INSTALL_EOF2'
+APP_BUNDLE="${HOME}/Applications/${APP_NAME}.app"
+
+echo "========================================="
+echo "  ${APP_NAME} ${APP_VERSION} - Installer"
+echo "========================================="
+echo ""
+echo "This will install ${APP_NAME} as an application bundle to:"
+echo "  ${APP_BUNDLE}"
+echo ""
+read -p "Continue? [Y/n] " confirm
+if [[ "$confirm" =~ ^[Nn] ]]; then
+    echo "Installation cancelled."
+    exit 0
+fi
+
+echo "Installing ${APP_NAME}..."
+
+# Create .app bundle structure
+mkdir -p "${APP_BUNDLE}/Contents/MacOS"
+mkdir -p "${APP_BUNDLE}/Contents/Resources"
+
+# Copy application files into Resources
+cp -r "${SCRIPT_DIR}"/*.jar "${APP_BUNDLE}/Contents/Resources/"
+cp -r "${SCRIPT_DIR}/libs" "${APP_BUNDLE}/Contents/Resources/"
+if [[ -d "${SCRIPT_DIR}/jre" ]]; then cp -r "${SCRIPT_DIR}/jre" "${APP_BUNDLE}/Contents/Resources/"; fi
+
+# Convert PNG icon to .icns if possible, otherwise use PNG
+ICON_SRC="${SCRIPT_DIR}/icons/marknote-128.png"
+ICNS_FILE="${APP_BUNDLE}/Contents/Resources/marknote.icns"
+if command -v sips &> /dev/null && command -v iconutil &> /dev/null; then
+    echo "Creating macOS icon..."
+    ICONSET_DIR=$(mktemp -d)/marknote.iconset
+    mkdir -p "${ICONSET_DIR}"
+    for size in 16 32 64 128 256 512; do
+        sips -z ${size} ${size} "${ICON_SRC}" --out "${ICONSET_DIR}/icon_${size}x${size}.png" 2>/dev/null || true
+    done
+    for size in 16 32 128 256; do
+        double=$((size * 2))
+        sips -z ${double} ${double} "${ICON_SRC}" --out "${ICONSET_DIR}/icon_${size}x${size}@2x.png" 2>/dev/null || true
+    done
+    iconutil -c icns "${ICONSET_DIR}" -o "${ICNS_FILE}" 2>/dev/null || true
+    rm -rf "$(dirname "${ICONSET_DIR}")"
+fi
+if [[ ! -f "${ICNS_FILE}" ]]; then
+    cp "${ICON_SRC}" "${APP_BUNDLE}/Contents/Resources/marknote.png"
+fi
+
+# Create Info.plist
+cat > "${APP_BUNDLE}/Contents/Info.plist" << PLIST_EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>${APP_NAME}</string>
+    <key>CFBundleDisplayName</key>
+    <string>${APP_NAME}</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.snapgames.marknote</string>
+    <key>CFBundleVersion</key>
+    <string>${APP_VERSION}</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${APP_VERSION}</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>MarkNote</string>
+    <key>CFBundleIconFile</key>
+    <string>marknote</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>md</string>
+                <string>markdown</string>
+                <string>txt</string>
+            </array>
+            <key>CFBundleTypeName</key>
+            <string>Markdown Document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+        </dict>
+    </array>
+</dict>
+</plist>
+PLIST_EOF
+
+# Create launcher executable in MacOS/
+JRE_EXEC="${SCRIPT_DIR}/jre/bin/java"
+if [[ ! -f "${JRE_EXEC}" ]]; then JRE_EXEC="java"; fi
+cat > "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" << MACOS_LAUNCHER_EOF
+#!/bin/bash
+CONTENTS_DIR="\$(cd "\$(dirname "\$0")/.." && pwd)"
+RESOURCES="\${CONTENTS_DIR}/Resources"
+JRE_PATH="${JRE_EXEC}"
+"\${JRE_PATH}" --module-path "\${RESOURCES}/libs" --add-modules ${JFX_MODULES} -cp "\${RESOURCES}/${JAR_NAME}:\${RESOURCES}/libs/*" ${MAIN_CLASS} "\$@"
+MACOS_LAUNCHER_EOF
+chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
+
+echo ""
+echo "========================================="
+echo "  ${APP_NAME} installed successfully!"
+echo "========================================="
+echo ""
+echo "  Location: ${APP_BUNDLE}"
+echo "  Launch  : Open from ~/Applications or Spotlight"
+echo ""
+echo "To uninstall, run:"
+echo "  rm -rf ${APP_BUNDLE}"
+MAC_INSTALL_EOF2
+        chmod +x "${DIST_DIR}/install.sh"
+        echo -e "  ${GREEN}macOS installer created.${NC}"
+    fi
+
+    # ── ZIP archive ──────────────────────────────────────────────────────────
     echo "Creating ZIP archive..."
-    PACKAGE_NAME="${project_name}-${project_version}-${JFX_OS_SUFFIX}.zip"
+    local PACKAGE_NAME="${project_name}-${project_version}-${TARGET_OS}.zip"
     cd "${TARGET}/dist"
-    zip -r "../${PACKAGE_NAME}" "${project_name}-${project_version}-${JFX_OS_SUFFIX}"
+    zip -r "../${PACKAGE_NAME}" "${project_name}-${project_version}-${TARGET_OS}"
     cd - > /dev/null
-    
     echo -e "${GREEN}Package created: ${TARGET}/${PACKAGE_NAME}${NC}"
     echo "Package size: $(du -sh ${TARGET}/${PACKAGE_NAME} | cut -f1)"
     echo "done."
+}
+
+if( [ "$1" == "package" ] ); then
+    echo "Creating distribution package..."
+
+    # Clean dist directory before packaging
+    rm -rf "${TARGET}/dist"
+
+    do_package_for_os "${JFX_OS_SUFFIX}"
 fi
+
+if( [ "$1" == "package-all" ] ); then
+    echo "Creating distribution packages for all platforms (linux, mac, win)..."
+    echo "(Note: an embedded JRE is bundled only for the current host platform: ${JFX_OS_SUFFIX})"
+    echo ""
+
+    # Clean dist directory once before all platforms
+    rm -rf "${TARGET}/dist"
+    mkdir -p "${TARGET}/dist"
+
+    FAILED_PLATFORMS=()
+    for OS_TARGET in linux mac win; do
+        echo "────────────────────────────────────────────────"
+        echo -e "${BLUE}>>> Packaging for ${OS_TARGET}...${NC}"
+        echo "────────────────────────────────────────────────"
+        if do_package_for_os "${OS_TARGET}"; then
+            echo -e "${GREEN}<<< ${OS_TARGET} package done.${NC}"
+        else
+            echo -e "${RED}<<< ${OS_TARGET} package FAILED.${NC}"
+            FAILED_PLATFORMS+=("${OS_TARGET}")
+        fi
+        echo ""
+    done
+
+    echo "════════════════════════════════════════════════"
+    echo -e "${GREEN}package-all complete.${NC}"
+    echo "Packages in ${TARGET}/:"
+    ls -lh "${TARGET}"/*.zip 2>/dev/null || echo "  (no zip files found)"
+    if [[ ${#FAILED_PLATFORMS[@]} -gt 0 ]]; then
+        echo -e "${RED}Failed platforms: ${FAILED_PLATFORMS[*]}${NC}"
+    fi
+    echo "════════════════════════════════════════════════"
+fi
+

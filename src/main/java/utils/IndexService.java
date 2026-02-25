@@ -44,6 +44,7 @@ public class IndexService {
         private String summary = "";
         private String createdAt = "";
         private boolean draft = false;
+        private List<String> links = new ArrayList<>();
 
         public IndexEntry(String relativePath, String filename) {
             this.relativePath = relativePath;
@@ -59,6 +60,7 @@ public class IndexService {
         public String getSummary() { return summary; }
         public String getCreatedAt() { return createdAt; }
         public boolean isDraft() { return draft; }
+        public List<String> getLinks() { return Collections.unmodifiableList(links); }
 
         /**
          * Retourne un titre d'affichage : le titre front matter s'il existe,
@@ -506,6 +508,7 @@ public class IndexService {
                 entry.summary = fm.getSummary();
                 entry.createdAt = fm.getCreatedAt();
                 entry.draft = fm.isDraft();
+                entry.links = new ArrayList<>(fm.getLinks());
 
                 // Compter les tags
                 for (String tag : fm.getTags()) {
@@ -556,7 +559,8 @@ public class IndexService {
             sb.append("      \"tags\": ").append(jsonStringList(e.tags)).append(",\n");
             sb.append("      \"summary\": ").append(jsonString(e.summary)).append(",\n");
             sb.append("      \"createdAt\": ").append(jsonString(e.createdAt)).append(",\n");
-            sb.append("      \"draft\": ").append(e.draft).append("\n");
+            sb.append("      \"draft\": ").append(e.draft).append(",\n");
+            sb.append("      \"links\": ").append(jsonStringList(e.links)).append("\n");
             sb.append("    }");
             if (i < entries.size() - 1) sb.append(",");
             sb.append("\n");
@@ -646,6 +650,7 @@ public class IndexService {
 
         String draftStr = extractJsonRawValue(json, "draft");
         entry.draft = "true".equals(draftStr);
+        entry.links = extractJsonStringList(json, "links");
 
         // Rebuild tag counts
         for (String tag : entry.tags) {

@@ -13,6 +13,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -30,6 +31,8 @@ public class WelcomeTab extends Tab {
     }
 
     private Consumer<File> onProjectSelected;
+    private Runnable onCreateProjectRequested;
+    private Runnable onClearProjectsHistoryRequested;
 
     /**
      * Crée l'onglet Welcome.
@@ -60,42 +63,56 @@ public class WelcomeTab extends Tab {
 
         content.getChildren().addAll(titleLabel, subtitleLabel);
 
+        Hyperlink createProjectLink = new Hyperlink(getMessages().getString("welcome.createProject"));
+        createProjectLink.setFont(Font.font("System", 13));
+        createProjectLink.setOnAction(e -> {
+            if (onCreateProjectRequested != null) {
+                onCreateProjectRequested.run();
+            }
+        });
+        content.getChildren().add(createProjectLink);
+        content.getChildren().add(new Separator());
+
         // Section projets récents
-        if (!recentProjects.isEmpty()) {
-            Label recentLabel = new Label(getMessages().getString("welcome.recentProjects"));
-            recentLabel.setFont(Font.font("System", FontWeight.SEMI_BOLD, 16));
-            recentLabel.setPadding(new Insets(20, 0, 10, 0));
-            content.getChildren().add(recentLabel);
+        Label recentLabel = new Label(getMessages().getString("welcome.recentProjects"));
+        recentLabel.setFont(Font.font("System", FontWeight.SEMI_BOLD, 16));
+        recentLabel.setPadding(new Insets(20, 0, 10, 0));
+        content.getChildren().add(recentLabel);
 
-            VBox projectsList = new VBox(8);
-            projectsList.setAlignment(Pos.CENTER);
+        VBox projectsList = new VBox(8);
+        projectsList.setAlignment(Pos.CENTER);
 
-            int count = 0;
-            for (String path : recentProjects) {
-                if (count >= maxItems) {
-                    break;
-                }
-                File dir = new File(path);
-                if (dir.exists() && dir.isDirectory()) {
-                    Hyperlink projectLink = createProjectRow(dir);
-                    projectsList.getChildren().add(projectLink);
-                    count++;
-                }
+        int count = 0;
+        for (String path : recentProjects) {
+            if (count >= maxItems) {
+                break;
             }
-
-            if (projectsList.getChildren().isEmpty()) {
-                Label noProjectLabel = new Label(getMessages().getString("welcome.noRecentProjects"));
-                noProjectLabel.getStyleClass().add("welcome-no-projects");
-                projectsList.getChildren().add(noProjectLabel);
+            File dir = new File(path);
+            if (dir.exists() && dir.isDirectory()) {
+                Hyperlink projectLink = createProjectRow(dir);
+                projectsList.getChildren().add(projectLink);
+                count++;
             }
+        }
 
-            content.getChildren().add(projectsList);
-        } else {
+        if (projectsList.getChildren().isEmpty()) {
             Label noProjectLabel = new Label(getMessages().getString("welcome.noRecentProjects"));
             noProjectLabel.getStyleClass().add("welcome-no-projects");
             noProjectLabel.setPadding(new Insets(20, 0, 0, 0));
-            content.getChildren().add(noProjectLabel);
+            projectsList.getChildren().add(noProjectLabel);
         }
+
+        content.getChildren().add(projectsList);
+        content.getChildren().add(new Separator());
+
+        Hyperlink clearProjectsHistoryLink = new Hyperlink(getMessages().getString("welcome.clearProjectsHistory"));
+        clearProjectsHistoryLink.setFont(Font.font("System", 13));
+        clearProjectsHistoryLink.setOnAction(e -> {
+            if (onClearProjectsHistoryRequested != null) {
+                onClearProjectsHistoryRequested.run();
+            }
+        });
+        content.getChildren().add(clearProjectsHistoryLink);
 
         root.setCenter(content);
 
@@ -136,5 +153,13 @@ public class WelcomeTab extends Tab {
      */
     public void setOnProjectSelected(Consumer<File> handler) {
         this.onProjectSelected = handler;
+    }
+
+    public void setOnCreateProjectRequested(Runnable handler) {
+        this.onCreateProjectRequested = handler;
+    }
+
+    public void setOnClearProjectsHistoryRequested(Runnable handler) {
+        this.onClearProjectsHistoryRequested = handler;
     }
 }

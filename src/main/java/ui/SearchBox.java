@@ -39,6 +39,7 @@ public class SearchBox extends HBox {
     private Consumer<File> onFileSelected;
 
     public SearchBox() {
+        getStyleClass().add("search-box");
         setAlignment(Pos.CENTER_RIGHT);
         setPadding(new Insets(2, 8, 2, 8));
         setSpacing(4);

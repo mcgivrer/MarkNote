@@ -17,14 +17,17 @@ import ui.SplashScreen;
 import ui.StatusBar;
 import ui.TagCloudPanel;
 import ui.ThemeTab;
+import ui.VisualLinkPanel;
 import ui.WelcomeTab;
 import utils.DocumentService;
+import utils.GitService;
 import utils.IndexService;
 
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckMenuItem;
@@ -34,12 +37,13 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -56,6 +60,7 @@ public class MarkNote extends Application {
     private PreviewPanel previewPanel;
     private ProjectExplorerPanel projectExplorerPanel;
     private TagCloudPanel tagCloudPanel;
+    private VisualLinkPanel visualLinkPanel;
     private SearchBox searchBox;
     private StatusBar statusBar;
     private IndexService indexService;
@@ -65,6 +70,9 @@ public class MarkNote extends Application {
     // Panels et SplitPanes pour la gestion de l'affichage
     private SplitPane mainSplit;
     private SplitPane editorSplit;
+    private SplitPane leftSplit;
+
+    private GitService gitService;
 
     public static void main(String[] args) {
         launch(args);
@@ -100,16 +108,46 @@ public class MarkNote extends Application {
         // Panel de prévisualisation
         previewPanel = new PreviewPanel();
         previewPanel.setOnMarkdownLinkClick(this::openFileInTab);
+        previewPanel.setAppConfig(config);
+        previewPanel.setOnPlantUmlRenderingChanged(
+                rendering -> Platform.runLater(() -> statusBar.setPlantUmlRendering(rendering)));
 
         // Panel d'exploration de projet
         projectExplorerPanel = new ProjectExplorerPanel();
         projectExplorerPanel.setOnFileDoubleClick(this::openFileInTab);
+
+        // Synchronise l'arbre de l'explorateur avec l'onglet actif
+        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab instanceof DocumentTab docTab) {
+                File activeFile = docTab.getFile();
+                if (activeFile != null) {
+                    projectExplorerPanel.revealFile(activeFile);
+                }
+            }
+        });
+
+        // Git service
+        gitService = new GitService();
+        gitService.setOnStatusUpdated(() -> projectExplorerPanel.refresh());
+        gitService.setOnOperationResult(this::showGitOperationResult);
+        projectExplorerPanel.setGitService(gitService);
 
         // Index service
         indexService = new IndexService();
 
         // Tag cloud panel (sous l'explorateur)
         tagCloudPanel = new TagCloudPanel();
+
+        // Visual link panel (diagramme réseau)
+        visualLinkPanel = new VisualLinkPanel();
+        visualLinkPanel.setOnDocumentClick(relativePath -> {
+            File projectDir = projectExplorerPanel.getProjectDirectory();
+            if (projectDir != null) {
+                openFileInTab(new File(projectDir, relativePath));
+            }
+        });
+        visualLinkPanel.setIndexService(indexService);
+        visualLinkPanel.setOnFileSelected(this::openFileInTab);
 
         // Search box (dans la barre du haut)
         searchBox = new SearchBox();
@@ -118,12 +156,15 @@ public class MarkNote extends Application {
 
         // Status bar (en bas de la fenêtre)
         statusBar = new StatusBar();
+        statusBar.setPlantUmlIndicator(
+                config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
 
         // Callbacks de progression de l'indexation
         indexService.setOnProgress(progress -> statusBar.setIndexProgress(progress));
         indexService.setOnFinished(() -> {
             statusBar.setIndexIdle();
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
             updateStatusBarStats();
         });
 
@@ -137,10 +178,12 @@ public class MarkNote extends Application {
         projectExplorerPanel.setOnFileCreated(file -> {
             indexService.updateFile(file);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFileRenamed((oldFile, newFile) -> {
             indexService.handleRename(oldFile, newFile);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFileDeleted(file -> {
             if (file.isDirectory()) {
@@ -149,19 +192,24 @@ public class MarkNote extends Application {
                 indexService.removeFile(file);
             }
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFilesMoved((sourceFiles, targetDir) -> {
             indexService.handleMove(sourceFiles, targetDir);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
         projectExplorerPanel.setOnFilesCopied((sourceFiles, targetDir) -> {
             indexService.handleCopy(sourceFiles, targetDir);
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
         });
 
-        // Conteneur gauche : explorateur + tag cloud
-        VBox leftPane = new VBox(projectExplorerPanel, tagCloudPanel);
-        VBox.setVgrow(projectExplorerPanel, Priority.ALWAYS);
+        // Conteneur gauche : explorateur + tag cloud + diagramme réseau
+        // (redimensionnable)
+        leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
+        leftSplit.setOrientation(Orientation.VERTICAL);
+        leftSplit.setDividerPositions(0.55, 0.78);
 
         // SplitPane éditeur | preview
         editorSplit = new SplitPane(mainTabPane, previewPanel);
@@ -169,7 +217,7 @@ public class MarkNote extends Application {
         editorSplit.setDividerPositions(0.5);
 
         // SplitPane principal : explorateur | éditeur/preview
-        mainSplit = new SplitPane(leftPane, editorSplit);
+        mainSplit = new SplitPane(leftSplit, editorSplit);
         mainSplit.setOrientation(Orientation.HORIZONTAL);
         mainSplit.setDividerPositions(0.2);
 
@@ -183,6 +231,7 @@ public class MarkNote extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox topBar = new HBox(menuBar, spacer, searchBox);
+        topBar.getStyleClass().add("top-bar");
         topBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         HBox.setHgrow(menuBar, Priority.NEVER);
         root.setTop(topBar);
@@ -193,6 +242,17 @@ public class MarkNote extends Application {
             stage.setTitle(messages.getString("app.title.editor"));
         }
         stage.setScene(scene);
+
+        // Icônes de fenêtre / barre des tâches (du plus petit au plus grand)
+        String[] iconSizes = { "16", "32", "64", "128" };
+        for (String size : iconSizes) {
+            try (var is = getClass().getResourceAsStream("/images/icons/marknote-" + size + ".png")) {
+                if (is != null) {
+                    stage.getIcons().add(new Image(is));
+                }
+            } catch (Exception ignored) {
+            }
+        }
 
         // Afficher le splash screen ; la fenêtre principale et la logique de
         // démarrage s'exécutent une fois le splash fermé.
@@ -259,9 +319,13 @@ public class MarkNote extends Application {
         quitItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
         quitItem.setOnAction(e -> Platform.exit());
 
+        MenuItem closeTabItem = new MenuItem(messages.getString("menu.file.close"));
+        closeTabItem.setAccelerator(KeyCombination.keyCombination("Ctrl+W"));
+        closeTabItem.setOnAction(e -> closeActiveTab());
+
         fileMenu.getItems().addAll(newDocItem, new SeparatorMenuItem(), openProjectItem, openItem,
                 new SeparatorMenuItem(), recentMenu, new SeparatorMenuItem(), saveItem, saveAsItem,
-                new SeparatorMenuItem(), quitItem);
+                new SeparatorMenuItem(), closeTabItem, quitItem);
 
         // == Menu Affichage ==
         Menu viewMenu = new Menu(messages.getString("menu.view"));
@@ -270,10 +334,11 @@ public class MarkNote extends Application {
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
         showProjectPanel.setSelected(true);
         showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            // The project explorer and tag cloud are in a VBox (leftPane).
+            // The project explorer and tag cloud are in a vertical SplitPane (leftSplit).
             // We need to find it — it's the parent of projectExplorerPanel.
             javafx.scene.Parent leftPane = projectExplorerPanel.getParent();
-            if (leftPane == null) leftPane = projectExplorerPanel; // fallback
+            if (leftPane == null)
+                leftPane = projectExplorerPanel; // fallback
             if (isSelected) {
                 if (!mainSplit.getItems().contains(leftPane)) {
                     mainSplit.getItems().addFirst(leftPane);
@@ -304,11 +369,46 @@ public class MarkNote extends Application {
         // Bouton [x] du preview décoche le menu
         previewPanel.setOnClose(() -> showPreviewPanel.setSelected(false));
 
+        CheckMenuItem showTagCloud = new CheckMenuItem(messages.getString("menu.view.tagCloud"));
+        showTagCloud.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
+        showTagCloud.setSelected(true);
+        showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            if (isSelected) {
+                if (!leftSplit.getItems().contains(tagCloudPanel)) {
+                    // Insérer après l'explorateur (index 1) ou en fin
+                    int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
+                    leftSplit.getItems().add(idx + 1, tagCloudPanel);
+                }
+            } else {
+                leftSplit.getItems().remove(tagCloudPanel);
+            }
+        });
+
+        // Bouton [x] du tag cloud décoche le menu
+        tagCloudPanel.setOnClose(() -> showTagCloud.setSelected(false));
+
+        CheckMenuItem showNetworkDiagram = new CheckMenuItem(messages.getString("menu.view.networkDiagram"));
+        showNetworkDiagram.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
+        showNetworkDiagram.setSelected(true);
+        showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            if (isSelected) {
+                if (!leftSplit.getItems().contains(visualLinkPanel)) {
+                    leftSplit.getItems().add(visualLinkPanel);
+                }
+            } else {
+                leftSplit.getItems().remove(visualLinkPanel);
+            }
+        });
+
+        // Bouton [x] du diagramme réseau décoche le menu
+        visualLinkPanel.setOnClose(() -> showNetworkDiagram.setSelected(false));
+
         // Option Afficher Welcome
         MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
         showWelcomeItem.setOnAction(e -> showWelcomeTab());
 
-        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, showWelcomeItem);
+        viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, new SeparatorMenuItem(), showTagCloud,
+                showNetworkDiagram, new SeparatorMenuItem(), showWelcomeItem);
 
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
@@ -321,9 +421,34 @@ public class MarkNote extends Application {
 
         helpMenu.getItems().addAll(optionsItem, new SeparatorMenuItem(), aboutItem);
 
-        menuBar.getMenus().addAll(fileMenu, viewMenu, helpMenu);
+        // == Menu Édition ==
+        Menu editMenu = new Menu(messages.getString("menu.edit"));
+
+        MenuItem searchItem = new MenuItem(messages.getString("menu.edit.search"));
+        searchItem.setAccelerator(KeyCombination.keyCombination("Ctrl+F"));
+        searchItem.setOnAction(e -> {
+            if (getActiveDocumentTab() != null) getActiveDocumentTab().openSearch();
+        });
+
+        MenuItem replaceItem = new MenuItem(messages.getString("menu.edit.replace"));
+        replaceItem.setAccelerator(KeyCombination.keyCombination("Ctrl+H"));
+        replaceItem.setOnAction(e -> {
+            if (getActiveDocumentTab() != null) getActiveDocumentTab().openReplace();
+        });
+
+        editMenu.getItems().addAll(searchItem, replaceItem);
+
+        menuBar.getMenus().addAll(fileMenu, editMenu, viewMenu, helpMenu);
 
         return menuBar;
+    }
+
+    /**
+     * Retourne le DocumentTab actif, ou null si l'onglet courant n'en est pas un.
+     */
+    private DocumentTab getActiveDocumentTab() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        return (selected instanceof DocumentTab docTab) ? docTab : null;
     }
 
     /**
@@ -337,20 +462,47 @@ public class MarkNote extends Application {
     }
 
     /**
+     * Ferme l'onglet actif (avec confirmation si modifié).
+     */
+    private void closeActiveTab() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            // Déclencher la logique de fermeture existante (onCloseRequest)
+            var closeEvent = new javafx.event.Event(javafx.scene.control.Tab.TAB_CLOSE_REQUEST_EVENT);
+            javafx.event.Event.fireEvent(selected, closeEvent);
+            if (!closeEvent.isConsumed()) {
+                mainTabPane.getTabs().remove(selected);
+            }
+        }
+    }
+
+    /**
      * Affiche l'onglet Welcome avec la liste des projets récents.
      */
     private void showWelcomeTab() {
         WelcomeTab welcomeTab = new WelcomeTab(config.getRecentDirs(), config.getMaxRecentItems(), config);
         welcomeTab.setOnProjectSelected(dir -> {
-            // Fermer l'onglet Welcome
-            mainTabPane.getTabs().remove(welcomeTab);
-            // Ouvrir le projet
-            projectExplorerPanel.setProjectDirectory(dir);
-            previewPanel.setBaseDirectory(dir);
-            primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
-            config.addRecentDir(dir);
+            openProjectDirectory(dir);
+
+            // Fermer l'onglet Welcome seulement s'il reste d'autres onglets
+            if (mainTabPane.getTabs().size() > 1) {
+                mainTabPane.getTabs().remove(welcomeTab);
+            }
+        });
+        welcomeTab.setOnCreateProjectRequested(() -> {
+            File newProjectDir = createNewProjectDirectory();
+            if (newProjectDir != null) {
+                openProjectDirectory(newProjectDir);
+                if (mainTabPane.getTabs().size() > 1) {
+                    mainTabPane.getTabs().remove(welcomeTab);
+                }
+            }
+        });
+        welcomeTab.setOnClearProjectsHistoryRequested(() -> {
+            config.clearHistory();
             refreshRecentMenu();
-            loadOrBuildIndex(dir);
+            mainTabPane.getTabs().remove(welcomeTab);
+            showWelcomeTab();
         });
         mainTabPane.getTabs().add(0, welcomeTab);
         mainTabPane.getSelectionModel().select(welcomeTab);
@@ -389,16 +541,27 @@ public class MarkNote extends Application {
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
                 previewPanel.updatePreview(docTab.getFullContent());
+                previewPanel.setCurrentFile(docTab.getFile());
                 updateStatusBarForTab(docTab);
+                // Mettre en valeur le document dans le diagramme réseau
+                File docFile = docTab.getFile();
+                File projectDir = projectExplorerPanel.getProjectDirectory();
+                if (docFile != null && projectDir != null) {
+                    String relativePath = projectDir.toPath().relativize(docFile.toPath()).toString();
+                    visualLinkPanel.setCurrentDocument(relativePath);
+                } else {
+                    visualLinkPanel.setCurrentDocument(null);
+                }
             } else {
                 statusBar.clearDocumentInfo();
-                statusBar.updateStats(
-                        indexService.getEntries().size(), 0, 0);
+                statusBar.updateStats(indexService.getEntries().size(), 0, 0);
+                visualLinkPanel.setCurrentDocument(null);
             }
         });
 
         // Initial preview
         previewPanel.updatePreview(tab.getFullContent());
+        previewPanel.setCurrentFile(tab.getFile());
         updateStatusBarForTab(tab);
     }
 
@@ -476,13 +639,69 @@ public class MarkNote extends Application {
 
         File dir = chooser.showDialog(primaryStage);
         if (dir != null) {
-            projectExplorerPanel.setProjectDirectory(dir);
-            previewPanel.setBaseDirectory(dir);
-            primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
-            config.addRecentDir(dir);
-            refreshRecentMenu();
-            loadOrBuildIndex(dir);
+            openProjectDirectory(dir);
         }
+    }
+
+    /**
+     * Crée un nouveau répertoire de projet puis le retourne.
+     */
+    private File createNewProjectDirectory() {
+        DirectoryChooser parentChooser = new DirectoryChooser();
+        parentChooser.setTitle(messages.getString("chooser.newProjectParent"));
+
+        File currentDir = projectExplorerPanel.getProjectDirectory();
+        if (currentDir != null && currentDir.exists()) {
+            parentChooser.setInitialDirectory(currentDir);
+        }
+
+        File parentDir = parentChooser.showDialog(primaryStage);
+        if (parentDir == null) {
+            return null;
+        }
+
+        TextInputDialog nameDialog = new TextInputDialog("new-project");
+        nameDialog.setTitle(messages.getString("newproject.title"));
+        nameDialog.setHeaderText(messages.getString("newproject.header"));
+        nameDialog.setContentText(messages.getString("newproject.prompt"));
+
+        Optional<String> result = nameDialog.showAndWait();
+        if (result.isEmpty()) {
+            return null;
+        }
+
+        String projectName = result.get().trim();
+        if (projectName.isEmpty()) {
+            return null;
+        }
+
+        File newProjectDir = new File(parentDir, projectName);
+        if (newProjectDir.exists() || !newProjectDir.mkdirs()) {
+            showError(messages.getString("error.projectCreate.title"),
+                    MessageFormat.format(messages.getString("error.projectCreate.message"),
+                            newProjectDir.getAbsolutePath()));
+            return null;
+        }
+
+        return newProjectDir;
+    }
+
+    /**
+     * Ouvre un répertoire de projet et met à jour l'UI/l'historique.
+     */
+    private void openProjectDirectory(File dir) {
+        // Configurer le service git avec les credentials de la config
+        gitService.setSshKeyPath(config.getGitSshKeyPath());
+        gitService.setGitToken(config.getGitToken());
+        gitService.setGitUsername(config.getGitUsername());
+        gitService.setProject(dir);
+
+        projectExplorerPanel.setProjectDirectory(dir);
+        previewPanel.setBaseDirectory(dir);
+        primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
+        config.addRecentDir(dir);
+        refreshRecentMenu();
+        loadOrBuildIndex(dir);
     }
 
     /**
@@ -490,23 +709,26 @@ public class MarkNote extends Application {
      * L'indexation complète s'exécute dans un thread séparé.
      */
     private void loadOrBuildIndex(File projectDir) {
-        if (projectDir == null) return;
+        if (projectDir == null)
+            return;
         if (!indexService.loadIndex(projectDir)) {
             statusBar.setIndexProgress(-1);
             indexService.buildIndexAsync(projectDir);
         } else {
             tagCloudPanel.updateTags(indexService.getTagCounts());
+            visualLinkPanel.updateDiagram(indexService.getEntries());
             updateStatusBarStats();
         }
     }
 
     /**
-     * Réinitialise l'index du projet : supprime le fichier d'index,
-     * reconstruit l'index en arrière-plan et met à jour le tag cloud.
+     * Réinitialise l'index du projet : supprime le fichier d'index, reconstruit
+     * l'index en arrière-plan et met à jour le tag cloud.
      */
     private void handleResetIndex() {
         File projectDir = projectExplorerPanel.getProjectDirectory();
-        if (projectDir == null) return;
+        if (projectDir == null)
+            return;
         indexService.resetIndex(projectDir);
         statusBar.setIndexProgress(-1);
         indexService.buildIndexAsync(projectDir);
@@ -591,12 +813,7 @@ public class MarkNote extends Application {
                 MenuItem item = new MenuItem(d.getName() + "  (" + d.getParent() + ")");
                 item.setOnAction(e -> {
                     if (d.exists() && d.isDirectory()) {
-                        projectExplorerPanel.setProjectDirectory(d);
-                        previewPanel.setBaseDirectory(d);
-                        primaryStage.setTitle(messages.getString("app.title") + " - " + d.getName());
-                        config.addRecentDir(d);
-                        refreshRecentMenu();
-                        loadOrBuildIndex(d);
+                        openProjectDirectory(d);
                     } else {
                         showError(messages.getString("error.dirNotFound.title"),
                                 MessageFormat.format(messages.getString("error.dirNotFound.message"), path));
@@ -628,13 +845,11 @@ public class MarkNote extends Application {
                 Alert reopenAlert = new Alert(Alert.AlertType.CONFIRMATION);
                 reopenAlert.setTitle(messages.getString("reopen.title"));
                 reopenAlert.setHeaderText(messages.getString("reopen.header"));
-                reopenAlert.setContentText(MessageFormat.format(messages.getString("reopen.content"), lastDir.getName()));
+                reopenAlert
+                        .setContentText(MessageFormat.format(messages.getString("reopen.content"), lastDir.getName()));
                 Optional<ButtonType> result = reopenAlert.showAndWait();
                 if (result.isPresent() && result.get() == ButtonType.OK) {
-                    projectExplorerPanel.setProjectDirectory(lastDir);
-                    previewPanel.setBaseDirectory(lastDir);
-                    primaryStage.setTitle(messages.getString("app.title") + " - " + lastDir.getName());
-                    loadOrBuildIndex(lastDir);
+                    openProjectDirectory(lastDir);
                 }
             }
         }
@@ -654,19 +869,45 @@ public class MarkNote extends Application {
             if (!previousTheme.equals(config.getCurrentTheme())) {
                 applyTheme(primaryStage.getScene());
             }
+            // Refresh preview in case PlantUML settings changed
+            previewPanel.refresh();
+            // Update PlantUML status bar indicator
+            statusBar.setPlantUmlIndicator(
+                    config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
+            // Update git credentials
+            gitService.setSshKeyPath(config.getGitSshKeyPath());
+            gitService.setGitToken(config.getGitToken());
+            gitService.setGitUsername(config.getGitUsername());
         }
     }
 
     /**
-     * Redémarre l'application pour appliquer un changement de langue.
+     * Affiche le résultat d'une opération git (pull/push) dans une boîte de dialogue.
+     */
+    private void showGitOperationResult(String result) {
+        Alert alert = new Alert(
+                result.startsWith("Error:") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
+        alert.initOwner(primaryStage);
+        alert.setTitle(messages.getString("git.operation.result.title"));
+        alert.setHeaderText(null);
+        TextArea textArea = new TextArea(result.isBlank() ? messages.getString("git.operation.uptodate") : result);
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setPrefSize(420, 180);
+        alert.getDialogPane().setContent(textArea);
+        alert.showAndWait();
+    }
+
+    /**
+     * Redirige l'application pour appliquer un changement de langue.
      */
     private void restartApplication() {
         // Clear ResourceBundle cache
         ResourceBundle.clearCache();
-        
+
         // Close current stage
         primaryStage.close();
-        
+
         // Start a new instance
         Platform.runLater(() -> {
             try {
@@ -701,7 +942,7 @@ public class MarkNote extends Application {
                 }
             }
         }
-        
+
         // Charger le contenu
         Optional<String> content = DocumentService.readFile(file);
         if (content.isPresent()) {
@@ -728,7 +969,7 @@ public class MarkNote extends Application {
         ThemeManager themeManager = ThemeManager.getInstance();
         String currentTheme = config.getCurrentTheme();
         String themeCssUrl = themeManager.getThemeCssUrl(currentTheme);
-        
+
         scene.getStylesheets().clear();
         if (themeCssUrl != null) {
             scene.getStylesheets().add(themeCssUrl);
@@ -751,11 +992,12 @@ public class MarkNote extends Application {
     // ── Status bar helpers ──────────────────────────────────────────
 
     /**
-     * Met à jour la statusbar pour l'onglet de document donné :
-     * nom du fichier, position du curseur, comptage de lignes et de mots.
+     * Met à jour la statusbar pour l'onglet de document donné : nom du fichier,
+     * position du curseur, comptage de lignes et de mots.
      */
     private void updateStatusBarForTab(DocumentTab tab) {
-        if (tab == null) return;
+        if (tab == null)
+            return;
 
         // Nom du fichier
         String filename = tab.getFile() != null ? tab.getFile().getName() : tab.getText().replaceFirst("^\\*", "");
@@ -786,8 +1028,8 @@ public class MarkNote extends Application {
     }
 
     /**
-     * Met à jour uniquement les statistiques de la statusbar
-     * (après un changement d'index, par exemple).
+     * Met à jour uniquement les statistiques de la statusbar (après un changement
+     * d'index, par exemple).
      */
     private void updateStatusBarStats() {
         var selected = mainTabPane.getSelectionModel().getSelectedItem();

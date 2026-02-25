@@ -13,6 +13,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -36,7 +38,7 @@ import javafx.util.Duration;
 public class SplashScreen {
 
     /** Version de l'application affichée dans le splash / about. */
-    public static final String APP_VERSION = "0.0.3";
+    public static final String APP_VERSION = "0.1.0-snapshot";
 
     /** Durée d'affichage automatique du splash en secondes. */
     private static final double SPLASH_DURATION = 3.0;
@@ -109,6 +111,19 @@ public class SplashScreen {
     // -------------------------------------------------------------------------
 
     private VBox buildContent(ResourceBundle messages, boolean aboutMode) {
+        // Logo de l'application
+        ImageView logoView = new ImageView();
+        try (var is = getClass().getResourceAsStream("/images/icons/marknote-128.png")) {
+            if (is != null) {
+                logoView.setImage(new Image(is));
+            }
+        } catch (Exception ignored) { }
+        logoView.setFitWidth(96);
+        logoView.setFitHeight(96);
+        logoView.setPreserveRatio(true);
+        logoView.setSmooth(true);
+        VBox.setMargin(logoView, new Insets(0, 0, 6, 0));
+
         // Titre de l'application
         Label nameLabel = new Label("MarkNote");
         nameLabel.setFont(Font.font("System", FontWeight.BOLD, 42));
@@ -151,6 +166,7 @@ public class SplashScreen {
         root.getStyleClass().add("splash-root");
 
         root.getChildren().addAll(
+                logoView,
                 nameLabel,
                 subtitleLabel,
                 sep1,

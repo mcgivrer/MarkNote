@@ -28,6 +28,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.TransferMode;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -78,6 +79,7 @@ public class DocumentTab extends Tab {
 
     private final StyleClassedTextArea editor;
     private final FrontMatterPanel frontMatterPanel;
+    private SearchReplaceBar searchReplaceBar;
     private File file;
     private String savedContent;
     private Consumer<String> onTextChanged;
@@ -135,12 +137,38 @@ public class DocumentTab extends Tab {
         // Drag & drop : insertion de liens markdown depuis l'explorateur
         setupEditorDragAndDrop();
 
+        // Ctrl+F → Recherche  |  Ctrl+H → Recherche & Remplacement
+        editor.setOnKeyPressed(e -> {
+            if (e.isControlDown() && e.getCode() == KeyCode.F) {
+                searchReplaceBar.showSearchOnly();
+                e.consume();
+            } else if (e.isControlDown() && e.getCode() == KeyCode.H) {
+                searchReplaceBar.showSearchAndReplace();
+                e.consume();
+            }
+        });
+
         VirtualizedScrollPane<StyleClassedTextArea> scrollPane = new VirtualizedScrollPane<>(editor);
 
-        // Layout : front matter panel au-dessus de l'éditeur
-        javafx.scene.layout.VBox editorBox = new javafx.scene.layout.VBox(frontMatterPanel, scrollPane);
-        javafx.scene.layout.VBox.setVgrow(scrollPane, javafx.scene.layout.Priority.ALWAYS);
-        setContent(editorBox);
+        // Barre de recherche/remplacement (overlay)
+        searchReplaceBar = new SearchReplaceBar();
+        searchReplaceBar.setEditor(editor);
+        searchReplaceBar.setOnClearHighlights(this::applyHighlighting);
+
+        // La barre flotte au-dessus de l'éditeur uniquement (pas du FrontMatter).
+        // StackPane enveloppe uniquement scrollPane + barre → la barre apparaît
+        // juste en-dessous du panneau FrontMatter.
+        javafx.scene.layout.StackPane editorStack = new javafx.scene.layout.StackPane(scrollPane, searchReplaceBar);
+        javafx.scene.layout.StackPane.setAlignment(searchReplaceBar, javafx.geometry.Pos.TOP_RIGHT);
+
+        javafx.scene.layout.VBox contentBox = new javafx.scene.layout.VBox(frontMatterPanel, editorStack);
+        javafx.scene.layout.VBox.setVgrow(editorStack, javafx.scene.layout.Priority.ALWAYS);
+
+        // Le CSS doit être sur contentBox (ancêtre de SearchReplaceBar) pour que
+        // les règles .search-replace-bar soient visibles par le composant.
+        contentBox.getStylesheets().add(cssPath);
+
+        setContent(contentBox);
 
         // Listener pour détecter les modifications
         editor.textProperty().addListener((obs, oldText, newText) -> {
@@ -169,8 +197,10 @@ public class DocumentTab extends Tab {
 
     /**
      * Applique la coloration syntaxique au texte.
+     * Public pour permettre à la SearchReplaceBar de réappliquer le highlighting
+     * après suppression des surbrillances de recherche.
      */
-    private void applyHighlighting() {
+    public void applyHighlighting() {
         editor.setStyleSpans(0, computeHighlighting(editor.getText()));
     }
 
@@ -503,12 +533,9 @@ public class DocumentTab extends Tab {
         if (result.isPresent()) {
             if (result.get() == saveBtn) {
                 TabPane tabPane = getTabPane();
-                if (tabPane != null) {
-                    tabPane.getSelectionModel().select(this);
-                }
-                // Note: La sauvegarde doit être gérée par l'appelant via un callback
-                // Pour l'instant, on ferme si le document n'est plus modifié après sauvegarde
-                if (!isModified()) {
+                Stage stage = (tabPane != null && tabPane.getScene() != null)
+                        ? (Stage) tabPane.getScene().getWindow() : null;
+                if (save(stage, false, file != null ? file.getParentFile() : null)) {
                     closeTab();
                 }
             } else if (result.get() == discardBtn) {
@@ -539,6 +566,20 @@ public class DocumentTab extends Tab {
     private static String truncateTabName(String name) {
         if (name.length() <= MAX_TAB_NAME_LENGTH) return name;
         return name.substring(0, MAX_TAB_NAME_LENGTH - 1) + "\u2026";
+    }
+
+    /**
+     * Ouvre la barre en mode "Recherche uniquement" (Ctrl+F).
+     */
+    public void openSearch() {
+        searchReplaceBar.showSearchOnly();
+    }
+
+    /**
+     * Ouvre la barre en mode "Recherche et Remplacement" (Ctrl+H).
+     */
+    public void openReplace() {
+        searchReplaceBar.showSearchAndReplace();
     }
 
     private void showError(String title, String message) {
