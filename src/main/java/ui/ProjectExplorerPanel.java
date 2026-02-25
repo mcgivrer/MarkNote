@@ -11,15 +11,20 @@ import java.util.stream.Collectors;
 
 import utils.DocumentService;
 import utils.FrontMatter;
+import utils.GitService;
 import utils.IndexService;
 
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -30,6 +35,11 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 
 /**
  * Panel d'exploration de projet (arborescence de fichiers).
@@ -40,6 +50,7 @@ public class ProjectExplorerPanel extends BasePanel {
 
     private final TreeView<File> treeView;
     private File projectDir;
+    private GitService gitService;
     private Consumer<File> onFileDoubleClick;
     private Runnable onResetIndex;
     private Consumer<File> onFileCreated;
@@ -47,6 +58,10 @@ public class ProjectExplorerPanel extends BasePanel {
     private Consumer<File> onFileDeleted;
     private BiConsumer<List<File>, File> onFilesMoved;
     private BiConsumer<List<File>, File> onFilesCopied;
+
+    // Git toolbar
+    private HBox gitToolbar;
+    private Button syncButton;
 
     public ProjectExplorerPanel() {
         super("project.title", "project.close.tooltip");
@@ -70,7 +85,22 @@ public class ProjectExplorerPanel extends BasePanel {
         ContextMenu contextMenu = createContextMenu();
         treeView.setContextMenu(contextMenu);
 
-        setContent(treeView);
+        // Barre d'outils git (cachée par défaut)
+        syncButton = new Button("\u21C5 " + bundle.getString("git.sync"));
+        syncButton.setTooltip(new Tooltip(bundle.getString("git.sync.tooltip")));
+        syncButton.getStyleClass().add("git-toolbar-button");
+        syncButton.setOnAction(e -> { if (gitService != null) gitService.syncAsync(); });
+
+        gitToolbar = new HBox(6, syncButton);
+        gitToolbar.setPadding(new Insets(4, 6, 4, 6));
+        gitToolbar.setAlignment(Pos.CENTER_LEFT);
+        gitToolbar.getStyleClass().add("git-toolbar");
+        gitToolbar.setVisible(false);
+        gitToolbar.setManaged(false);
+
+        VBox contentBox = new VBox(gitToolbar, treeView);
+        VBox.setVgrow(treeView, Priority.ALWAYS);
+        setContent(contentBox);
         setPrefWidth(250);
         setMaxHeight(Double.MAX_VALUE);
     }
@@ -142,7 +172,7 @@ public class ProjectExplorerPanel extends BasePanel {
             if (!name.isBlank()) {
                 Optional<File> created = DocumentService.createFile(targetDir, name);
                 if (created.isPresent()) {
-                    refresh();
+                    refreshGitAware();
                     if (onFileCreated != null) onFileCreated.accept(created.get());
                 } else {
                     showError(bundle.getString("context.error.create"), name);
@@ -168,7 +198,7 @@ public class ProjectExplorerPanel extends BasePanel {
             if (!name.isBlank()) {
                 Optional<File> created = DocumentService.createDirectory(targetDir, name);
                 if (created.isPresent()) {
-                    refresh();
+                    refreshGitAware();
                 } else {
                     showError(bundle.getString("context.error.create"), name);
                 }
@@ -194,7 +224,7 @@ public class ProjectExplorerPanel extends BasePanel {
             if (!newName.isBlank() && !newName.equals(file.getName())) {
                 Optional<File> renamed = DocumentService.rename(file, newName);
                 if (renamed.isPresent()) {
-                    refresh();
+                    refreshGitAware();
                     if (onFileRenamed != null) onFileRenamed.accept(file, renamed.get());
                 } else {
                     showError(bundle.getString("context.error.rename"), file.getName());
@@ -227,7 +257,7 @@ public class ProjectExplorerPanel extends BasePanel {
             // Notify before deletion (file still exists)
             if (onFileDeleted != null) onFileDeleted.accept(file);
             if (DocumentService.delete(file)) {
-                refresh();
+                refreshGitAware();
             } else {
                 showError(bundle.getString("context.error.delete"), file.getName());
             }
@@ -323,17 +353,48 @@ public class ProjectExplorerPanel extends BasePanel {
     }
 
     /**
+     * Définit le service git à utiliser pour les indicateurs visuels et les
+     * opérations pull/push.
+     */
+    public void setGitService(GitService service) {
+        this.gitService = service;
+    }
+
+    /**
      * Rafraîchit l'arborescence du projet.
      */
     public void refresh() {
         if (projectDir == null || !projectDir.isDirectory()) {
             treeView.setRoot(null);
+            updateGitToolbar();
             return;
         }
 
         TreeItem<File> rootItem = buildTreeItem(projectDir);
         rootItem.setExpanded(true);
         treeView.setRoot(rootItem);
+        updateGitToolbar();
+    }
+
+    /** Met à jour la visibilité de la barre d'outils git. */
+    private void updateGitToolbar() {
+        boolean isGit = gitService != null && gitService.isGitRepo();
+        gitToolbar.setVisible(isGit);
+        gitToolbar.setManaged(isGit);
+    }
+
+    /**
+     * Rafraîchit l'arborescence en tenant compte du statut git.
+     * Si git est actif, lance un refresh asynchrone du statut git puis reconstruit
+     * l'arbre via le callback {@code onStatusUpdated} (positionné dans MarkNote).
+     * Sinon, reconstruit l'arbre directement.
+     */
+    private void refreshGitAware() {
+        if (gitService != null && gitService.isGitRepo()) {
+            gitService.refreshStatusAsync();
+        } else {
+            refresh();
+        }
     }
 
     /**
@@ -453,7 +514,7 @@ public class ProjectExplorerPanel extends BasePanel {
                             if (confirmCopy(files, targetDir)) {
                                 int copied = DocumentService.copyAll(files, targetDir);
                                 if (copied > 0) {
-                                    refresh();
+                                    refreshGitAware();
                                     if (onFilesCopied != null) onFilesCopied.accept(files, targetDir);
                                     success = true;
                                 } else {
@@ -474,7 +535,7 @@ public class ProjectExplorerPanel extends BasePanel {
                                         .collect(Collectors.toList());
                                 int moved = DocumentService.moveAll(validFiles, targetDir);
                                 if (moved > 0) {
-                                    refresh();
+                                    refreshGitAware();
                                     if (onFilesMoved != null) onFilesMoved.accept(sourceFiles, targetDir);
                                     success = true;
                                 } else {
@@ -513,11 +574,36 @@ public class ProjectExplorerPanel extends BasePanel {
                 }
 
                 setText(displayName);
-                String iconPath = item.isDirectory() 
-                        ? "images/icons/folder-invoices--v1.png" 
+                String iconPath = item.isDirectory()
+                        ? "images/icons/folder-invoices--v1.png"
                         : "images/icons/file.png";
-                setGraphic(new ImageView(new Image(iconPath)));
+                ImageView iconView = new ImageView(new Image(iconPath));
+
+                // Indicateur git (uniquement pour les fichiers, pas les dossiers)
+                if (!item.isDirectory() && gitService != null && gitService.isGitRepo()) {
+                    GitService.GitStatus status = gitService.getStatus(item);
+                    if (status != null) {
+                        Circle dot = new Circle(4, statusColor(status));
+                        HBox graphic = new HBox(3, dot, iconView);
+                        graphic.setAlignment(Pos.CENTER_LEFT);
+                        setGraphic(graphic);
+                    } else {
+                        setGraphic(iconView);
+                    }
+                } else {
+                    setGraphic(iconView);
+                }
             }
+        }
+
+        /** Retourne la couleur associée au statut git d'un fichier. */
+        private Color statusColor(GitService.GitStatus status) {
+            return switch (status) {
+                case UNTRACKED -> Color.web("#e74c3c"); // rouge
+                case MODIFIED  -> Color.web("#f39c12"); // orange
+                case STAGED    -> Color.web("#3498db"); // bleu
+                case CLEAN     -> Color.web("#2ecc71"); // vert
+            };
         }
 
         /**

@@ -30,6 +30,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Front Matter Panel** - Collapsible panel above the editor for visual editing of YAML front matter (title, tags, authors, summary, UUID, created date, draft); supports custom fields and UUID-based document linking via drag & drop
 - **Collapsible Front Matter Preview** - Front matter rendered as a styled, collapsible block at the top of the preview showing title, draft badge, tags, summary, author, date, and linked documents
 - **Project Explorer** - Browse and manage your project files with drag & drop support; `.md` files display front matter titles; directories first, alphabetically sorted; hidden file filtering; multi-file selection
+- **Git Integration** - Automatic git detection (presence of `.git/`); files annotated with colored status dots (🟢 clean, 🟡 modified, 🔵 staged, 🔴 untracked); a **⇅ Sync** button in the Project Explorer toolbar commits all local changes (auto-generated message including date, hostname and file list), pulls latest remote changes (rebase) and pushes; SSH (passphrase-less key) and HTTPS personal access token authentication configured in Options → Git; status dots refresh automatically after every file operation
 - **Project Indexing** - Automatic incremental indexing of all Markdown files by front matter metadata (title, tags, authors, summary, created date, draft, links) and filenames, stored as a persistent local JSON index (`.marknote-index.json`)
 - **Search** - Instant full-text search across indexed documents with a live results popup (up to 20 results); matches on title, filename, tags, summary, authors, and UUID; keyboard navigation
 - **Search & Replace** - In-editor search/replace overlay (`Ctrl+F` / `Ctrl+H`) with optional **Regular Expression**, **Full Word**, and **Match Case** toggles; navigate occurrences with `▲`/`▼`; replace current match or all matches at once; result counter; closes with `Escape`
@@ -167,7 +168,7 @@ MarkNote/
 │   │   ├── MarkNote.java
 │   │   ├── config/          # Configuration (AppConfig, ThemeManager)
 │   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud, VisualLinkPanel...)
-│   │   └── utils/           # Utilities (DocumentService, FrontMatter, IndexService, PlantUmlEncoder)
+│   │   └── utils/           # Utilities (DocumentService, FrontMatter, IndexService, PlantUmlEncoder, GitService)
 │   └── resources/
 │       ├── css/             # Stylesheets
 │       │   ├── markdown-editor.css
