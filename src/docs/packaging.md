@@ -112,6 +112,7 @@ cd MarkNote-0.0.6-linux/
 
 | Action | Détail |
 |--------|--------|
+| **Détection version précédente** | Si `~/.local/share/MarkNote/` existe, la version installée est détectée et l'utilisateur est invité à la désinstaller avant de continuer |
 | **Copie de l'application** | `~/.local/share/MarkNote/` |
 | **Lien symbolique** | `~/.local/bin/marknote` → script de lancement |
 | **Icônes système** | Installées dans `~/.local/share/icons/hicolor/` aux tailles 16, 32, 64, 128 px (PNG) et scalable (SVG) |
@@ -161,6 +162,7 @@ marknote
 
 | Action | Détail |
 |--------|--------|
+| **Détection version précédente** | Si `%LOCALAPPDATA%\MarkNote\` existe, la version installée est détectée et l'utilisateur est invité à la désinstaller avant de continuer |
 | **Copie de l'application** | `%LOCALAPPDATA%\MarkNote\` (typiquement `C:\Users\<user>\AppData\Local\MarkNote\`) |
 | **Raccourci Bureau** | Fichier `.lnk` créé via PowerShell (`WScript.Shell`) avec l'icône `marknote-128.png` |
 | **Raccourci Menu Démarrer** | Fichier `.lnk` dans `%APPDATA%\Microsoft\Windows\Start Menu\Programs\` |
@@ -194,6 +196,7 @@ cd MarkNote-0.0.6-mac/
 
 | Action | Détail |
 |--------|--------|
+| **Détection version précédente** | Si `~/Applications/MarkNote.app` existe, la version est lue depuis `Info.plist` et l'utilisateur est invité à supprimer le bundle avant de continuer |
 | **Bundle `.app`** | Crée `~/Applications/MarkNote.app/` avec la structure standard macOS |
 | **Ressources** | JAR, libs et JRE copiés dans `Contents/Resources/` |
 | **Icône** | Conversion du PNG 128px en `.icns` via `sips` + `iconutil` (avec fallback PNG) |

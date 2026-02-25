@@ -269,6 +269,30 @@ echo ""
 echo "This will install ${APP_NAME} to:"
 echo "  ${INSTALL_DIR}"
 echo ""
+
+# ── Check for a previous installation ──────────────────────────────────────
+if [[ -d "${INSTALL_DIR}" ]]; then
+    PREV_JAR=$(ls "${INSTALL_DIR}"/*.jar 2>/dev/null | head -1)
+    if [[ -n "${PREV_JAR}" ]]; then
+        PREV_VERSION=$(basename "${PREV_JAR}" | sed 's/${APP_NAME}-\(.*\)\.jar/\1/')
+        echo "  WARNING: A previous version (${PREV_VERSION}) is already installed."
+    else
+        echo "  WARNING: A previous installation was found in ${INSTALL_DIR}."
+    fi
+    echo ""
+    read -p "Uninstall the previous version before installing? [Y/n] " do_uninstall
+    if [[ ! "$do_uninstall" =~ ^[Nn] ]]; then
+        echo "Removing previous installation..."
+        rm -rf "${INSTALL_DIR}"
+        rm -f "${BIN_DIR}/marknote"
+        rm -f "${DESKTOP_DIR}/marknote.desktop"
+        rm -f "${HOME}/Desktop/marknote.desktop"
+        echo "Previous version removed."
+        echo ""
+    fi
+fi
+# ────────────────────────────────────────────────────────────────────────────
+
 read -p "Continue? [Y/n] " confirm
 if [[ "$confirm" =~ ^[Nn] ]]; then
     echo "Installation cancelled."
@@ -371,6 +395,7 @@ WIN_INSTALL_EOF
         cat >> "${DIST_DIR}/install.bat" << 'WIN_INSTALL_EOF2'
 set INSTALL_DIR=%LOCALAPPDATA%\%APP_NAME%
 set SCRIPT_DIR=%~dp0
+set START_MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs
 
 echo =========================================
 echo   %APP_NAME% %APP_VERSION% - Installer
@@ -379,6 +404,28 @@ echo.
 echo This will install %APP_NAME% to:
 echo   %INSTALL_DIR%
 echo.
+
+rem ── Check for a previous installation ──────────────────────────────────────
+if exist "%INSTALL_DIR%" (
+    set PREV_VERSION=unknown
+    for %%f in ("%INSTALL_DIR%\%APP_NAME%-*.jar") do (
+        set "JARFILE=%%~nf"
+        set "PREV_VERSION=!JARFILE:%APP_NAME%-=!"
+    )
+    echo   WARNING: A previous installation was detected: !PREV_VERSION!
+    echo.
+    set /p DO_UNINSTALL="Uninstall the previous version before installing? [Y/n] "
+    if /i not "!DO_UNINSTALL!"=="n" (
+        echo Removing previous installation...
+        rmdir /S /Q "%INSTALL_DIR%"
+        if exist "%USERPROFILE%\Desktop\%APP_NAME%.lnk" del /Q "%USERPROFILE%\Desktop\%APP_NAME%.lnk"
+        if exist "%START_MENU%\%APP_NAME%.lnk" del /Q "%START_MENU%\%APP_NAME%.lnk"
+        echo Previous version removed.
+        echo.
+    )
+)
+rem ─────────────────────────────────────────────────────────────────────────────
+
 set /p CONFIRM="Continue? [Y/n] "
 if /i "%CONFIRM%"=="n" (
     echo Installation cancelled.
@@ -412,7 +459,6 @@ powershell -NoProfile -Command ^
 
 :: Create Start Menu shortcut
 echo Creating Start Menu shortcut...
-set START_MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs
 powershell -NoProfile -Command ^
   "$ws = New-Object -ComObject WScript.Shell; ^
    $sc = $ws.CreateShortcut('%START_MENU%\%APP_NAME%.lnk'); ^
@@ -462,6 +508,28 @@ echo ""
 echo "This will install ${APP_NAME} as an application bundle to:"
 echo "  ${APP_BUNDLE}"
 echo ""
+
+# ── Check for a previous installation ──────────────────────────────────────
+if [[ -d "${APP_BUNDLE}" ]]; then
+    PLIST="${APP_BUNDLE}/Contents/Info.plist"
+    if [[ -f "${PLIST}" ]]; then
+        PREV_VERSION=$(grep -A1 'CFBundleShortVersionString' "${PLIST}" \
+            | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>/\1/' | tr -d '[:space:]')
+        echo "  WARNING: A previous version (${PREV_VERSION}) is already installed."
+    else
+        echo "  WARNING: A previous installation was found at ${APP_BUNDLE}."
+    fi
+    echo ""
+    read -p "Remove the previous version before installing? [Y/n] " do_uninstall
+    if [[ ! "$do_uninstall" =~ ^[Nn] ]]; then
+        echo "Removing previous installation..."
+        rm -rf "${APP_BUNDLE}"
+        echo "Previous version removed."
+        echo ""
+    fi
+fi
+# ────────────────────────────────────────────────────────────────────────────
+
 read -p "Continue? [Y/n] " confirm
 if [[ "$confirm" =~ ^[Nn] ]]; then
     echo "Installation cancelled."
