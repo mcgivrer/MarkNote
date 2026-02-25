@@ -11,16 +11,17 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 5. [Search & Replace in Editor](#search--replace-in-editor)
 6. [Front Matter Panel](#front-matter-panel)
 7. [Project Explorer](#project-explorer)
-8. [Search & Indexing](#search--indexing)
-9. [Tag Cloud](#tag-cloud)
-10. [Network Diagram](#network-diagram)
-11. [Status Bar](#status-bar)
-12. [Live Preview](#live-preview)
-13. [Splash Screen & About](#splash-screen--about)
-14. [Themes](#themes)
-15. [Options & Settings](#options--settings)
-16. [Keyboard Shortcuts](#keyboard-shortcuts)
-17. [Troubleshooting](#troubleshooting)
+8. [Git Support](#git-support)
+9. [Search & Indexing](#search--indexing)
+10. [Tag Cloud](#tag-cloud)
+11. [Network Diagram](#network-diagram)
+12. [Status Bar](#status-bar)
+13. [Live Preview](#live-preview)
+14. [Splash Screen & About](#splash-screen--about)
+15. [Themes](#themes)
+16. [Options & Settings](#options--settings)
+17. [Keyboard Shortcuts](#keyboard-shortcuts)
+18. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -381,6 +382,8 @@ Right-click on files or folders to access:
 | Images | `.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.webp`, `.svg` | Opens in image preview |
 | CSS | `.css` | Opens with CSS syntax highlighting |
 
+> **Tip:** If the project is a Git repository, each file also shows a small **colored status dot** — see [Git Support](#git-support) for details.
+
 ### Image Preview
 
 When you open an image file, it is displayed in a dedicated **Image Preview tab**:
@@ -392,6 +395,61 @@ When you open an image file, it is displayed in a dedicated **Image Preview tab*
 - **Zoom level overlay** appears centered (e.g., `"150%"`) and fades out after 2 seconds
 - **Pan** the image by dragging when zoomed in
 - Supported formats: `png`, `jpg`, `jpeg`, `gif`, `bmp`, `webp`, `svg`
+
+---
+
+## Git Support
+
+MarkNote integrates with Git when a project folder contains a `.git/` subdirectory. No manual activation is required — git support is enabled automatically when you open such a project.
+
+### Git Status Indicators
+
+Each **file** (not folder) in the Project Explorer tree shows a small colored dot indicating its Git status:
+
+| Dot colour | Status | Meaning |
+|------------|--------|---------|
+| 🟢 Green | `CLEAN` | Tracked, no local changes |
+| 🟡 Orange | `MODIFIED` | Tracked and modified (or deleted) in the working tree |
+| 🔵 Blue | `STAGED` | Added to the index, not yet committed |
+| 🔴 Red | `UNTRACKED` | Not managed by Git |
+
+The dots are refreshed automatically after every file operation (create, rename, delete, move, copy). They are also refreshed after each Sync operation.
+
+### Git Toolbar — Sync
+
+When a project is a Git repository, a **⇅ Sync** button appears at the top of the Project Explorer panel. It is hidden for non-git projects.
+
+Clicking **Sync** performs three sequential operations in a background thread:
+
+1. **Commit local changes** (if any modified/untracked files exist)
+   - Runs `git add -A` to stage all changes
+   - Creates an automatic commit with a structured message:
+     ```
+     [MarkNote sync] 2026-02-25 14:32:05 @ my-laptop
+
+     Modified:
+       - docs/note1.md
+       - docs/chapter2.md
+     ```
+   - The message includes the current date/time, the machine's hostname, and the list of affected files
+   - This step is **skipped** if there are no local changes
+
+2. **Pull** — runs `git pull --rebase` to fetch and integrate remote changes without creating a merge commit
+
+3. **Push** — runs `git push` to send all local commits to the remote
+
+Once complete, a **result dialog** appears showing the combined output of all operations. If any step fails, the error output from git is displayed in the same dialog.
+
+### Authentication
+
+Configure credentials in **Help → Options… → Git tab**.
+
+| Method | When to use |
+|--------|-------------|
+| **SSH key (passphrase-less)** | SSH remote URLs (`git@github.com:...`). Point to your private key file (e.g. `~/.ssh/id_ed25519`). The key must have **no passphrase** (V1 limitation). |
+| **Personal access token** | HTTPS remote URLs (`https://github.com/...`). Enter your GitHub / GitLab token and the associated username (typically `token` for GitHub, `oauth2` for GitLab). |
+
+> **Note:** Credentials are stored in plain text in `~/.marknote/config`. For shared machines, prefer SSH keys with file-system-level permissions rather than tokens.
 
 ---
 
@@ -914,6 +972,25 @@ Once enabled:
 - The preview refreshes automatically to apply the new setting
 
 > **Note:** Java must be on your system `PATH` since the jar is executed as `java -jar plantuml.jar`.
+
+### Git Tab
+
+The **Git** tab configures credentials used when the **Sync** operation communicates with a remote repository (push/pull).
+
+#### SSH Authentication
+
+| Option | Description |
+|--------|-------------|
+| **SSH key path** | Full path to your private SSH key (e.g. `~/.ssh/id_ed25519` or `~/.ssh/id_rsa`). Use **Browse…** to select the file. The key must have **no passphrase** (V1 limitation). |
+
+#### HTTPS / Token Authentication
+
+| Option | Description |
+|--------|-------------|
+| **Username** | The username passed to git. Typically `token` for GitHub or `oauth2` for GitLab |
+| **Personal access token** | Your personal access token from GitHub / GitLab settings. Stored in `~/.marknote/config` |
+
+> **Note:** Only one method is used per Sync. SSH is used when an SSH key path is configured; HTTPS token credentials are used otherwise. Both fields may be left empty if the remote requires no authentication (e.g., public repositories via SSH with your system key).
 
 ### Language Settings
 

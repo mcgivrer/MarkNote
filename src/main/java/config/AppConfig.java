@@ -29,6 +29,11 @@ public class AppConfig {
     private boolean useLocalPlantUml = false;
     private String plantUmlJarPath = "";
 
+    // Git credentials (V1: SSH passphrase-less + HTTPS token)
+    private String gitSshKeyPath = "";
+    private String gitToken      = "";
+    private String gitUsername   = "token";
+
     /**
      * Charge la configuration depuis le fichier.
      */
@@ -74,6 +79,12 @@ public class AppConfig {
                     useLocalPlantUml = Boolean.parseBoolean(line.substring("useLocalPlantUml=".length()).trim());
                 } else if (line.startsWith("plantUmlJarPath=")) {
                     plantUmlJarPath = line.substring("plantUmlJarPath=".length()).trim();
+                } else if (line.startsWith("gitSshKeyPath=")) {
+                    gitSshKeyPath = line.substring("gitSshKeyPath=".length()).trim();
+                } else if (line.startsWith("gitToken=")) {
+                    gitToken = line.substring("gitToken=".length()).trim();
+                } else if (line.startsWith("gitUsername=")) {
+                    gitUsername = line.substring("gitUsername=".length()).trim();
                 }
             }
         } catch (IOException ignored) {
@@ -102,6 +113,9 @@ public class AppConfig {
             lines.add("frontMatterExpandedByDefault=" + frontMatterExpandedByDefault);
             lines.add("useLocalPlantUml=" + useLocalPlantUml);
             lines.add("plantUmlJarPath=" + plantUmlJarPath);
+            lines.add("gitSshKeyPath=" + gitSshKeyPath);
+            lines.add("gitToken=" + gitToken);
+            lines.add("gitUsername=" + gitUsername);
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -250,6 +264,15 @@ public class AppConfig {
     public void setPlantUmlJarPath(String plantUmlJarPath) {
         this.plantUmlJarPath = plantUmlJarPath;
     }
+
+    public String getGitSshKeyPath() { return gitSshKeyPath; }
+    public void setGitSshKeyPath(String path) { this.gitSshKeyPath = path != null ? path : ""; }
+
+    public String getGitToken() { return gitToken; }
+    public void setGitToken(String token) { this.gitToken = token != null ? token : ""; }
+
+    public String getGitUsername() { return gitUsername; }
+    public void setGitUsername(String username) { this.gitUsername = username != null ? username : "token"; }
 
     /**
      * Supprime un fichier de la liste des récents.

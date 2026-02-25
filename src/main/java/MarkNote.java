@@ -20,6 +20,7 @@ import ui.ThemeTab;
 import ui.VisualLinkPanel;
 import ui.WelcomeTab;
 import utils.DocumentService;
+import utils.GitService;
 import utils.IndexService;
 
 import javafx.application.Application;
@@ -36,6 +37,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
@@ -69,6 +71,8 @@ public class MarkNote extends Application {
     private SplitPane mainSplit;
     private SplitPane editorSplit;
     private SplitPane leftSplit;
+
+    private GitService gitService;
 
     public static void main(String[] args) {
         launch(args);
@@ -111,6 +115,12 @@ public class MarkNote extends Application {
         // Panel d'exploration de projet
         projectExplorerPanel = new ProjectExplorerPanel();
         projectExplorerPanel.setOnFileDoubleClick(this::openFileInTab);
+
+        // Git service
+        gitService = new GitService();
+        gitService.setOnStatusUpdated(() -> projectExplorerPanel.refresh());
+        gitService.setOnOperationResult(this::showGitOperationResult);
+        projectExplorerPanel.setGitService(gitService);
 
         // Index service
         indexService = new IndexService();
@@ -668,6 +678,12 @@ public class MarkNote extends Application {
      * Ouvre un répertoire de projet et met à jour l'UI/l'historique.
      */
     private void openProjectDirectory(File dir) {
+        // Configurer le service git avec les credentials de la config
+        gitService.setSshKeyPath(config.getGitSshKeyPath());
+        gitService.setGitToken(config.getGitToken());
+        gitService.setGitUsername(config.getGitUsername());
+        gitService.setProject(dir);
+
         projectExplorerPanel.setProjectDirectory(dir);
         previewPanel.setBaseDirectory(dir);
         primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
@@ -849,11 +865,32 @@ public class MarkNote extends Application {
             // Update PlantUML status bar indicator
             statusBar.setPlantUmlIndicator(
                     config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
+            // Update git credentials
+            gitService.setSshKeyPath(config.getGitSshKeyPath());
+            gitService.setGitToken(config.getGitToken());
+            gitService.setGitUsername(config.getGitUsername());
         }
     }
 
     /**
-     * Redémarre l'application pour appliquer un changement de langue.
+     * Affiche le résultat d'une opération git (pull/push) dans une boîte de dialogue.
+     */
+    private void showGitOperationResult(String result) {
+        Alert alert = new Alert(
+                result.startsWith("Error:") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
+        alert.initOwner(primaryStage);
+        alert.setTitle(messages.getString("git.operation.result.title"));
+        alert.setHeaderText(null);
+        TextArea textArea = new TextArea(result.isBlank() ? messages.getString("git.operation.uptodate") : result);
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setPrefSize(420, 180);
+        alert.getDialogPane().setContent(textArea);
+        alert.showAndWait();
+    }
+
+    /**
+     * Redirige l'application pour appliquer un changement de langue.
      */
     private void restartApplication() {
         // Clear ResourceBundle cache

@@ -21,6 +21,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -353,6 +354,66 @@ public class OptionsDialog {
         toolsTab.setContent(toolsGrid);
         optionsTabs.getTabs().add(toolsTab);
 
+        // --- Onglet Git ---
+        Tab gitTab = new Tab(getMessages().getString("options.tab.git"));
+
+        GridPane gitGrid = new GridPane();
+        gitGrid.setHgap(10);
+        gitGrid.setVgap(10);
+        gitGrid.setPadding(new Insets(20));
+
+        // Section SSH
+        Label sshHeader = new Label(getMessages().getString("options.git.ssh.header"));
+        sshHeader.setStyle("-fx-font-weight: bold;");
+        gitGrid.add(sshHeader, 0, 0, 3, 1);
+
+        Label sshKeyLabel = new Label(getMessages().getString("options.git.ssh.keyPath"));
+        TextField sshKeyField = new TextField(config.getGitSshKeyPath());
+        sshKeyField.setPromptText(getMessages().getString("options.git.ssh.keyPath.prompt"));
+        sshKeyField.setPrefWidth(280);
+        GridPane.setHgrow(sshKeyField, Priority.ALWAYS);
+
+        Button browseSshBtn = new Button(getMessages().getString("options.git.browse"));
+        browseSshBtn.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle(getMessages().getString("options.git.ssh.browse.title"));
+            String current = sshKeyField.getText().trim();
+            if (!current.isEmpty()) {
+                File currentFile = new File(current);
+                if (currentFile.getParentFile() != null && currentFile.getParentFile().exists()) {
+                    fc.setInitialDirectory(currentFile.getParentFile());
+                }
+            }
+            File selected = fc.showOpenDialog(dialog);
+            if (selected != null) sshKeyField.setText(selected.getAbsolutePath());
+        });
+        gitGrid.add(sshKeyLabel, 0, 1);
+        gitGrid.add(sshKeyField, 1, 1);
+        gitGrid.add(browseSshBtn, 2, 1);
+
+        // Section Token HTTPS
+        Label tokenHeader = new Label(getMessages().getString("options.git.token.header"));
+        tokenHeader.setStyle("-fx-font-weight: bold;");
+        gitGrid.add(tokenHeader, 0, 3, 3, 1);
+
+        Label usernameLabel = new Label(getMessages().getString("options.git.token.username"));
+        TextField usernameField = new TextField(config.getGitUsername());
+        usernameField.setPromptText(getMessages().getString("options.git.token.username.prompt"));
+        gitGrid.add(usernameLabel, 0, 4);
+        gitGrid.add(usernameField, 1, 4);
+
+        Label tokenLabel = new Label(getMessages().getString("options.git.token.token"));
+        PasswordField tokenField = new PasswordField();
+        tokenField.setText(config.getGitToken());
+        tokenField.setPromptText(getMessages().getString("options.git.token.token.prompt"));
+        tokenField.setPrefWidth(280);
+        GridPane.setHgrow(tokenField, Priority.ALWAYS);
+        gitGrid.add(tokenLabel, 0, 5);
+        gitGrid.add(tokenField, 1, 5);
+
+        gitTab.setContent(gitGrid);
+        optionsTabs.getTabs().add(gitTab);
+
         // --- Boutons OK / Annuler ---
         Button okBtn = new Button(getMessages().getString("options.ok"));
         Button cancelBtn = new Button(getMessages().getString("options.cancel"));
@@ -373,6 +434,9 @@ public class OptionsDialog {
             }
             config.setUseLocalPlantUml(useLocalCheck.isSelected());
             config.setPlantUmlJarPath(jarPathField.getText().trim());
+            config.setGitSshKeyPath(sshKeyField.getText().trim());
+            config.setGitUsername(usernameField.getText().trim());
+            config.setGitToken(tokenField.getText());
             config.save();
             saved = true;
             dialog.close();
