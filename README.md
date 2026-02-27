@@ -1,5 +1,5 @@
 # MarkNote
-![MarkNote icon](src/main/resources/images/icons/marknote.svg)
+![MarkNote icon](src/main/resources/images/icons/marknote-64.png)
 
 [![Java build](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml)
 ![Java](https://img.shields.io/badge/Java-25-orange)
