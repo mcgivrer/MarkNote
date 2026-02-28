@@ -16,11 +16,11 @@ import utils.IndexService.IndexEntry;
 import utils.IndexService.SearchResult;
 
 import javafx.animation.AnimationTimer;
-import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -107,6 +107,7 @@ public class VisualLinkPanel extends BasePanel {
     private Consumer<File> onFileSelected;
     private Popup tagPopup;
     private ListView<SearchResult> tagResultsList;
+    private Runnable onDetach;
 
     // ── Document courant et métadonnées tooltip ─────────────────
     private String currentDocumentPath = null;
@@ -164,6 +165,18 @@ public class VisualLinkPanel extends BasePanel {
 
     public VisualLinkPanel() {
         super("networkdiagram.title", "networkdiagram.close.tooltip");
+
+        // Bouton détacher (ouvrir dans un onglet)
+        Button detachButton = new Button("⇱");
+        detachButton.getStyleClass().add("panel-close-button");
+        detachButton.setTooltip(new Tooltip(bundle.getString("networkdiagram.detach.tooltip")));
+        detachButton.setOnAction(e -> {
+            if (onDetach != null) {
+                onDetach.run();
+            }
+        });
+        // Insérer avant le bouton de fermeture
+        getHeader().getChildren().add(getHeader().getChildren().size() - 1, detachButton);
 
         canvas = new Canvas(400, 300);
         canvasContainer = new Pane(canvas);
@@ -872,6 +885,12 @@ public class VisualLinkPanel extends BasePanel {
         }
         gc.setLineDashes(); // reset
 
+        // Déterminer si les labels de documents doivent être affichés
+        // On masque les labels quand : zoom < 0.5 ET nombre de documents > 20
+        // ou quand : zoom < 0.3 ET nombre de documents > 10
+        int docCount = (int) nodes.stream().filter(n -> n.type == NodeType.DOCUMENT).count();
+        boolean showDocLabels = !((zoom < 0.5 && docCount > 20) || (zoom < 0.3 && docCount > 10));
+
         // Nœuds
         for (GraphNode node : nodes) {
             double sx = toScreenX(node.x);
@@ -879,7 +898,7 @@ public class VisualLinkPanel extends BasePanel {
 
             if (node.type == NodeType.DOCUMENT) {
                 boolean isCurrent = node.id.equals(currentDocumentPath);
-                drawDocumentNode(gc, sx, sy, node.label, isCurrent);
+                drawDocumentNode(gc, sx, sy, node.label, isCurrent, showDocLabels);
             } else {
                 drawTagNode(gc, sx, sy, node.label);
             }
@@ -968,8 +987,9 @@ public class VisualLinkPanel extends BasePanel {
      * Dessine un nœud document : icône doc stylisée + label.
      * Si {@code highlight} est vrai, le nœud est entouré d'un trait épais
      * pour indiquer qu'il s'agit du document en cours d'édition.
+     * Si {@code showLabel} est faux, le label n'est pas affiché.
      */
-    private void drawDocumentNode(GraphicsContext gc, double x, double y, String label, boolean highlight) {
+    private void drawDocumentNode(GraphicsContext gc, double x, double y, String label, boolean highlight, boolean showLabel) {
         double r = NODE_RADIUS * zoom;
         double iconW = r * 1.2;
         double iconH = r * 1.6;
@@ -1023,14 +1043,16 @@ public class VisualLinkPanel extends BasePanel {
             lineY += 3;
         }
 
-        // Label du document
-        gc.setFont(DOC_FONT);
-        gc.setFill(Color.web("#333333"));
-        String truncated = truncateLabel(label, 16);
-        Text text = new Text(truncated);
-        text.setFont(DOC_FONT);
-        double tw = text.getLayoutBounds().getWidth();
-        gc.fillText(truncated, x - tw / 2, y + iconH / 2 + 12);
+        // Label du document (si activé)
+        if (showLabel) {
+            gc.setFont(DOC_FONT);
+            gc.setFill(Color.web("#333333"));
+            String truncated = truncateLabel(label, 16);
+            Text text = new Text(truncated);
+            text.setFont(DOC_FONT);
+            double tw = text.getLayoutBounds().getWidth();
+            gc.fillText(truncated, x - tw / 2, y + iconH / 2 + 12);
+        }
     }
 
     /**
@@ -1105,6 +1127,13 @@ public class VisualLinkPanel extends BasePanel {
      */
     public void setOnFileSelected(Consumer<File> action) {
         this.onFileSelected = action;
+    }
+
+    /**
+     * Définit l'action quand le bouton détacher est cliqué.
+     */
+    public void setOnDetach(Runnable action) {
+        this.onDetach = action;
     }
 
     // ── Popup recherche par tag ────────────────────────────────────

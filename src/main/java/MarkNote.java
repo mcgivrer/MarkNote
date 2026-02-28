@@ -9,6 +9,7 @@ import config.ThemeManager;
 import ui.DocumentTab;
 import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
+import ui.NetworkDiagramTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
@@ -61,6 +62,7 @@ public class MarkNote extends Application {
     private ProjectExplorerPanel projectExplorerPanel;
     private TagCloudPanel tagCloudPanel;
     private VisualLinkPanel visualLinkPanel;
+    private NetworkDiagramTab networkDiagramTab;
     private SearchBox searchBox;
     private StatusBar statusBar;
     private IndexService indexService;
@@ -148,6 +150,7 @@ public class MarkNote extends Application {
         });
         visualLinkPanel.setIndexService(indexService);
         visualLinkPanel.setOnFileSelected(this::openFileInTab);
+        visualLinkPanel.setOnDetach(this::detachNetworkDiagram);
 
         // Search box (dans la barre du haut)
         searchBox = new SearchBox();
@@ -506,6 +509,38 @@ public class MarkNote extends Application {
         });
         mainTabPane.getTabs().add(0, welcomeTab);
         mainTabPane.getSelectionModel().select(welcomeTab);
+    }
+
+    /**
+     * Détache le diagramme réseau dans un onglet séparé.
+     */
+    private void detachNetworkDiagram() {
+        // Éviter les doublons
+        if (networkDiagramTab != null && mainTabPane.getTabs().contains(networkDiagramTab)) {
+            mainTabPane.getSelectionModel().select(networkDiagramTab);
+            return;
+        }
+
+        // Masquer le panel dans le SplitPane
+        leftSplit.getItems().remove(visualLinkPanel);
+
+        // Créer l'onglet
+        networkDiagramTab = new NetworkDiagramTab(visualLinkPanel);
+        networkDiagramTab.setOnCloseAction(() -> {
+            networkDiagramTab = null;
+            // Réafficher le panel si l'option est activée ou si le panel n'est plus visible
+            if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(visualLinkPanel)) {
+                if (!leftSplit.getItems().contains(visualLinkPanel)) {
+                    leftSplit.getItems().add(visualLinkPanel);
+                }
+            }
+        });
+
+        mainTabPane.getTabs().add(networkDiagramTab);
+        mainTabPane.getSelectionModel().select(networkDiagramTab);
+
+        // Redimensionner après un court délai pour que le layout se stabilise
+        Platform.runLater(() -> visualLinkPanel.zoomToFit());
     }
 
     /**
