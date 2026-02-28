@@ -130,6 +130,13 @@ public class OptionsDialog {
         miscGrid.add(fmExpandedLabel, 0, 5);
         miscGrid.add(fmExpandedCheck, 1, 5);
 
+        // Réafficher le panneau diagramme quand l'onglet est fermé
+        Label reattachDiagramLabel = new Label(getMessages().getString("options.reattachDiagramOnTabClose"));
+        CheckBox reattachDiagramCheck = new CheckBox();
+        reattachDiagramCheck.setSelected(config.isReattachDiagramOnTabClose());
+        miscGrid.add(reattachDiagramLabel, 0, 6);
+        miscGrid.add(reattachDiagramCheck, 1, 6);
+
         // Sélecteur de langue
         Label languageLabel = new Label(getMessages().getString("options.language"));
         ComboBox<String> languageCombo = new ComboBox<>();
@@ -428,6 +435,7 @@ public class OptionsDialog {
             config.setShowWelcomePage(welcomeCheck.isSelected());
             config.setShowSplashScreen(splashCheck.isSelected());
             config.setFrontMatterExpandedByDefault(fmExpandedCheck.isSelected());
+            config.setReattachDiagramOnTabClose(reattachDiagramCheck.isSelected());
             String selectedTheme = themeList.getSelectionModel().getSelectedItem();
             if (selectedTheme != null) {
                 config.setCurrentTheme(selectedTheme);

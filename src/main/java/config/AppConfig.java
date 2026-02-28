@@ -28,6 +28,7 @@ public class AppConfig {
     private boolean frontMatterExpandedByDefault = true;
     private boolean useLocalPlantUml = false;
     private String plantUmlJarPath = "";
+    private boolean reattachDiagramOnTabClose = true;
 
     // Git credentials (V1: SSH passphrase-less + HTTPS token)
     private String gitSshKeyPath = "";
@@ -79,6 +80,8 @@ public class AppConfig {
                     useLocalPlantUml = Boolean.parseBoolean(line.substring("useLocalPlantUml=".length()).trim());
                 } else if (line.startsWith("plantUmlJarPath=")) {
                     plantUmlJarPath = line.substring("plantUmlJarPath=".length()).trim();
+                } else if (line.startsWith("reattachDiagramOnTabClose=")) {
+                    reattachDiagramOnTabClose = Boolean.parseBoolean(line.substring("reattachDiagramOnTabClose=".length()).trim());
                 } else if (line.startsWith("gitSshKeyPath=")) {
                     gitSshKeyPath = line.substring("gitSshKeyPath=".length()).trim();
                 } else if (line.startsWith("gitToken=")) {
@@ -113,6 +116,7 @@ public class AppConfig {
             lines.add("frontMatterExpandedByDefault=" + frontMatterExpandedByDefault);
             lines.add("useLocalPlantUml=" + useLocalPlantUml);
             lines.add("plantUmlJarPath=" + plantUmlJarPath);
+            lines.add("reattachDiagramOnTabClose=" + reattachDiagramOnTabClose);
             lines.add("gitSshKeyPath=" + gitSshKeyPath);
             lines.add("gitToken=" + gitToken);
             lines.add("gitUsername=" + gitUsername);
@@ -263,6 +267,14 @@ public class AppConfig {
 
     public void setPlantUmlJarPath(String plantUmlJarPath) {
         this.plantUmlJarPath = plantUmlJarPath;
+    }
+
+    public boolean isReattachDiagramOnTabClose() {
+        return reattachDiagramOnTabClose;
+    }
+
+    public void setReattachDiagramOnTabClose(boolean reattachDiagramOnTabClose) {
+        this.reattachDiagramOnTabClose = reattachDiagramOnTabClose;
     }
 
     public String getGitSshKeyPath() { return gitSshKeyPath; }

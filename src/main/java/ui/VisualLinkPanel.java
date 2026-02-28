@@ -11,11 +11,11 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import utils.IndexService;
+import utils.IndexService.DocumentGroup;
 import utils.IndexService.IndexEntry;
 import utils.IndexService.SearchResult;
 
 import javafx.animation.AnimationTimer;
-import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
@@ -23,6 +23,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
@@ -67,6 +68,18 @@ public class VisualLinkPanel extends BasePanel {
     private static final double TAG_RADIUS = 8.0;
     private static final Font DOC_FONT = Font.font("System", FontWeight.NORMAL, 10);
     private static final Font TAG_FONT = Font.font("System", FontWeight.NORMAL, 9);
+
+    // ── Couleurs pastel pour les groupes ────────────────────────
+    private static final Color[] PASTEL_COLORS = {
+        Color.web("#FFB3BA", 0.3), // rose pastel
+        Color.web("#BAFFC9", 0.3), // vert pastel
+        Color.web("#BAE1FF", 0.3), // bleu pastel
+        Color.web("#FFFFBA", 0.3), // jaune pastel
+        Color.web("#E0BBE4", 0.3), // violet pastel
+        Color.web("#FFDAC1", 0.3), // pêche pastel
+        Color.web("#C4FAF8", 0.3), // turquoise pastel
+        Color.web("#D5AAFF", 0.3), // lavande pastel
+    };
 
     // ── Données ─────────────────────────────────────────────────
     private final List<GraphNode> nodes = new ArrayList<>();
@@ -128,6 +141,23 @@ public class VisualLinkPanel extends BasePanel {
             this.target = target;
         }
     }
+
+    /** Cercle englobant une composante connexe */
+    static class ComponentCircle {
+        final List<GraphNode> component;
+        double centerX, centerY;
+        double radius;
+        Color color;
+        String groupId = null;  // identifiant du groupe dans l'index
+        String name = "";       // nom affiché dans le cercle
+
+        ComponentCircle(List<GraphNode> component) {
+            this.component = component;
+        }
+    }
+
+    // ── Cercles des composantes ─────────────────────────────────
+    private final List<ComponentCircle> componentCircles = new ArrayList<>();
 
     // ── Constructeur ────────────────────────────────────────────
 
@@ -231,21 +261,43 @@ public class VisualLinkPanel extends BasePanel {
                     return;
                 }
 
-                if (onDocumentClick == null) return;
-
-                // Clic sur un nœud document
+                // Clic sur un nœud document → ouvrir le document
                 if (hit != null && hit.type == NodeType.DOCUMENT) {
-                    onDocumentClick.accept(hit.id);
+                    if (onDocumentClick != null) {
+                        onDocumentClick.accept(hit.id);
+                    }
                     return;
                 }
 
-                // Sinon : clic sur une arête → ouvrir le document le plus proche
+                // Clic sur une arête → ouvrir le document le plus proche
                 GraphEdge edgeHit = edgeHitTest(e.getX(), e.getY());
-                if (edgeHit != null) {
+                if (edgeHit != null && onDocumentClick != null) {
                     GraphNode target = nearestDocNode(edgeHit, e.getX(), e.getY());
                     if (target != null) {
                         onDocumentClick.accept(target.id);
                     }
+                    return;
+                }
+
+                // Clic sur un cercle de groupe → zoomer sur ce groupe
+                ComponentCircle circleHit = circleHitTest(e.getX(), e.getY());
+                if (circleHit != null) {
+                    zoomToComponent(circleHit);
+                    e.consume();
+                    return;
+                }
+
+                // Clic en dehors de tout → revenir à la vue globale
+                zoomToFit();
+                e.consume();
+            }
+
+            // Double-clic sur un cercle de groupe → nommer le groupe
+            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+                ComponentCircle circleHit = circleHitTest(e.getX(), e.getY());
+                if (circleHit != null) {
+                    promptGroupName(circleHit);
+                    e.consume();
                 }
             }
         });
@@ -265,10 +317,9 @@ public class VisualLinkPanel extends BasePanel {
 
         canvas.setOnMouseExited(e -> hideNodeTooltip());
 
-        canvas.setOnScroll((ScrollEvent e) -> e.consume());
-        // Intercepter le scroll au niveau du panel lui-même
-        // (avant que le SplitPane parent ne le capture)
-        this.addEventFilter(ScrollEvent.SCROLL, this::handleZoomScroll);
+        // Intercepter le scroll directement sur le canvas pour éviter
+        // que le SplitPane parent ne le capture
+        canvas.addEventFilter(ScrollEvent.SCROLL, this::handleZoomScroll);
     }
 
     private void handleZoomScroll(ScrollEvent e) {
@@ -304,6 +355,182 @@ public class VisualLinkPanel extends BasePanel {
 
     private double toScreenY(double worldY) {
         return worldY * zoom + panY;
+    }
+
+    /**
+     * Trouve toutes les composantes connexes du graphe.
+     * Chaque composante est une liste de nœuds connectés entre eux.
+     */
+    private List<List<GraphNode>> findConnectedComponents() {
+        List<List<GraphNode>> components = new ArrayList<>();
+        Set<GraphNode> visited = new HashSet<>();
+
+        for (GraphNode node : nodes) {
+            if (!visited.contains(node)) {
+                List<GraphNode> component = new ArrayList<>();
+                exploreComponent(node, visited, component);
+                components.add(component);
+            }
+        }
+        return components;
+    }
+
+    private void exploreComponent(GraphNode node, Set<GraphNode> visited, List<GraphNode> component) {
+        visited.add(node);
+        component.add(node);
+
+        for (GraphEdge edge : edges) {
+            GraphNode neighbor = null;
+            if (edge.source == node && !visited.contains(edge.target)) {
+                neighbor = edge.target;
+            } else if (edge.target == node && !visited.contains(edge.source)) {
+                neighbor = edge.source;
+            }
+            if (neighbor != null) {
+                exploreComponent(neighbor, visited, component);
+            }
+        }
+    }
+
+    /**
+     * Calcule les cercles englobants pour toutes les composantes connexes
+     * et les sépare pour éviter les chevauchements.
+     */
+    private void computeComponentCircles() {
+        componentCircles.clear();
+        List<List<GraphNode>> components = findConnectedComponents();
+
+        // Créer les cercles initiaux
+        int colorIndex = 0;
+        for (List<GraphNode> component : components) {
+            ComponentCircle circle = new ComponentCircle(component);
+            computeCircleBounds(circle);
+            circle.color = PASTEL_COLORS[colorIndex % PASTEL_COLORS.length];
+            
+            // Charger le nom du groupe depuis l'index
+            loadGroupInfo(circle);
+            
+            componentCircles.add(circle);
+            colorIndex++;
+        }
+
+        // Séparer les cercles qui se chevauchent
+        separateCircles();
+    }
+
+    /** Charge les informations du groupe depuis l'IndexService */
+    private void loadGroupInfo(ComponentCircle circle) {
+        if (indexService == null) return;
+
+        // Collecter les chemins des documents du cercle
+        List<String> docPaths = new ArrayList<>();
+        for (GraphNode node : circle.component) {
+            if (node.type == NodeType.DOCUMENT) {
+                docPaths.add(node.id);
+            }
+        }
+
+        // Chercher un groupe existant avec ces documents
+        DocumentGroup group = indexService.findGroupByDocuments(docPaths);
+        if (group != null) {
+            circle.groupId = group.getGroupId();
+            circle.name = group.getName();
+        }
+    }
+
+    /** Calcule le centre et le rayon d'un cercle englobant sa composante */
+    private void computeCircleBounds(ComponentCircle circle) {
+        if (circle.component.isEmpty()) return;
+
+        double cx = 0, cy = 0;
+        for (GraphNode node : circle.component) {
+            cx += node.x;
+            cy += node.y;
+        }
+        cx /= circle.component.size();
+        cy /= circle.component.size();
+
+        double maxDist = 0;
+        for (GraphNode node : circle.component) {
+            double dx = node.x - cx;
+            double dy = node.y - cy;
+            double dist = Math.sqrt(dx * dx + dy * dy);
+            double nodeRadius = (node.type == NodeType.DOCUMENT) ? NODE_RADIUS : TAG_RADIUS;
+            maxDist = Math.max(maxDist, dist + nodeRadius);
+        }
+
+        circle.centerX = cx;
+        circle.centerY = cy;
+        circle.radius = maxDist + 25.0; // marge
+    }
+
+    /** Sépare les cercles qui se chevauchent en les déplaçant avec leurs nœuds */
+    private void separateCircles() {
+        if (componentCircles.size() < 2) return;
+
+        double minSeparation = 10.0; // espace minimal entre cercles
+        int maxIterations = 100;
+
+        for (int iter = 0; iter < maxIterations; iter++) {
+            boolean moved = false;
+
+            for (int i = 0; i < componentCircles.size(); i++) {
+                for (int j = i + 1; j < componentCircles.size(); j++) {
+                    ComponentCircle c1 = componentCircles.get(i);
+                    ComponentCircle c2 = componentCircles.get(j);
+
+                    double dx = c2.centerX - c1.centerX;
+                    double dy = c2.centerY - c1.centerY;
+                    double dist = Math.sqrt(dx * dx + dy * dy);
+                    double minDist = c1.radius + c2.radius + minSeparation;
+
+                    if (dist < minDist && dist > 0.001) {
+                        // Calculer le déplacement nécessaire
+                        double overlap = (minDist - dist) / 2.0;
+                        double nx = dx / dist;
+                        double ny = dy / dist;
+
+                        // Déplacer les cercles et leurs nœuds
+                        moveComponentBy(c1, -nx * overlap, -ny * overlap);
+                        moveComponentBy(c2, nx * overlap, ny * overlap);
+                        moved = true;
+                    } else if (dist < 0.001) {
+                        // Cercles au même endroit, les décaler arbitrairement
+                        double offset = minDist / 2.0;
+                        moveComponentBy(c1, -offset, 0);
+                        moveComponentBy(c2, offset, 0);
+                        moved = true;
+                    }
+                }
+            }
+
+            if (!moved) break;
+        }
+    }
+
+    /** Déplace une composante et recalcule son cercle englobant */
+    private void moveComponentBy(ComponentCircle circle, double dx, double dy) {
+        for (GraphNode node : circle.component) {
+            node.x += dx;
+            node.y += dy;
+        }
+        circle.centerX += dx;
+        circle.centerY += dy;
+    }
+
+    /** Détecte si un clic est dans un cercle de composante */
+    private ComponentCircle circleHitTest(double screenX, double screenY) {
+        double wx = toWorldX(screenX);
+        double wy = toWorldY(screenY);
+
+        for (ComponentCircle circle : componentCircles) {
+            double dx = wx - circle.centerX;
+            double dy = wy - circle.centerY;
+            if (dx * dx + dy * dy <= circle.radius * circle.radius) {
+                return circle;
+            }
+        }
+        return null;
     }
 
     private GraphNode hitTest(double screenX, double screenY) {
@@ -383,6 +610,7 @@ public class VisualLinkPanel extends BasePanel {
     public void updateDiagram(List<IndexEntry> entries) {
         nodes.clear();
         edges.clear();
+        componentCircles.clear();
 
         if (entries == null || entries.isEmpty()) {
             stopSimulation();
@@ -518,6 +746,8 @@ public class VisualLinkPanel extends BasePanel {
             timer.stop();
             timer = null;
         }
+        // Recalculer les cercles des composantes quand la simulation s'arrête
+        computeComponentCircles();
         draw();
     }
 
@@ -611,6 +841,15 @@ public class VisualLinkPanel extends BasePanel {
             return;
         }
 
+        // Dessiner les cercles englobants pour chaque composante connexe
+        // (recalculer si la liste est vide, sinon utiliser le cache)
+        if (componentCircles.isEmpty() && !nodes.isEmpty()) {
+            computeComponentCircles();
+        }
+        for (ComponentCircle circle : componentCircles) {
+            drawComponentCircle(gc, circle);
+        }
+
         // Arêtes
         gc.setLineWidth(1.2);
         for (GraphEdge edge : edges) {
@@ -632,6 +871,12 @@ public class VisualLinkPanel extends BasePanel {
         }
         gc.setLineDashes(); // reset
 
+        // Déterminer si les labels de documents doivent être affichés
+        // On masque les labels quand : zoom < 0.5 ET nombre de documents > 20
+        // ou quand : zoom < 0.3 ET nombre de documents > 10
+        int docCount = (int) nodes.stream().filter(n -> n.type == NodeType.DOCUMENT).count();
+        boolean showDocLabels = !((zoom < 0.5 && docCount > 20) || (zoom < 0.3 && docCount > 10));
+
         // Nœuds
         for (GraphNode node : nodes) {
             double sx = toScreenX(node.x);
@@ -639,7 +884,7 @@ public class VisualLinkPanel extends BasePanel {
 
             if (node.type == NodeType.DOCUMENT) {
                 boolean isCurrent = node.id.equals(currentDocumentPath);
-                drawDocumentNode(gc, sx, sy, node.label, isCurrent);
+                drawDocumentNode(gc, sx, sy, node.label, isCurrent, showDocLabels);
             } else {
                 drawTagNode(gc, sx, sy, node.label);
             }
@@ -647,11 +892,90 @@ public class VisualLinkPanel extends BasePanel {
     }
 
     /**
+     * Dessine un cercle englobant autour d'une composante connexe.
+     */
+    private void drawComponentCircle(GraphicsContext gc, ComponentCircle circle) {
+        if (circle.component.isEmpty()) return;
+
+        // Convertir en coordonnées écran
+        double screenCenterX = toScreenX(circle.centerX);
+        double screenCenterY = toScreenY(circle.centerY);
+        double screenRadius = circle.radius * zoom;
+
+        // Dessiner le cercle rempli
+        gc.setFill(circle.color);
+        gc.fillOval(screenCenterX - screenRadius, screenCenterY - screenRadius,
+                    screenRadius * 2, screenRadius * 2);
+
+        // Dessiner la bordure du cercle (plus foncée)
+        Color borderColor = circle.color.deriveColor(0, 1, 0.7, 1.5);
+        gc.setStroke(borderColor);
+        gc.setLineWidth(1.5);
+        gc.strokeOval(screenCenterX - screenRadius, screenCenterY - screenRadius,
+                      screenRadius * 2, screenRadius * 2);
+
+        // Dessiner le nom du groupe (si défini)
+        if (circle.name != null && !circle.name.isBlank()) {
+            // Couleur 100% plus sombre (luminosité divisée par 2)
+            Color textColor = circle.color.deriveColor(0, 1, 0.5, 1.0);
+            gc.setFill(textColor);
+            
+            // Taille de police adaptative selon le zoom
+            double fontSize = Math.max(10, 14 * zoom);
+            gc.setFont(Font.font("System", FontWeight.BOLD, fontSize));
+            
+            // Mesurer le texte pour le centrer
+            Text measureText = new Text(circle.name);
+            measureText.setFont(gc.getFont());
+            double textWidth = measureText.getLayoutBounds().getWidth();
+            double textHeight = measureText.getLayoutBounds().getHeight();
+            
+            // Position au centre du cercle, légèrement vers le haut
+            double textX = screenCenterX - textWidth / 2;
+            double textY = screenCenterY - screenRadius + textHeight + 5 * zoom;
+            
+            gc.fillText(circle.name, textX, textY);
+        }
+    }
+
+    /**
+     * Affiche un dialogue pour nommer un groupe et sauvegarde dans l'index.
+     */
+    private void promptGroupName(ComponentCircle circle) {
+        if (indexService == null) return;
+
+        TextInputDialog dialog = new TextInputDialog(circle.name);
+        dialog.setTitle(bundle.getString("networkdiagram.groupname.title"));
+        dialog.setHeaderText(bundle.getString("networkdiagram.groupname.header"));
+        dialog.setContentText(bundle.getString("networkdiagram.groupname.prompt"));
+
+        dialog.showAndWait().ifPresent(name -> {
+            circle.name = name;
+
+            // Collecter les chemins des documents
+            List<String> docPaths = new ArrayList<>();
+            for (GraphNode node : circle.component) {
+                if (node.type == NodeType.DOCUMENT) {
+                    docPaths.add(node.id);
+                }
+            }
+
+            // Trouver ou créer le groupe et mettre à jour le nom
+            DocumentGroup group = indexService.findOrCreateGroup(docPaths);
+            circle.groupId = group.getGroupId();
+            indexService.updateGroupName(group.getGroupId(), name);
+
+            draw();
+        });
+    }
+
+    /**
      * Dessine un nœud document : icône doc stylisée + label.
      * Si {@code highlight} est vrai, le nœud est entouré d'un trait épais
      * pour indiquer qu'il s'agit du document en cours d'édition.
+     * Si {@code showLabel} est faux, le label n'est pas affiché.
      */
-    private void drawDocumentNode(GraphicsContext gc, double x, double y, String label, boolean highlight) {
+    private void drawDocumentNode(GraphicsContext gc, double x, double y, String label, boolean highlight, boolean showLabel) {
         double r = NODE_RADIUS * zoom;
         double iconW = r * 1.2;
         double iconH = r * 1.6;
@@ -705,14 +1029,16 @@ public class VisualLinkPanel extends BasePanel {
             lineY += 3;
         }
 
-        // Label du document
-        gc.setFont(DOC_FONT);
-        gc.setFill(Color.web("#333333"));
-        String truncated = truncateLabel(label, 16);
-        Text text = new Text(truncated);
-        text.setFont(DOC_FONT);
-        double tw = text.getLayoutBounds().getWidth();
-        gc.fillText(truncated, x - tw / 2, y + iconH / 2 + 12);
+        // Label du document (si activé)
+        if (showLabel) {
+            gc.setFont(DOC_FONT);
+            gc.setFill(Color.web("#333333"));
+            String truncated = truncateLabel(label, 16);
+            Text text = new Text(truncated);
+            text.setFont(DOC_FONT);
+            double tw = text.getLayoutBounds().getWidth();
+            gc.fillText(truncated, x - tw / 2, y + iconH / 2 + 12);
+        }
     }
 
     /**
@@ -787,6 +1113,11 @@ public class VisualLinkPanel extends BasePanel {
      */
     public void setOnFileSelected(Consumer<File> action) {
         this.onFileSelected = action;
+    }
+
+    @Override
+    public void afterReattach() {
+        zoomToFit();
     }
 
     // ── Popup recherche par tag ────────────────────────────────────
@@ -1038,6 +1369,34 @@ public class VisualLinkPanel extends BasePanel {
         double centerY = (minY + maxY) / 2.0;
         panX = cw / 2.0 - centerX * zoom;
         panY = ch / 2.0 - centerY * zoom;
+
+        draw();
+    }
+
+    /**
+     * Ajuste le zoom et le pan pour centrer sur une composante spécifique.
+     */
+    private void zoomToComponent(ComponentCircle circle) {
+        if (circle == null || circle.component.isEmpty()) return;
+
+        double cw = canvas.getWidth();
+        double ch = canvas.getHeight();
+        if (cw < 1 || ch < 1) return;
+
+        double margin = 30; // marge en pixels autour du cercle
+        double diameter = circle.radius * 2;
+
+        // Calculer le zoom pour que le cercle remplisse l'espace disponible
+        double availW = cw - margin * 2;
+        double availH = ch - margin * 2;
+        if (availW < 1 || availH < 1) return;
+
+        zoom = Math.min(availW / diameter, availH / diameter);
+        zoom = Math.max(0.1, Math.min(8.0, zoom));
+
+        // Centrer sur le cercle
+        panX = cw / 2.0 - circle.centerX * zoom;
+        panY = ch / 2.0 - circle.centerY * zoom;
 
         draw();
     }

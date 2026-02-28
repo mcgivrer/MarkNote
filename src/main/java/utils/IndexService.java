@@ -95,12 +95,40 @@ public class IndexService {
             return null;
         }
     }
+    /**
+     * Groupe de documents pour le diagramme réseau.
+     * Un groupe représente une composante connexe nommée.
+     */
+    public static class DocumentGroup {
+        private String groupId;  // identifiant unique (généré automatiquement)
+        private String name = "";  // nom du groupe (visible dans le cercle)
+        private List<String> documentPaths = new ArrayList<>();  // chemins relatifs des documents
 
+        public DocumentGroup(String groupId) {
+            this.groupId = groupId;
+        }
+
+        public String getGroupId() { return groupId; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name != null ? name : ""; }
+        public List<String> getDocumentPaths() { return Collections.unmodifiableList(documentPaths); }
+        public void setDocumentPaths(List<String> paths) {
+            this.documentPaths.clear();
+            if (paths != null) this.documentPaths.addAll(paths);
+        }
+        public void addDocumentPath(String path) {
+            if (path != null && !documentPaths.contains(path)) {
+                documentPaths.add(path);
+            }
+        }
+    }
     // ── Données ─────────────────────────────────────────────────
 
     private File projectDir;
     private final List<IndexEntry> entries = new ArrayList<>();
     private final Map<String, Integer> tagCounts = new LinkedHashMap<>();
+    private final List<DocumentGroup> documentGroups = new ArrayList<>();
+    private int nextGroupId = 1;
 
     /** Callback de progression (0.0 – 1.0). Appelé sur le FX Application Thread. */
     private Consumer<Double> onProgress;
@@ -258,6 +286,73 @@ public class IndexService {
      */
     public List<IndexEntry> getEntries() {
         return Collections.unmodifiableList(entries);
+    }
+
+    // ── Gestion des groupes de documents ────────────────────────
+
+    /**
+     * Retourne tous les groupes de documents.
+     */
+    public List<DocumentGroup> getDocumentGroups() {
+        return Collections.unmodifiableList(documentGroups);
+    }
+
+    /**
+     * Crée un nouveau groupe avec les documents spécifiés.
+     * @param documentPaths les chemins relatifs des documents du groupe
+     * @return le groupe créé
+     */
+    public DocumentGroup createGroup(List<String> documentPaths) {
+        String groupId = "group-" + (nextGroupId++);
+        DocumentGroup group = new DocumentGroup(groupId);
+        group.setDocumentPaths(documentPaths);
+        documentGroups.add(group);
+        saveIndex();
+        return group;
+    }
+
+    /**
+     * Trouve un groupe contenant exactement les documents spécifiés.
+     * @param documentPaths les chemins relatifs des documents
+     * @return le groupe ou null si non trouvé
+     */
+    public DocumentGroup findGroupByDocuments(List<String> documentPaths) {
+        if (documentPaths == null || documentPaths.isEmpty()) return null;
+        
+        java.util.Set<String> searchSet = new java.util.HashSet<>(documentPaths);
+        for (DocumentGroup group : documentGroups) {
+            java.util.Set<String> groupSet = new java.util.HashSet<>(group.getDocumentPaths());
+            if (groupSet.equals(searchSet)) {
+                return group;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Met à jour le nom d'un groupe et persiste l'index.
+     * @param groupId l'identifiant du groupe
+     * @param name le nouveau nom
+     */
+    public void updateGroupName(String groupId, String name) {
+        for (DocumentGroup group : documentGroups) {
+            if (group.getGroupId().equals(groupId)) {
+                group.setName(name);
+                saveIndex();
+                return;
+            }
+        }
+    }
+
+    /**
+     * Trouve ou crée un groupe pour les documents spécifiés.
+     * @param documentPaths les chemins relatifs des documents
+     * @return le groupe existant ou nouveau
+     */
+    public DocumentGroup findOrCreateGroup(List<String> documentPaths) {
+        DocumentGroup existing = findGroupByDocuments(documentPaths);
+        if (existing != null) return existing;
+        return createGroup(documentPaths);
     }
 
     /**
@@ -577,7 +672,24 @@ public class IndexService {
             sb.append("\n");
             tagIdx++;
         }
-        sb.append("  }\n");
+        sb.append("  },\n");
+
+        // Document groups
+        sb.append("  \"documentGroups\": [\n");
+        for (int i = 0; i < documentGroups.size(); i++) {
+            DocumentGroup g = documentGroups.get(i);
+            sb.append("    {\n");
+            sb.append("      \"groupId\": ").append(jsonString(g.getGroupId())).append(",\n");
+            sb.append("      \"name\": ").append(jsonString(g.getName())).append(",\n");
+            sb.append("      \"documentPaths\": ").append(jsonStringList(g.getDocumentPaths())).append("\n");
+            sb.append("    }");
+            if (i < documentGroups.size() - 1) sb.append(",");
+            sb.append("\n");
+        }
+        sb.append("  ],\n");
+
+        // Next group ID
+        sb.append("  \"nextGroupId\": ").append(nextGroupId).append("\n");
 
         sb.append("}\n");
         return sb.toString();
@@ -590,6 +702,7 @@ public class IndexService {
     private void parseJson(String json) {
         entries.clear();
         tagCounts.clear();
+        documentGroups.clear();
 
         // Parse entries
         int entriesStart = json.indexOf("\"entries\"");
@@ -629,6 +742,55 @@ public class IndexService {
                 parseTagCounts(tagBlock);
             }
         }
+
+        // Parse document groups
+        int groupsStart = json.indexOf("\"documentGroups\"");
+        if (groupsStart >= 0) {
+            int grpArrayStart = json.indexOf('[', groupsStart);
+            int grpArrayEnd = findMatchingBracket(json, grpArrayStart, '[', ']');
+            if (grpArrayStart >= 0 && grpArrayEnd >= 0) {
+                String groupsBlock = json.substring(grpArrayStart + 1, grpArrayEnd);
+                depth = 0;
+                int groupStart = -1;
+                for (int i = 0; i < groupsBlock.length(); i++) {
+                    char c = groupsBlock.charAt(i);
+                    if (c == '{') {
+                        if (depth == 0) groupStart = i;
+                        depth++;
+                    } else if (c == '}') {
+                        depth--;
+                        if (depth == 0 && groupStart >= 0) {
+                            String groupJson = groupsBlock.substring(groupStart, i + 1);
+                            DocumentGroup group = parseGroup(groupJson);
+                            if (group != null) documentGroups.add(group);
+                            groupStart = -1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parse nextGroupId
+        String nextGroupIdStr = extractJsonRawValue(json, "nextGroupId");
+        if (nextGroupIdStr != null) {
+            try {
+                nextGroupId = Integer.parseInt(nextGroupIdStr.trim());
+            } catch (NumberFormatException e) {
+                nextGroupId = documentGroups.size() + 1;
+            }
+        }
+    }
+
+    private DocumentGroup parseGroup(String json) {
+        String groupId = extractJsonStringValue(json, "groupId");
+        if (groupId == null) return null;
+
+        DocumentGroup group = new DocumentGroup(groupId);
+        String name = extractJsonStringValue(json, "name");
+        group.setName(name != null ? name : "");
+        List<String> paths = extractJsonStringList(json, "documentPaths");
+        group.setDocumentPaths(paths);
+        return group;
     }
 
     private IndexEntry parseEntry(String json) {

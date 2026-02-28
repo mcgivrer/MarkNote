@@ -1,7 +1,7 @@
 ---
 title: "MarkNote User Guide"
 date: 2026-02-25
-version: "0.1.0-snapshot"
+version: "0.1.0"
 author: "Frédéric Delorme"
 description: "Official user guide for MarkNote, a lightweight Markdown editor built with JavaFX."
 summary: "Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features."
@@ -12,7 +12,7 @@ status: draft
 
 # MarkNote User Guide
 
-Version 0.1.0-snapshot
+Version 0.1.0
 
 Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features.
 
@@ -50,6 +50,8 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Syntax Highlighting** - Code blocks with automatic language detection and theme-coordinated coloring
 - **Code Block Copy Button** - One-click copy for code blocks in preview
 - **Markdown Tables** - Full GFM table support with styled rendering
+- **Task Lists** - GitHub-style checkboxes (`[ ]` / `[x]`) rendered in preview
+- **GitHub Alerts** - Styled blockquotes for `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview; switch between the **online PlantUML server** (default) or a **local `plantuml.jar`** configured in Options → Tools; local rendering is asynchronous (per-block background threads) and shows a ⚙ spinning gear icon in the status bar during generation
 - **Mermaid Diagrams** - Render Mermaid flowcharts, sequences, and more in the preview (theme auto-matches app theme)
 - **Math Equations** - LaTeX/MathML support via KaTeX (`$...$` inline, `$$...$$` block)
@@ -62,6 +64,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Network Diagram** - Interactive force-directed graph of document links and shared tags, with tooltips and current document highlighting
 - **Status Bar** - Document info, statistics, and indexing progress at the bottom of the window
 - **Multi-document Tabs** - Work on multiple files simultaneously, with drag-to-reorder tabs
+- **Panel Detachment** - Detach side panels to independent tabs, and restore them back to their docked position
 - **Theme Support** - Built-in themes with custom theme creation and a full CSS theme editor
 - **Splash Screen** - Themed splash screen at startup (configurable)
 - **Image Preview** - Quick preview for images with zoom/pan and format/size info overlay
@@ -177,6 +180,26 @@ You can show or hide panels using the **View** menu or by clicking the **×** cl
 | **View → Show Welcome** | Open the Welcome tab |
 
 Each panel can also be closed by clicking the **×** button in its header. Re-opening it from the View menu restores it to the layout.
+
+### Detaching Panels to Tabs
+
+Left-side panels (**Project Explorer**, **Tag Cloud**, **Network Diagram**) and the **Preview** panel can be **detached** from their docked position and converted into independent tabs in the main editor area. This gives you more flexibility to organize your workspace.
+
+**To detach a panel:**
+
+1. Click the **⇱ detach button** (window icon) in the panel's header bar
+2. The panel disappears from its docked position and opens as a new tab in the editor tab bar
+3. The View menu checkbox for that panel is automatically unchecked
+
+**To restore a detached panel:**
+
+1. Click the **⇲ restore button** (dock icon) in the tab's header, OR
+2. Right-click on the tab and select **Restore to Panel**, OR
+3. Re-enable the panel from the **View** menu (this will close the tab and restore the panel to its original position)
+
+![Panel Detach](illustrations/panel-detach.svg)
+
+> **Tip:** Detaching panels is useful when you want to maximize the editor area while still keeping certain panels accessible as tabs.
 
 ---
 
@@ -585,8 +608,32 @@ The Network Diagram uses a **force-directed layout** algorithm to arrange your d
 - **Dashed edges** connect documents to the tags they share
 - **Current document** is highlighted with an **orange border** and cream-colored fill
 - **Isolated nodes** (no connections) are automatically hidden from the diagram
+- **Document groups** — disconnected clusters of documents are circled with pastel-colored halos for easy identification
 
 The physics simulation runs until the layout stabilizes (~60 frames below velocity threshold), then the view **automatically zooms to fit** all nodes with a 40px margin.
+
+### Document Groups
+
+When your project contains multiple independent clusters of documents (no links or shared tags between them), each cluster is displayed inside a **pastel-colored circle**. This helps you visualize which documents form isolated groups.
+
+- **Click a group circle** — Zoom to fit the group in view
+- **Double-click a group circle** — Name the group; a dialog prompts for a name which is then displayed as a label and persisted in the index
+
+### Detaching the Diagram
+
+You can detach the Network Diagram into its own tab for a larger view:
+
+1. Click the **Detach** button (↗) in the panel header
+2. The diagram opens in a new tab alongside your documents
+3. When you close the tab, the diagram returns to the side panel (configurable in Options)
+
+### Automatic Label Hiding
+
+To keep the diagram readable at high zoom-out levels, document labels are automatically hidden when:
+- Zoom level is below 50% **and** there are more than 20 documents
+- Zoom level is below 30% **and** there are more than 10 documents
+
+This prevents visual clutter and improves performance with large projects.
 
 ### Navigation & Interaction
 
@@ -717,9 +764,15 @@ MarkNote supports standard Markdown syntax plus extensions:
 
 > Blockquotes
 
+> [!NOTE]
+> GitHub-style alerts
+
 ---
 Horizontal rules
 ---
+
+- [ ] Unchecked task
+- [x] Completed task
 
 | Tables | Are | Supported |
 |--------|-----|-----------|
@@ -755,6 +808,56 @@ Custom themes are detected via a **"Based on:" comment** in the CSS header, with
 ### Code Block Copy Button
 
 Every code block in the preview displays a **"Copy" button** on hover (top-right corner). Clicking it copies the code to the clipboard, and the button briefly shows **"✓ Copied"** with a green background for 1.5 seconds.
+
+### Task Lists (Checkboxes)
+
+MarkNote supports GitHub-style task lists (checkboxes) in the preview:
+
+```markdown
+- [ ] This is an unchecked task
+- [x] This is a completed task
+- [X] Uppercase X also works
+```
+
+In the preview, these render as:
+- ☐ This is an unchecked task
+- ☑ This is a completed task
+- ☑ Uppercase X also works
+
+> **Note:** Checkboxes in the preview are read-only (disabled). To change the state, edit the Markdown source directly.
+
+### GitHub Alerts
+
+MarkNote supports GitHub-style alerts (also known as admonitions) for highlighting important information in blockquotes:
+
+```markdown
+> [!NOTE]
+> Useful information that users should know.
+
+> [!TIP]
+> Helpful advice for doing things better or more easily.
+
+> [!IMPORTANT]
+> Key information users need to know.
+
+> [!WARNING]
+> Urgent info that needs immediate user attention.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes.
+```
+
+These render as styled boxes with colored borders and icons:
+
+| Alert Type | Color | Use Case |
+|------------|-------|----------|
+| **Note** | Blue | General information |
+| **Tip** | Green | Helpful hints and best practices |
+| **Important** | Purple | Critical information |
+| **Warning** | Yellow | Potential issues or caveats |
+| **Caution** | Red | Dangerous actions or irreversible operations |
+
+> **Tip:** GitHub Alerts work great for documentation, tutorials, and user guides where you need to draw attention to specific information.
 
 ### PlantUML Diagrams
 
@@ -949,6 +1052,7 @@ Access settings via **Help → Options...** or by pressing the shortcut shown in
 | **Show Welcome page on startup** | Display the Welcome tab when starting |
 | **Show splash screen on startup** | Display the splash screen when starting (enabled by default) |
 | **Front matter expanded by default** | Whether the Front Matter panel is expanded when opening documents (default: true) |
+| **Reattach diagram panel when tab closes** | When enabled, the Network Diagram returns to the side panel after closing its detached tab (default: true) |
 | **Language** | Choose your preferred interface language (`system` follows OS locale) |
 
 > **Note:** Changing the language **saves the configuration immediately** and **restarts the application**.

@@ -6,9 +6,11 @@ import java.util.ResourceBundle;
 
 import config.AppConfig;
 import config.ThemeManager;
+import ui.BasePanel;
 import ui.DocumentTab;
 import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
+import ui.DetachedPanelTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
@@ -148,6 +150,7 @@ public class MarkNote extends Application {
         });
         visualLinkPanel.setIndexService(indexService);
         visualLinkPanel.setOnFileSelected(this::openFileInTab);
+        visualLinkPanel.setOnDetach(() -> detachPanel(visualLinkPanel));
 
         // Search box (dans la barre du haut)
         searchBox = new SearchBox();
@@ -170,9 +173,11 @@ public class MarkNote extends Application {
 
         // Tag cloud : clic sur un tag → recherche
         tagCloudPanel.setOnTagClick(tag -> searchBox.setSearchText(tag));
+        tagCloudPanel.setOnDetach(() -> detachPanel(tagCloudPanel));
 
         // Reset index depuis le menu contextuel de l'explorateur
         projectExplorerPanel.setOnResetIndex(this::handleResetIndex);
+        projectExplorerPanel.setOnDetach(() -> detachPanel(projectExplorerPanel));
 
         // Index updates: fichier créé, renommé, supprimé, déplacé, copié
         projectExplorerPanel.setOnFileCreated(file -> {
@@ -506,6 +511,38 @@ public class MarkNote extends Application {
         });
         mainTabPane.getTabs().add(0, welcomeTab);
         mainTabPane.getSelectionModel().select(welcomeTab);
+    }
+
+    /**
+     * Détache un panel dans un onglet séparé.
+     *
+     * @param panel le panel à détacher
+     */
+    private void detachPanel(BasePanel panel) {
+        // Éviter les doublons - chercher si un onglet existe déjà pour ce panel
+        for (var tab : mainTabPane.getTabs()) {
+            if (tab instanceof DetachedPanelTab dpt && dpt.getSourcePanel() == panel) {
+                mainTabPane.getSelectionModel().select(tab);
+                return;
+            }
+        }
+
+        // Masquer le panel dans le SplitPane
+        leftSplit.getItems().remove(panel);
+
+        // Créer l'onglet
+        DetachedPanelTab detachedTab = new DetachedPanelTab(panel);
+        detachedTab.setOnCloseAction(() -> {
+            // Réafficher le panel si l'option est activée
+            if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(panel)) {
+                if (!leftSplit.getItems().contains(panel)) {
+                    leftSplit.getItems().add(panel);
+                }
+            }
+        });
+
+        mainTabPane.getTabs().add(detachedTab);
+        mainTabPane.getSelectionModel().select(detachedTab);
     }
 
     /**
