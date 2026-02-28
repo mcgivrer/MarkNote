@@ -1,5 +1,5 @@
 # MarkNote
-![MarkNote icon](src/main/resources/images/icons/marknote.svg)
+![MarkNote icon](src/main/resources/images/icons/marknote-64.png)
 
 [![Java build](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml)
 ![Java](https://img.shields.io/badge/Java-25-orange)
@@ -10,7 +10,7 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
-![An illustration of the Main interface pf MarkNote](src/docs/illustrations/main-interface.svg "The Main interface for MarkNote")
+![An illustration of the Main interface pf MarkNote](src/docs/illustrations/marknote-screenshot-001.png "The Main interface for MarkNote")
 
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
