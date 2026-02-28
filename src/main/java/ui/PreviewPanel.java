@@ -244,6 +244,9 @@ public class PreviewPanel extends BasePanel {
         
         String html = htmlRenderer.render(markdownParser.parse(body));
 
+        // ── Checkboxes : convertir [ ] et [x] en éléments checkbox HTML
+        html = processCheckboxes(html);
+
         // ── Images : injecter les attributs width/height
         if (!imageSizes.isEmpty()) {
             html = applyImageSizes(html, imageSizes);
@@ -298,6 +301,11 @@ public class PreviewPanel extends BasePanel {
                     th, td { border: 1px solid #888; padding: 6px 12px; text-align: left; }
                     th { background: rgba(128,128,128,0.15); font-weight: bold; }
                     tr:nth-child(even) { background: rgba(128,128,128,0.06); }
+                    /* Checkboxes (task list) */
+                    input[type="checkbox"] { width: 1.1em; height: 1.1em; margin-right: 0.4em; 
+                                             vertical-align: middle; cursor: default; 
+                                             accent-color: #0078d7; }
+                    li:has(input[type="checkbox"]) { list-style: none; margin-left: -1.2em; }
                     /* Front Matter metadata */
                     .front-matter { background: rgba(128,128,128,0.08); border: 1px solid rgba(128,128,128,0.25);
                                     border-radius: 6px; padding: 0.6em 1em; margin-bottom: 1.2em;
@@ -395,6 +403,32 @@ public class PreviewPanel extends BasePanel {
                 """.formatted(baseTag, hljsStyle, preBg, codeFg, frontMatterHtml, html, mermaidTheme);
         webView.getEngine().loadContent(htmlPage);
         this.currentHtml = htmlPage;
+    }
+
+    /**
+     * Convertit les marqueurs de checkbox Markdown ([ ] et [x]) en éléments HTML checkbox.
+     * 
+     * <p>Patterns reconnus :</p>
+     * <ul>
+     *   <li>{@code [ ]} → checkbox non cochée</li>
+     *   <li>{@code [x]} ou {@code [X]} → checkbox cochée</li>
+     * </ul>
+     *
+     * @param html le HTML généré par Flexmark
+     * @return le HTML avec les checkboxes converties
+     */
+    private String processCheckboxes(String html) {
+        // Remplacer [ ] par une checkbox non cochée
+        html = html.replaceAll(
+            "\\[ \\]",
+            "<input type=\"checkbox\" disabled>"
+        );
+        // Remplacer [x] ou [X] par une checkbox cochée
+        html = html.replaceAll(
+            "\\[[xX]\\]",
+            "<input type=\"checkbox\" checked disabled>"
+        );
+        return html;
     }
 
     /**
