@@ -51,6 +51,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Code Block Copy Button** - One-click copy for code blocks in preview
 - **Markdown Tables** - Full GFM table support with styled rendering
 - **Task Lists** - GitHub-style checkboxes (`[ ]` / `[x]`) rendered in preview
+- **GitHub Alerts** - Styled blockquotes for `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
 - **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview; switch between the **online PlantUML server** (default) or a **local `plantuml.jar`** configured in Options → Tools; local rendering is asynchronous (per-block background threads) and shows a ⚙ spinning gear icon in the status bar during generation
 - **Mermaid Diagrams** - Render Mermaid flowcharts, sequences, and more in the preview (theme auto-matches app theme)
 - **Math Equations** - LaTeX/MathML support via KaTeX (`$...$` inline, `$$...$$` block)
@@ -763,6 +764,9 @@ MarkNote supports standard Markdown syntax plus extensions:
 
 > Blockquotes
 
+> [!NOTE]
+> GitHub-style alerts
+
 ---
 Horizontal rules
 ---
@@ -821,6 +825,39 @@ In the preview, these render as:
 - ☑ Uppercase X also works
 
 > **Note:** Checkboxes in the preview are read-only (disabled). To change the state, edit the Markdown source directly.
+
+### GitHub Alerts
+
+MarkNote supports GitHub-style alerts (also known as admonitions) for highlighting important information in blockquotes:
+
+```markdown
+> [!NOTE]
+> Useful information that users should know.
+
+> [!TIP]
+> Helpful advice for doing things better or more easily.
+
+> [!IMPORTANT]
+> Key information users need to know.
+
+> [!WARNING]
+> Urgent info that needs immediate user attention.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes.
+```
+
+These render as styled boxes with colored borders and icons:
+
+| Alert Type | Color | Use Case |
+|------------|-------|----------|
+| **Note** | Blue | General information |
+| **Tip** | Green | Helpful hints and best practices |
+| **Important** | Purple | Critical information |
+| **Warning** | Yellow | Potential issues or caveats |
+| **Caution** | Red | Dangerous actions or irreversible operations |
+
+> **Tip:** GitHub Alerts work great for documentation, tutorials, and user guides where you need to draw attention to specific information.
 
 ### PlantUML Diagrams
 

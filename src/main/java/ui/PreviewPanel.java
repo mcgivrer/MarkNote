@@ -247,6 +247,9 @@ public class PreviewPanel extends BasePanel {
         // ── Checkboxes : convertir [ ] et [x] en éléments checkbox HTML
         html = processCheckboxes(html);
 
+        // ── GitHub Alerts : convertir les blockquotes [!NOTE], [!WARNING], etc.
+        html = processGitHubAlerts(html);
+
         // ── Images : injecter les attributs width/height
         if (!imageSizes.isEmpty()) {
             html = applyImageSizes(html, imageSizes);
@@ -333,6 +336,21 @@ public class PreviewPanel extends BasePanel {
                     pre:hover .copy-btn { opacity: 1; }
                     pre .copy-btn:hover { background: rgba(128,128,128,0.35); }
                     pre .copy-btn.copied { background: rgba(76,175,80,0.3); border-color: rgba(76,175,80,0.5); }
+                    /* GitHub-style Alerts */
+                    .markdown-alert { padding: 0.8em 1em; margin: 1em 0; border-left: 4px solid; border-radius: 6px; }
+                    .markdown-alert-title { display: flex; align-items: center; font-weight: 600; margin-bottom: 0.4em; }
+                    .markdown-alert-title svg { margin-right: 0.5em; }
+                    .markdown-alert p { margin: 0.3em 0; }
+                    .markdown-alert-note { background: rgba(9, 105, 218, 0.1); border-color: #0969da; }
+                    .markdown-alert-note .markdown-alert-title { color: #0969da; }
+                    .markdown-alert-tip { background: rgba(26, 127, 55, 0.1); border-color: #1a7f37; }
+                    .markdown-alert-tip .markdown-alert-title { color: #1a7f37; }
+                    .markdown-alert-important { background: rgba(130, 80, 223, 0.1); border-color: #8250df; }
+                    .markdown-alert-important .markdown-alert-title { color: #8250df; }
+                    .markdown-alert-warning { background: rgba(154, 103, 0, 0.1); border-color: #9a6700; }
+                    .markdown-alert-warning .markdown-alert-title { color: #9a6700; }
+                    .markdown-alert-caution { background: rgba(207, 34, 46, 0.1); border-color: #cf222e; }
+                    .markdown-alert-caution .markdown-alert-title { color: #cf222e; }
                   </style>
                 </head>
                 <body>%s%s
@@ -429,6 +447,83 @@ public class PreviewPanel extends BasePanel {
             "<input type=\"checkbox\" checked disabled>"
         );
         return html;
+    }
+
+    /** Pattern pour détecter les blockquotes GitHub Alerts. */
+    private static final Pattern GITHUB_ALERT_PATTERN = Pattern.compile(
+            "<blockquote>\\s*<p>\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]\\s*(.*?)</p>(.*?)</blockquote>",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+
+    /** Icônes SVG pour les alertes GitHub. */
+    private static final Map<String, String> ALERT_ICONS = Map.of(
+            "NOTE", "<svg viewBox='0 0 16 16' width='16' height='16' fill='currentColor'><path d='M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/></svg>",
+            "TIP", "<svg viewBox='0 0 16 16' width='16' height='16' fill='currentColor'><path d='M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z'/></svg>",
+            "IMPORTANT", "<svg viewBox='0 0 16 16' width='16' height='16' fill='currentColor'><path d='M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z'/></svg>",
+            "WARNING", "<svg viewBox='0 0 16 16' width='16' height='16' fill='currentColor'><path d='M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z'/></svg>",
+            "CAUTION", "<svg viewBox='0 0 16 16' width='16' height='16' fill='currentColor'><path d='M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/></svg>"
+    );
+
+    /** Labels traduits pour les alertes GitHub. */
+    private static final Map<String, String> ALERT_LABELS = Map.of(
+            "NOTE", "Note",
+            "TIP", "Tip",
+            "IMPORTANT", "Important",
+            "WARNING", "Warning",
+            "CAUTION", "Caution"
+    );
+
+    /**
+     * Convertit les blockquotes GitHub Alerts en éléments stylisés.
+     * 
+     * <p>Patterns reconnus :</p>
+     * <ul>
+     *   <li>{@code > [!NOTE]} → bloc note bleu</li>
+     *   <li>{@code > [!TIP]} → bloc tip vert</li>
+     *   <li>{@code > [!IMPORTANT]} → bloc important violet</li>
+     *   <li>{@code > [!WARNING]} → bloc warning jaune</li>
+     *   <li>{@code > [!CAUTION]} → bloc caution rouge</li>
+     * </ul>
+     *
+     * @param html le HTML généré par Flexmark
+     * @return le HTML avec les alertes converties
+     */
+    private String processGitHubAlerts(String html) {
+        Matcher m = GITHUB_ALERT_PATTERN.matcher(html);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String type = m.group(1).toUpperCase();
+            String firstLineContent = m.group(2).trim();
+            String restContent = m.group(3).trim();
+            
+            String icon = ALERT_ICONS.getOrDefault(type, "");
+            String label = ALERT_LABELS.getOrDefault(type, type);
+            String cssClass = "markdown-alert markdown-alert-" + type.toLowerCase();
+            
+            StringBuilder replacement = new StringBuilder();
+            replacement.append("<div class=\"").append(cssClass).append("\">")
+                       .append("<p class=\"markdown-alert-title\">")
+                       .append(icon).append(label).append("</p>");
+            
+            // Ajouter le contenu de la première ligne s'il existe
+            if (!firstLineContent.isEmpty()) {
+                // Nettoyer les <br> ou <br/> en début de contenu
+                firstLineContent = firstLineContent.replaceFirst("^<br\\s*/?>\\s*", "");
+                if (!firstLineContent.isEmpty()) {
+                    replacement.append("<p>").append(firstLineContent).append("</p>");
+                }
+            }
+            
+            // Ajouter le reste du contenu (autres paragraphes)
+            if (!restContent.isEmpty()) {
+                replacement.append(restContent);
+            }
+            
+            replacement.append("</div>");
+            
+            m.appendReplacement(sb, Matcher.quoteReplacement(replacement.toString()));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     /**
