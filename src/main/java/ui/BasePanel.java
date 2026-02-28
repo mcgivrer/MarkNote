@@ -5,6 +5,7 @@ import java.util.ResourceBundle;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -16,9 +17,10 @@ import javafx.scene.layout.Region;
 
 /**
  * Classe parente pour les panels avec un bandeau contenant un titre et un bouton de fermeture [x].
- * Implémente l'interface Detachable pour permettre le détachement vers un onglet.
+ * Implémente les interfaces Detachable et Dockable pour permettre le détachement vers un onglet
+ * et le docking vers différentes zones de la fenêtre.
  */
-public abstract class BasePanel extends BorderPane implements Detachable {
+public abstract class BasePanel extends BorderPane implements Detachable, Dockable {
 
     protected static ResourceBundle getMessages() {
         return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
@@ -32,6 +34,13 @@ public abstract class BasePanel extends BorderPane implements Detachable {
 
     private Runnable onCloseAction;
     private Runnable onDetachAction;
+    
+    // Docking support
+    private DockPosition dockPosition = DockPosition.LEFT;
+    private DockingManager dockingManager;
+    private double dragStartX, dragStartY;
+    private boolean dragging = false;
+    private static final double DRAG_THRESHOLD = 10.0;
 
     /**
      * Crée un panel avec un bandeau contenant un titre et un bouton de fermeture.
@@ -75,8 +84,56 @@ public abstract class BasePanel extends BorderPane implements Detachable {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(4));
         header.getStyleClass().add("panel-header");
+        header.setCursor(Cursor.MOVE);
+
+        // Support du drag pour le docking
+        setupDragHandlers();
 
         setTop(header);
+    }
+
+    /**
+     * Configure les handlers de drag pour le docking.
+     */
+    private void setupDragHandlers() {
+        header.setOnMousePressed(e -> {
+            if (dockingManager == null) return;
+            dragStartX = e.getScreenX();
+            dragStartY = e.getScreenY();
+            dragging = false;
+        });
+
+        header.setOnMouseDragged(e -> {
+            if (dockingManager == null) return;
+            
+            double deltaX = Math.abs(e.getScreenX() - dragStartX);
+            double deltaY = Math.abs(e.getScreenY() - dragStartY);
+            
+            if (!dragging && (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD)) {
+                dragging = true;
+                dockingManager.startDrag(this, e.getScreenX(), e.getScreenY());
+            }
+            
+            if (dragging) {
+                dockingManager.updateDrag(e.getScreenX(), e.getScreenY());
+            }
+        });
+
+        header.setOnMouseReleased(e -> {
+            if (dockingManager != null && dragging) {
+                dockingManager.endDrag();
+            }
+            dragging = false;
+        });
+    }
+
+    /**
+     * Définit le DockingManager pour ce panel.
+     *
+     * @param manager le gestionnaire de docking
+     */
+    public void setDockingManager(DockingManager manager) {
+        this.dockingManager = manager;
     }
 
     /**
@@ -179,5 +236,24 @@ public abstract class BasePanel extends BorderPane implements Detachable {
     @Override
     public void onReattached(Node content) {
         setCenter(content);
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Implémentation de l'interface Dockable
+    // ══════════════════════════════════════════════════════════════
+
+    @Override
+    public DockPosition getDockPosition() {
+        return dockPosition;
+    }
+
+    @Override
+    public void setDockPosition(DockPosition position) {
+        this.dockPosition = position;
+    }
+
+    @Override
+    public String getDockTitle() {
+        return getMessages().getString(titleKey);
     }
 }

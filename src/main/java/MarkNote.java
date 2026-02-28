@@ -7,10 +7,12 @@ import java.util.ResourceBundle;
 import config.AppConfig;
 import config.ThemeManager;
 import ui.BasePanel;
+import ui.DetachedPanelTab;
+import ui.DockingManager;
+import ui.DockPosition;
 import ui.DocumentTab;
 import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
-import ui.DetachedPanelTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
@@ -73,6 +75,8 @@ public class MarkNote extends Application {
     private SplitPane mainSplit;
     private SplitPane editorSplit;
     private SplitPane leftSplit;
+    private BorderPane root;
+    private DockingManager dockingManager;
 
     private GitService gitService;
 
@@ -100,7 +104,7 @@ public class MarkNote extends Application {
     public void start(Stage stage) {
         this.primaryStage = stage;
 
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
 
         // TabPane pour les documents
         mainTabPane = new TabPane();
@@ -241,7 +245,13 @@ public class MarkNote extends Application {
         HBox.setHgrow(menuBar, Priority.NEVER);
         root.setTop(topBar);
 
-        Scene scene = new Scene(root, 1200, 700);
+        // Configuration du DockingManager
+        setupDockingManager();
+
+        // StackPane pour permettre l'overlay de docking
+        javafx.scene.layout.StackPane sceneRoot = new javafx.scene.layout.StackPane(root, dockingManager.getOverlay());
+
+        Scene scene = new Scene(sceneRoot, 1200, 700);
         applyTheme(scene);
         if (projectExplorerPanel.getProjectDirectory() == null) {
             stage.setTitle(messages.getString("app.title.editor"));
@@ -339,18 +349,20 @@ public class MarkNote extends Application {
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
         showProjectPanel.setSelected(true);
         showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            // The project explorer and tag cloud are in a vertical SplitPane (leftSplit).
-            // We need to find it — it's the parent of projectExplorerPanel.
-            javafx.scene.Parent leftPane = projectExplorerPanel.getParent();
-            if (leftPane == null)
-                leftPane = projectExplorerPanel; // fallback
             if (isSelected) {
-                if (!mainSplit.getItems().contains(leftPane)) {
-                    mainSplit.getItems().addFirst(leftPane);
-                    mainSplit.setDividerPositions(0.2);
+                // S'assurer que leftSplit est dans mainSplit
+                if (!mainSplit.getItems().contains(leftSplit)) {
+                    mainSplit.getItems().add(0, leftSplit);
                 }
+                if (!leftSplit.getItems().contains(projectExplorerPanel)) {
+                    // Insérer en première position
+                    leftSplit.getItems().add(0, projectExplorerPanel);
+                }
+                redistributeDividers(leftSplit);
+                redistributeDividers(mainSplit);
             } else {
-                mainSplit.getItems().remove(leftPane);
+                leftSplit.getItems().remove(projectExplorerPanel);
+                cleanupEmptyContainers();
             }
         });
 
@@ -379,13 +391,20 @@ public class MarkNote extends Application {
         showTagCloud.setSelected(true);
         showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
             if (isSelected) {
+                // S'assurer que leftSplit est dans mainSplit
+                if (!mainSplit.getItems().contains(leftSplit)) {
+                    mainSplit.getItems().add(0, leftSplit);
+                }
                 if (!leftSplit.getItems().contains(tagCloudPanel)) {
                     // Insérer après l'explorateur (index 1) ou en fin
                     int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
                     leftSplit.getItems().add(idx + 1, tagCloudPanel);
                 }
+                redistributeDividers(leftSplit);
+                redistributeDividers(mainSplit);
             } else {
                 leftSplit.getItems().remove(tagCloudPanel);
+                cleanupEmptyContainers();
             }
         });
 
@@ -397,11 +416,18 @@ public class MarkNote extends Application {
         showNetworkDiagram.setSelected(true);
         showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
             if (isSelected) {
+                // S'assurer que leftSplit est dans mainSplit
+                if (!mainSplit.getItems().contains(leftSplit)) {
+                    mainSplit.getItems().add(0, leftSplit);
+                }
                 if (!leftSplit.getItems().contains(visualLinkPanel)) {
                     leftSplit.getItems().add(visualLinkPanel);
                 }
+                redistributeDividers(leftSplit);
+                redistributeDividers(mainSplit);
             } else {
                 leftSplit.getItems().remove(visualLinkPanel);
+                cleanupEmptyContainers();
             }
         });
 
@@ -514,6 +540,141 @@ public class MarkNote extends Application {
     }
 
     /**
+     * Configure le gestionnaire de docking.
+     */
+    private void setupDockingManager() {
+        dockingManager = new DockingManager(root);
+
+        // Enregistrer les conteneurs de docking
+        dockingManager.registerDockContainer(DockPosition.LEFT, leftSplit);
+
+        // Définir l'action de docking (vers un bord)
+        dockingManager.setOnDockAction(this::handleDockPanel);
+
+        // Définir l'action d'insertion (entre panels)
+        dockingManager.setOnInsertAction(this::handleInsertPanel);
+
+        // Associer le DockingManager à chaque panel
+        projectExplorerPanel.setDockingManager(dockingManager);
+        projectExplorerPanel.setDockPosition(DockPosition.LEFT);
+
+        tagCloudPanel.setDockingManager(dockingManager);
+        tagCloudPanel.setDockPosition(DockPosition.LEFT);
+
+        visualLinkPanel.setDockingManager(dockingManager);
+        visualLinkPanel.setDockPosition(DockPosition.LEFT);
+    }
+
+    /**
+     * Gère le docking d'un panel vers une nouvelle position.
+     *
+     * @param panel le panel à docker
+     * @param position la position cible
+     */
+    private void handleDockPanel(BasePanel panel, DockPosition position) {
+        // Retirer le panel de son emplacement actuel
+        leftSplit.getItems().remove(panel);
+        mainSplit.getItems().remove(panel);
+
+        // Nettoyer les zones vides
+        cleanupEmptyContainers();
+
+        if (position == DockPosition.CENTER) {
+            // Détacher vers un onglet
+            detachPanel(panel);
+        } else if (position == DockPosition.LEFT) {
+            // Ajouter au leftSplit
+            if (!leftSplit.getItems().contains(panel)) {
+                // S'assurer que leftSplit est dans mainSplit
+                if (!mainSplit.getItems().contains(leftSplit)) {
+                    mainSplit.getItems().add(0, leftSplit);
+                }
+                leftSplit.getItems().add(panel);
+                panel.setDockPosition(DockPosition.LEFT);
+                redistributeDividers(leftSplit);
+                redistributeDividers(mainSplit);
+            }
+        } else if (position == DockPosition.RIGHT) {
+            // Ajouter au mainSplit à droite
+            if (!mainSplit.getItems().contains(panel)) {
+                mainSplit.getItems().add(panel);
+                panel.setDockPosition(DockPosition.RIGHT);
+                redistributeDividers(mainSplit);
+            }
+        } else if (position == DockPosition.TOP || position == DockPosition.BOTTOM) {
+            // Fallback vers LEFT pour l'instant
+            if (!leftSplit.getItems().contains(panel)) {
+                if (!mainSplit.getItems().contains(leftSplit)) {
+                    mainSplit.getItems().add(0, leftSplit);
+                }
+                leftSplit.getItems().add(panel);
+                panel.setDockPosition(DockPosition.LEFT);
+                redistributeDividers(leftSplit);
+                redistributeDividers(mainSplit);
+            }
+        }
+    }
+
+    /**
+     * Gère l'insertion d'un panel entre d'autres panels.
+     *
+     * @param panel le panel à insérer
+     * @param container le conteneur cible
+     * @param insertIndex l'index d'insertion
+     */
+    private void handleInsertPanel(BasePanel panel, SplitPane container, int insertIndex) {
+        // Retirer le panel de son emplacement actuel
+        leftSplit.getItems().remove(panel);
+        mainSplit.getItems().remove(panel);
+
+        // Nettoyer les zones vides
+        cleanupEmptyContainers();
+
+        // S'assurer que le conteneur est visible
+        if (container == leftSplit && !mainSplit.getItems().contains(leftSplit)) {
+            mainSplit.getItems().add(0, leftSplit);
+        }
+
+        // Insérer à l'index demandé (ajuster si nécessaire)
+        int maxIndex = container.getItems().size();
+        int safeIndex = Math.min(insertIndex, maxIndex);
+        
+        container.getItems().add(safeIndex, panel);
+        
+        // Mettre à jour la position du panel
+        if (container == leftSplit) {
+            panel.setDockPosition(DockPosition.LEFT);
+        }
+        
+        redistributeDividers(container);
+        redistributeDividers(mainSplit);
+    }
+
+    /**
+     * Nettoie les conteneurs vides.
+     */
+    private void cleanupEmptyContainers() {
+        // Si leftSplit est vide, le retirer de mainSplit
+        if (leftSplit.getItems().isEmpty()) {
+            mainSplit.getItems().remove(leftSplit);
+        }
+    }
+
+    /**
+     * Redistribue les diviseurs d'un SplitPane de manière égale.
+     */
+    private void redistributeDividers(SplitPane splitPane) {
+        int count = splitPane.getItems().size();
+        if (count <= 1) return;
+
+        double[] positions = new double[count - 1];
+        for (int i = 0; i < count - 1; i++) {
+            positions[i] = (double)(i + 1) / count;
+        }
+        splitPane.setDividerPositions(positions);
+    }
+
+    /**
      * Détache un panel dans un onglet séparé.
      *
      * @param panel le panel à détacher
@@ -529,6 +690,8 @@ public class MarkNote extends Application {
 
         // Masquer le panel dans le SplitPane
         leftSplit.getItems().remove(panel);
+        mainSplit.getItems().remove(panel);
+        cleanupEmptyContainers();
 
         // Créer l'onglet
         DetachedPanelTab detachedTab = new DetachedPanelTab(panel);
@@ -536,7 +699,13 @@ public class MarkNote extends Application {
             // Réafficher le panel si l'option est activée
             if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(panel)) {
                 if (!leftSplit.getItems().contains(panel)) {
+                    // S'assurer que leftSplit est dans mainSplit
+                    if (!mainSplit.getItems().contains(leftSplit)) {
+                        mainSplit.getItems().add(0, leftSplit);
+                    }
                     leftSplit.getItems().add(panel);
+                    redistributeDividers(leftSplit);
+                    redistributeDividers(mainSplit);
                 }
             }
         });
