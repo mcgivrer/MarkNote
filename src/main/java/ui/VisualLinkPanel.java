@@ -20,7 +20,6 @@ import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -107,7 +106,6 @@ public class VisualLinkPanel extends BasePanel {
     private Consumer<File> onFileSelected;
     private Popup tagPopup;
     private ListView<SearchResult> tagResultsList;
-    private Runnable onDetach;
 
     // ── Document courant et métadonnées tooltip ─────────────────
     private String currentDocumentPath = null;
@@ -165,18 +163,6 @@ public class VisualLinkPanel extends BasePanel {
 
     public VisualLinkPanel() {
         super("networkdiagram.title", "networkdiagram.close.tooltip");
-
-        // Bouton détacher (ouvrir dans un onglet)
-        Button detachButton = new Button("⇱");
-        detachButton.getStyleClass().add("panel-close-button");
-        detachButton.setTooltip(new Tooltip(bundle.getString("networkdiagram.detach.tooltip")));
-        detachButton.setOnAction(e -> {
-            if (onDetach != null) {
-                onDetach.run();
-            }
-        });
-        // Insérer avant le bouton de fermeture
-        getHeader().getChildren().add(getHeader().getChildren().size() - 1, detachButton);
 
         canvas = new Canvas(400, 300);
         canvasContainer = new Pane(canvas);
@@ -1129,11 +1115,9 @@ public class VisualLinkPanel extends BasePanel {
         this.onFileSelected = action;
     }
 
-    /**
-     * Définit l'action quand le bouton détacher est cliqué.
-     */
-    public void setOnDetach(Runnable action) {
-        this.onDetach = action;
+    @Override
+    public void afterReattach() {
+        zoomToFit();
     }
 
     // ── Popup recherche par tag ────────────────────────────────────

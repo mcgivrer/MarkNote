@@ -6,10 +6,11 @@ import java.util.ResourceBundle;
 
 import config.AppConfig;
 import config.ThemeManager;
+import ui.BasePanel;
 import ui.DocumentTab;
 import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
-import ui.NetworkDiagramTab;
+import ui.DetachedPanelTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
@@ -62,7 +63,6 @@ public class MarkNote extends Application {
     private ProjectExplorerPanel projectExplorerPanel;
     private TagCloudPanel tagCloudPanel;
     private VisualLinkPanel visualLinkPanel;
-    private NetworkDiagramTab networkDiagramTab;
     private SearchBox searchBox;
     private StatusBar statusBar;
     private IndexService indexService;
@@ -150,7 +150,7 @@ public class MarkNote extends Application {
         });
         visualLinkPanel.setIndexService(indexService);
         visualLinkPanel.setOnFileSelected(this::openFileInTab);
-        visualLinkPanel.setOnDetach(this::detachNetworkDiagram);
+        visualLinkPanel.setOnDetach(() -> detachPanel(visualLinkPanel));
 
         // Search box (dans la barre du haut)
         searchBox = new SearchBox();
@@ -173,9 +173,11 @@ public class MarkNote extends Application {
 
         // Tag cloud : clic sur un tag → recherche
         tagCloudPanel.setOnTagClick(tag -> searchBox.setSearchText(tag));
+        tagCloudPanel.setOnDetach(() -> detachPanel(tagCloudPanel));
 
         // Reset index depuis le menu contextuel de l'explorateur
         projectExplorerPanel.setOnResetIndex(this::handleResetIndex);
+        projectExplorerPanel.setOnDetach(() -> detachPanel(projectExplorerPanel));
 
         // Index updates: fichier créé, renommé, supprimé, déplacé, copié
         projectExplorerPanel.setOnFileCreated(file -> {
@@ -512,35 +514,35 @@ public class MarkNote extends Application {
     }
 
     /**
-     * Détache le diagramme réseau dans un onglet séparé.
+     * Détache un panel dans un onglet séparé.
+     *
+     * @param panel le panel à détacher
      */
-    private void detachNetworkDiagram() {
-        // Éviter les doublons
-        if (networkDiagramTab != null && mainTabPane.getTabs().contains(networkDiagramTab)) {
-            mainTabPane.getSelectionModel().select(networkDiagramTab);
-            return;
+    private void detachPanel(BasePanel panel) {
+        // Éviter les doublons - chercher si un onglet existe déjà pour ce panel
+        for (var tab : mainTabPane.getTabs()) {
+            if (tab instanceof DetachedPanelTab dpt && dpt.getSourcePanel() == panel) {
+                mainTabPane.getSelectionModel().select(tab);
+                return;
+            }
         }
 
         // Masquer le panel dans le SplitPane
-        leftSplit.getItems().remove(visualLinkPanel);
+        leftSplit.getItems().remove(panel);
 
         // Créer l'onglet
-        networkDiagramTab = new NetworkDiagramTab(visualLinkPanel);
-        networkDiagramTab.setOnCloseAction(() -> {
-            networkDiagramTab = null;
-            // Réafficher le panel si l'option est activée ou si le panel n'est plus visible
-            if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(visualLinkPanel)) {
-                if (!leftSplit.getItems().contains(visualLinkPanel)) {
-                    leftSplit.getItems().add(visualLinkPanel);
+        DetachedPanelTab detachedTab = new DetachedPanelTab(panel);
+        detachedTab.setOnCloseAction(() -> {
+            // Réafficher le panel si l'option est activée
+            if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(panel)) {
+                if (!leftSplit.getItems().contains(panel)) {
+                    leftSplit.getItems().add(panel);
                 }
             }
         });
 
-        mainTabPane.getTabs().add(networkDiagramTab);
-        mainTabPane.getSelectionModel().select(networkDiagramTab);
-
-        // Redimensionner après un court délai pour que le layout se stabilise
-        Platform.runLater(() -> visualLinkPanel.zoomToFit());
+        mainTabPane.getTabs().add(detachedTab);
+        mainTabPane.getSelectionModel().select(detachedTab);
     }
 
     /**
