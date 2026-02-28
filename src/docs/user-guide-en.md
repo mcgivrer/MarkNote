@@ -50,6 +50,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Syntax Highlighting** - Code blocks with automatic language detection and theme-coordinated coloring
 - **Code Block Copy Button** - One-click copy for code blocks in preview
 - **Markdown Tables** - Full GFM table support with styled rendering
+- **Task Lists** - GitHub-style checkboxes (`[ ]` / `[x]`) rendered in preview
 - **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview; switch between the **online PlantUML server** (default) or a **local `plantuml.jar`** configured in Options → Tools; local rendering is asynchronous (per-block background threads) and shows a ⚙ spinning gear icon in the status bar during generation
 - **Mermaid Diagrams** - Render Mermaid flowcharts, sequences, and more in the preview (theme auto-matches app theme)
 - **Math Equations** - LaTeX/MathML support via KaTeX (`$...$` inline, `$$...$$` block)
@@ -62,6 +63,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Network Diagram** - Interactive force-directed graph of document links and shared tags, with tooltips and current document highlighting
 - **Status Bar** - Document info, statistics, and indexing progress at the bottom of the window
 - **Multi-document Tabs** - Work on multiple files simultaneously, with drag-to-reorder tabs
+- **Panel Detachment** - Detach side panels to independent tabs, and restore them back to their docked position
 - **Theme Support** - Built-in themes with custom theme creation and a full CSS theme editor
 - **Splash Screen** - Themed splash screen at startup (configurable)
 - **Image Preview** - Quick preview for images with zoom/pan and format/size info overlay
@@ -177,6 +179,26 @@ You can show or hide panels using the **View** menu or by clicking the **×** cl
 | **View → Show Welcome** | Open the Welcome tab |
 
 Each panel can also be closed by clicking the **×** button in its header. Re-opening it from the View menu restores it to the layout.
+
+### Detaching Panels to Tabs
+
+Left-side panels (**Project Explorer**, **Tag Cloud**, **Network Diagram**) and the **Preview** panel can be **detached** from their docked position and converted into independent tabs in the main editor area. This gives you more flexibility to organize your workspace.
+
+**To detach a panel:**
+
+1. Click the **⇱ detach button** (window icon) in the panel's header bar
+2. The panel disappears from its docked position and opens as a new tab in the editor tab bar
+3. The View menu checkbox for that panel is automatically unchecked
+
+**To restore a detached panel:**
+
+1. Click the **⇲ restore button** (dock icon) in the tab's header, OR
+2. Right-click on the tab and select **Restore to Panel**, OR
+3. Re-enable the panel from the **View** menu (this will close the tab and restore the panel to its original position)
+
+![Panel Detach](illustrations/panel-detach.svg)
+
+> **Tip:** Detaching panels is useful when you want to maximize the editor area while still keeping certain panels accessible as tabs.
 
 ---
 
@@ -745,6 +767,9 @@ MarkNote supports standard Markdown syntax plus extensions:
 Horizontal rules
 ---
 
+- [ ] Unchecked task
+- [x] Completed task
+
 | Tables | Are | Supported |
 |--------|-----|-----------|
 | Data   | Goes| Here      |
@@ -779,6 +804,23 @@ Custom themes are detected via a **"Based on:" comment** in the CSS header, with
 ### Code Block Copy Button
 
 Every code block in the preview displays a **"Copy" button** on hover (top-right corner). Clicking it copies the code to the clipboard, and the button briefly shows **"✓ Copied"** with a green background for 1.5 seconds.
+
+### Task Lists (Checkboxes)
+
+MarkNote supports GitHub-style task lists (checkboxes) in the preview:
+
+```markdown
+- [ ] This is an unchecked task
+- [x] This is a completed task
+- [X] Uppercase X also works
+```
+
+In the preview, these render as:
+- ☐ This is an unchecked task
+- ☑ This is a completed task
+- ☑ Uppercase X also works
+
+> **Note:** Checkboxes in the preview are read-only (disabled). To change the state, edit the Markdown source directly.
 
 ### PlantUML Diagrams
 
