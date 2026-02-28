@@ -585,8 +585,32 @@ The Network Diagram uses a **force-directed layout** algorithm to arrange your d
 - **Dashed edges** connect documents to the tags they share
 - **Current document** is highlighted with an **orange border** and cream-colored fill
 - **Isolated nodes** (no connections) are automatically hidden from the diagram
+- **Document groups** — disconnected clusters of documents are circled with pastel-colored halos for easy identification
 
 The physics simulation runs until the layout stabilizes (~60 frames below velocity threshold), then the view **automatically zooms to fit** all nodes with a 40px margin.
+
+### Document Groups
+
+When your project contains multiple independent clusters of documents (no links or shared tags between them), each cluster is displayed inside a **pastel-colored circle**. This helps you visualize which documents form isolated groups.
+
+- **Click a group circle** — Zoom to fit the group in view
+- **Double-click a group circle** — Name the group; a dialog prompts for a name which is then displayed as a label and persisted in the index
+
+### Detaching the Diagram
+
+You can detach the Network Diagram into its own tab for a larger view:
+
+1. Click the **Detach** button (↗) in the panel header
+2. The diagram opens in a new tab alongside your documents
+3. When you close the tab, the diagram returns to the side panel (configurable in Options)
+
+### Automatic Label Hiding
+
+To keep the diagram readable at high zoom-out levels, document labels are automatically hidden when:
+- Zoom level is below 50% **and** there are more than 20 documents
+- Zoom level is below 30% **and** there are more than 10 documents
+
+This prevents visual clutter and improves performance with large projects.
 
 ### Navigation & Interaction
 
@@ -949,6 +973,7 @@ Access settings via **Help → Options...** or by pressing the shortcut shown in
 | **Show Welcome page on startup** | Display the Welcome tab when starting |
 | **Show splash screen on startup** | Display the splash screen when starting (enabled by default) |
 | **Front matter expanded by default** | Whether the Front Matter panel is expanded when opening documents (default: true) |
+| **Reattach diagram panel when tab closes** | When enabled, the Network Diagram returns to the side panel after closing its detached tab (default: true) |
 | **Language** | Choose your preferred interface language (`system` follows OS locale) |
 
 > **Note:** Changing the language **saves the configuration immediately** and **restarts the application**.
