@@ -106,7 +106,7 @@ Or use the build script:
 ### Running with a specific language
 
 ```bash
-java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.0-snapshot.jar:target/build/libs/*" Main
+java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.0.jar:target/build/libs/*" Main
 ```
 
 ## Packaging
@@ -164,8 +164,8 @@ Where `{platform}` is:
 1. Download or build the package for your platform
 2. Extract the ZIP archive:
    ```bash
-   unzip MarkNote-0.1.0-snapshot-linux.zip
-   cd MarkNote-0.1.0-snapshot-linux
+   unzip MarkNote-0.1.0-linux.zip
+   cd MarkNote-0.1.0-linux
    ```
 3. Run the application:
    - **Linux/macOS:** `./MarkNote.sh`
