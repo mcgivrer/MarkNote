@@ -25,7 +25,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/)); each app theme maps to a matching highlight.js style
 - **Code Block Copy Button** - One-click copy for code blocks in preview, with visual "✓ Copied" feedback
 - **Markdown Tables** - Full GFM table support with styled rendering
-- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview; supports both the **official PlantUML online server** and a **local PlantUML jar** (configurable in Options → Tools); when local rendering is active a spinning ⚙ gear icon and a status indicator are shown in the status bar during generation
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview; supports both the **official PlantUML online server** and a **local PlantUML jar** (configurable in Options → Tools); when local rendering is active a spinning ⚙ gear icon and a status indicator are shown in the status bar during generation; **in-memory SVG cache** based on source hash avoids regenerating unchanged diagrams
 - **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview; Mermaid theme auto-matches app theme
 - **Math Equations** - LaTeX/MathML support via KaTeX for inline (`$...$`) and block (`$$...$$`) equations
 - **Front Matter Panel** - Collapsible panel above the editor for visual editing of YAML front matter (title, tags, authors, summary, UUID, created date, draft); supports custom fields and UUID-based document linking via drag & drop
@@ -54,13 +54,13 @@ A lightweight and modern Markdown editor built with JavaFX.
 
 MarkNote is available in 5 languages:
 
-| Language | Locale |
-|----------|--------|
-| Français (French) | `fr` |
-| English | `en` |
-| Deutsch (German) | `de` |
-| Español (Spanish) | `es` |
-| Italiano (Italian) | `it` |
+| Language           | Locale |
+| ------------------ | ------ |
+| Français (French)  | `fr`   |
+| English            | `en`   |
+| Deutsch (German)   | `de`   |
+| Español (Spanish)  | `es`   |
+| Italiano (Italian) | `it`   |
 
 The application automatically uses your system's locale.
 
@@ -81,13 +81,13 @@ cd marknote
 
 ### Build Commands
 
-| Command | Description |
-|---------|-------------|
-| `./build` | Compile the project and create the JAR |
-| `./build run` | Compile and run the application |
-| `./build test` | Run unit tests |
-| `./build package` | Create a distributable package for the **current platform** with embedded JRE |
-| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win) |
+| Command               | Description                                                                   |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `./build`             | Compile the project and create the JAR                                        |
+| `./build run`         | Compile and run the application                                               |
+| `./build test`        | Run unit tests                                                                |
+| `./build package`     | Create a distributable package for the **current platform** with embedded JRE |
+| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win)         |
 
 ## Running
 
@@ -137,11 +137,11 @@ Create packages for **all three platforms** in one shot:
 
 This produces three ZIP archives in `target/`:
 
-| Archive | Platform |
-|---------|----------|
-| `MarkNote-{version}-linux.zip` | Linux x64 |
-| `MarkNote-{version}-mac.zip` | macOS |
-| `MarkNote-{version}-win.zip` | Windows x64 |
+| Archive                        | Platform    |
+| ------------------------------ | ----------- |
+| `MarkNote-{version}-linux.zip` | Linux x64   |
+| `MarkNote-{version}-mac.zip`   | macOS       |
+| `MarkNote-{version}-win.zip`   | Windows x64 |
 
 > **Note:** A minimal embedded JRE (via `jlink`) is bundled only for the current host platform.
 > Cross-platform packages include all required JARs but require a compatible Java runtime already
