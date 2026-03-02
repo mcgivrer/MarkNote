@@ -239,6 +239,7 @@ UNIXLAUNCHER_NOJRE_START
     echo "Copying application icons..."
     mkdir -p "${DIST_DIR}/icons"
     cp ${SRC}/main/resources/images/icons/marknote.svg "${DIST_DIR}/icons/" 2>/dev/null || true
+    cp ${SRC}/main/resources/images/icons/marknote.ico "${DIST_DIR}/icons/" 2>/dev/null || true
     cp ${SRC}/main/resources/images/icons/marknote-128.png "${DIST_DIR}/icons/" 2>/dev/null || true
     cp ${SRC}/main/resources/images/icons/marknote-64.png "${DIST_DIR}/icons/" 2>/dev/null || true
     cp ${SRC}/main/resources/images/icons/marknote-32.png "${DIST_DIR}/icons/" 2>/dev/null || true
@@ -448,11 +449,11 @@ copy /Y "%SCRIPT_DIR%%APP_NAME%.bat" "%INSTALL_DIR%\"
 
 :: Create Desktop shortcut using PowerShell
 echo Creating Desktop shortcut...
-powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), '%APP_NAME%.lnk')); $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; $sc.WorkingDirectory = '%INSTALL_DIR%'; $sc.IconLocation = '%INSTALL_DIR%\icons\marknote-128.png'; $sc.Description = 'MarkNote - Markdown Note Editor'; $sc.Save()"
+powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut([System.IO.Path]::Combine([Environment]::GetFolderPath('Desktop'), '%APP_NAME%.lnk')); $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; $sc.WorkingDirectory = '%INSTALL_DIR%'; $sc.IconLocation = '%INSTALL_DIR%\icons\marknote.ico'; $sc.Description = 'MarkNote - Markdown Note Editor'; $sc.Save()"
 
 :: Create Start Menu shortcut
 echo Creating Start Menu shortcut...
-powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('%START_MENU%\%APP_NAME%.lnk'); $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; $sc.WorkingDirectory = '%INSTALL_DIR%'; $sc.IconLocation = '%INSTALL_DIR%\icons\marknote-128.png'; $sc.Description = 'MarkNote - Markdown Note Editor'; $sc.Save()"
+powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('%START_MENU%\%APP_NAME%.lnk'); $sc.TargetPath = '%INSTALL_DIR%\%APP_NAME%.bat'; $sc.WorkingDirectory = '%INSTALL_DIR%'; $sc.IconLocation = '%INSTALL_DIR%\icons\marknote.ico'; $sc.Description = 'MarkNote - Markdown Note Editor'; $sc.Save()"
 
 echo.
 echo =========================================
