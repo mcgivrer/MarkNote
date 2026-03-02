@@ -10,7 +10,7 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
-![An illustration of the Main interface pf MarkNote](src/docs/illustrations/marknote-0.1.0-screenshot-002.png "The Main interface for MarkNote")
+![An illustration of the Main interface pf MarkNote](src/docs/illustrations/marknote-0.1.1-screenshot-002.png "The Main interface for MarkNote")
 
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
@@ -106,7 +106,7 @@ Or use the build script:
 ### Running with a specific language
 
 ```bash
-java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.0.jar:target/build/libs/*" Main
+java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.1.jar:target/build/libs/*" Main
 ```
 
 ## Packaging
@@ -164,8 +164,8 @@ Where `{platform}` is:
 1. Download or build the package for your platform
 2. Extract the ZIP archive:
    ```bash
-   unzip MarkNote-0.1.0-linux.zip
-   cd MarkNote-0.1.0-linux
+   unzip MarkNote-0.1.1-linux.zip
+   cd MarkNote-0.1.1-linux
    ```
 3. Run the application:
    - **Linux/macOS:** `./MarkNote.sh`
