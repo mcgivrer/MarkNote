@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.MessageDigest;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -94,6 +96,9 @@ public class PreviewPanel extends BasePanel {
     private static final Pattern PLANTUML_BLOCK = Pattern.compile(
             "<pre><code\\s+class=\"language-plantuml\">(.*?)</code></pre>",
             Pattern.DOTALL);
+
+    /** Cache des SVG PlantUML générés (clé = hash SHA-256 du code source). */
+    private static final Map<String, String> pumlSvgCache = new ConcurrentHashMap<>();
 
     /**
      * Pattern pour détecter la syntaxe d'image étendue avec dimensions.
@@ -577,8 +582,9 @@ public class PreviewPanel extends BasePanel {
 
     /**
      * Démarre un thread de fond par bloc PlantUML en attente.
-     * Chaque thread génère le SVG via le jar local, puis l'injecte dans la page
-     * via {@code executeScript}. Quand tous les blocs sont rendus, le callback
+     * Chaque thread génère le SVG via le jar local (ou utilise le cache),
+     * puis l'injecte dans la page via {@code executeScript}.
+     * Quand tous les blocs sont rendus, le callback
      * {@link #onPlantUmlRenderingChanged} est appelé avec {@code false}.
      */
     private void dispatchLocalPumlRendering() {
@@ -595,39 +601,77 @@ public class PreviewPanel extends BasePanel {
         for (String[] block : blocks) {
             String id    = block[0];
             String puml  = block[1];
+            String cacheKey = computePumlHash(puml);
+            
+            // Vérifier le cache d'abord
+            String cachedSvg = pumlSvgCache.get(cacheKey);
+            if (cachedSvg != null) {
+                // Utiliser le SVG mis en cache directement sur le thread FX
+                injectSvgIntoDom(id, cachedSvg, puml);
+                continue;
+            }
+            
+            // Pas en cache : lancer le rendu en arrière-plan
             Thread t = new Thread(() -> {
                 String svg = renderWithLocalJar(puml, jarPath);
-                Platform.runLater(() -> {
-                    try {
-                        if (svg != null) {
-                            // Encoder en base64 pour éviter tout problème d'échappement JS
-                            String b64 = Base64.getEncoder().encodeToString(
-                                    svg.getBytes(StandardCharsets.UTF_8));
-                            String js = "var el=document.getElementById('" + id + "');"
-                                    + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
-                                    + "<img src=\"data:image/svg+xml;base64," + b64 + "\""
-                                    + " alt=\"PlantUML diagram\"></div>';";
-                            webView.getEngine().executeScript(js);
-                        } else {
-                            // Repli : serveur en ligne
-                            String url = PlantUmlEncoder.toSvgUrl(puml);
-                            String js = "var el=document.getElementById('" + id + "');"
-                                    + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
-                                    + "<img src=\"" + url + "\""
-                                    + " alt=\"PlantUML diagram\"></div>';";
-                            webView.getEngine().executeScript(js);
-                        }
-                    } catch (Exception ignored) {
-                    } finally {
-                        if (pendingPumlCount.decrementAndGet() == 0
-                                && onPlantUmlRenderingChanged != null) {
-                            onPlantUmlRenderingChanged.accept(false);
-                        }
-                    }
-                });
+                if (svg != null) {
+                    // Stocker dans le cache
+                    pumlSvgCache.put(cacheKey, svg);
+                }
+                Platform.runLater(() -> injectSvgIntoDom(id, svg, puml));
             });
             t.setDaemon(true);
             t.start();
+        }
+    }
+
+    /**
+     * Injecte un SVG PlantUML dans le DOM, ou utilise le serveur en ligne en cas d'échec.
+     */
+    private void injectSvgIntoDom(String id, String svg, String puml) {
+        try {
+            if (svg != null) {
+                // Encoder en base64 pour éviter tout problème d'échappement JS
+                String b64 = Base64.getEncoder().encodeToString(
+                        svg.getBytes(StandardCharsets.UTF_8));
+                String js = "var el=document.getElementById('" + id + "');"
+                        + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
+                        + "<img src=\"data:image/svg+xml;base64," + b64 + "\""
+                        + " alt=\"PlantUML diagram\"></div>';";
+                webView.getEngine().executeScript(js);
+            } else {
+                // Repli : serveur en ligne
+                String url = PlantUmlEncoder.toSvgUrl(puml);
+                String js = "var el=document.getElementById('" + id + "');"
+                        + "if(el)el.outerHTML='<div class=\"plantuml-diagram\">"
+                        + "<img src=\"" + url + "\""
+                        + " alt=\"PlantUML diagram\"></div>';";
+                webView.getEngine().executeScript(js);
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (pendingPumlCount.decrementAndGet() == 0
+                    && onPlantUmlRenderingChanged != null) {
+                onPlantUmlRenderingChanged.accept(false);
+            }
+        }
+    }
+
+    /**
+     * Calcule un hash SHA-256 du code PlantUML pour servir de clé de cache.
+     */
+    private String computePumlHash(String puml) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(puml.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            // Fallback : utiliser le code lui-même comme clé
+            return puml;
         }
     }
 
