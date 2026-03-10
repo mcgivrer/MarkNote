@@ -10,7 +10,7 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
-![An illustration of the Main interface pf MarkNote](src/docs/illustrations/marknote-0.1.1-screenshot-002.png "The Main interface for MarkNote")
+![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.1-screenshot-002.png "The Main interface for MarkNote")
 
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
@@ -21,7 +21,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 ## Features
 
 - **Markdown Editing** - Full-featured Markdown editor with syntax highlighting (headings, bold, italic, strikethrough, code, blockquotes, lists, links, images, horizontal rules)
-- **Live Preview** - Real-time HTML preview with WebView rendering
+- **Live Preview** - Real-time HTML preview with WebView rendering; supports external HTTP/HTTPS images
 - **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/)); each app theme maps to a matching highlight.js style
 - **Code Block Copy Button** - One-click copy for code blocks in preview, with visual "✓ Copied" feedback
 - **Markdown Tables** - Full GFM table support with styled rendering
@@ -106,7 +106,7 @@ Or use the build script:
 ### Running with a specific language
 
 ```bash
-java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.1.jar:target/build/libs/*" Main
+java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.2.jar:target/build/libs/*" Main
 ```
 
 ## Packaging
@@ -164,8 +164,8 @@ Where `{platform}` is:
 1. Download or build the package for your platform
 2. Extract the ZIP archive:
    ```bash
-   unzip MarkNote-0.1.1-linux.zip
-   cd MarkNote-0.1.1-linux
+   unzip MarkNote-0.1.2-linux.zip
+   cd MarkNote-0.1.2-linux
    ```
 3. Run the application:
    - **Linux/macOS:** `./MarkNote.sh`

@@ -1,7 +1,7 @@
 ---
 title: "MarkNote User Guide"
-date: 2026-02-25
-version: "0.1.1"
+date: 2026-03-10
+version: "0.1.2"
 author: "Frédéric Delorme"
 description: "Official user guide for MarkNote, a lightweight Markdown editor built with JavaFX."
 summary: "Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features."
@@ -12,7 +12,7 @@ status: draft
 
 # MarkNote User Guide
 
-Version 0.1.1
+Version 0.1.2
 
 Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features.
 
@@ -760,7 +760,8 @@ MarkNote supports standard Markdown syntax plus extensions:
 
 [Links](https://example.com)
 
-![Images](path/to/image.png)
+![Local images](path/to/image.png)
+![External images](https://example.com/image.png)
 
 > Blockquotes
 
@@ -778,6 +779,20 @@ Horizontal rules
 |--------|-----|-----------|
 | Data   | Goes| Here      |
 ```
+
+### Images
+
+MarkNote supports both local and external images in the preview:
+
+- **Local images:** Relative paths from your project directory
+- **External images:** HTTP/HTTPS URLs from the internet
+
+```markdown
+![Local screenshot](./images/screenshot.png)
+![Web image](https://example.com/image.png)
+```
+
+> **Note:** External images require an internet connection. If the image URL is unreachable, a broken image placeholder will be displayed.
 
 ### Code Syntax Highlighting
 
@@ -1216,7 +1231,7 @@ If you encounter issues not covered here:
 
 ## About MarkNote
 
-**Version:** 0.0.6
+**Version:** 0.1.2
 **Author:** Frédéric Delorme  
 **Copyright:** © SnapGames 2026  
 **License:** MIT  
@@ -1224,4 +1239,4 @@ If you encounter issues not covered here:
 
 ---
 
-*This documentation is part of the MarkNote project. Last updated: February 2026.*
+*This documentation is part of the MarkNote project. Last updated: March 2026.*
