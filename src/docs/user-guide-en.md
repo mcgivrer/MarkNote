@@ -1,7 +1,7 @@
 ---
 title: "MarkNote User Guide"
-date: 2026-02-25
-version: "0.1.0"
+date: 2026-03-10
+version: "0.1.2"
 author: "Frédéric Delorme"
 description: "Official user guide for MarkNote, a lightweight Markdown editor built with JavaFX."
 summary: "Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features."
@@ -12,7 +12,7 @@ status: draft
 
 # MarkNote User Guide
 
-Version 0.1.0
+Version 0.1.2
 
 Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features.
 
@@ -52,7 +52,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Markdown Tables** - Full GFM table support with styled rendering
 - **Task Lists** - GitHub-style checkboxes (`[ ]` / `[x]`) rendered in preview
 - **GitHub Alerts** - Styled blockquotes for `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`
-- **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview; switch between the **online PlantUML server** (default) or a **local `plantuml.jar`** configured in Options → Tools; local rendering is asynchronous (per-block background threads) and shows a ⚙ spinning gear icon in the status bar during generation
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in the preview; switch between the **online PlantUML server** (default) or a **local `plantuml.jar`** configured in Options → Tools; local rendering is asynchronous (per-block background threads) and shows a ⚙ spinning gear icon in the status bar during generation; **in-memory SVG cache** avoids regenerating unchanged diagrams
 - **Mermaid Diagrams** - Render Mermaid flowcharts, sequences, and more in the preview (theme auto-matches app theme)
 - **Math Equations** - LaTeX/MathML support via KaTeX (`$...$` inline, `$$...$$` block)
 - **Front Matter Panel** - Collapsible panel above the editor showing and editing YAML front matter metadata, with UUID-based document linking via drag & drop
@@ -760,7 +760,8 @@ MarkNote supports standard Markdown syntax plus extensions:
 
 [Links](https://example.com)
 
-![Images](path/to/image.png)
+![Local images](path/to/image.png)
+![External images](https://example.com/image.png)
 
 > Blockquotes
 
@@ -778,6 +779,20 @@ Horizontal rules
 |--------|-----|-----------|
 | Data   | Goes| Here      |
 ```
+
+### Images
+
+MarkNote supports both local and external images in the preview:
+
+- **Local images:** Relative paths from your project directory
+- **External images:** HTTP/HTTPS URLs from the internet
+
+```markdown
+![Local screenshot](./images/screenshot.png)
+![Web image](https://example.com/image.png)
+```
+
+> **Note:** External images require an internet connection. If the image URL is unreachable, a broken image placeholder will be displayed.
 
 ### Code Syntax Highlighting
 
@@ -889,6 +904,7 @@ When local rendering is active:
 - The **⚙ spinning gear** icon in the status bar is visible during rendering
 - On completion the placeholders are replaced inline with the SVG (no page reload)
 - If the local jar fails, the diagram falls back silently to the online server
+- **SVG Cache:** Generated SVG images are cached in memory using a SHA-256 hash of the diagram source; unchanged diagrams are served instantly from cache without invoking the jar, significantly improving preview responsiveness during editing
 
 See [Options → Tools Tab](#tools-tab) to configure the local jar.
 
@@ -1215,7 +1231,7 @@ If you encounter issues not covered here:
 
 ## About MarkNote
 
-**Version:** 0.0.6
+**Version:** 0.1.2
 **Author:** Frédéric Delorme  
 **Copyright:** © SnapGames 2026  
 **License:** MIT  
@@ -1223,4 +1239,4 @@ If you encounter issues not covered here:
 
 ---
 
-*This documentation is part of the MarkNote project. Last updated: February 2026.*
+*This documentation is part of the MarkNote project. Last updated: March 2026.*

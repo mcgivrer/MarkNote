@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  {{BASE_TAG}}
+  <!-- Highlight.js for syntax highlighting -->
+  <link rel="stylesheet" href="{{HLJS_CSS_PATH}}">
+  <script src="{{HLJS_JS_PATH}}"></script>
+  <!-- Mermaid for diagrams -->
+  <script src="{{MERMAID_JS_PATH}}"></script>
+  <!-- KaTeX for math equations -->
+  <link rel="stylesheet" href="{{KATEX_CSS_PATH}}">
+  <script src="{{KATEX_JS_PATH}}"></script>
+  <style>
+    body { font-family: sans-serif; margin: 1em; }
+    pre { background: {{PRE_BG}}; padding: 0.8em; border-radius: 6px; overflow-x: auto; }
+    pre code { font-family: 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
+               font-size: 0.9em; color: {{CODE_FG}}; }
+    code { font-family: monospace; }
+    img { max-width: 100%; height: auto; }
+    /* PlantUML diagrams */
+    .plantuml-diagram { text-align: center; margin: 1em 0; }
+    .plantuml-diagram img { max-width: 100%; height: auto; }
+    /* Mermaid diagrams */
+    .mermaid { text-align: center; margin: 1em 0; }
+    /* Tables */
+    table { border-collapse: collapse; width: auto; margin: 1em 0; }
+    th, td { border: 1px solid #888; padding: 6px 12px; text-align: left; }
+    th { background: rgba(128,128,128,0.15); font-weight: bold; }
+    tr:nth-child(even) { background: rgba(128,128,128,0.06); }
+    /* Checkboxes (task list) */
+    input[type="checkbox"] { width: 1.1em; height: 1.1em; margin-right: 0.4em; 
+                             vertical-align: middle; cursor: default; 
+                             accent-color: #0078d7; }
+    li:has(input[type="checkbox"]) { list-style: none; margin-left: -1.2em; }
+    /* Front Matter metadata */
+    .front-matter { background: rgba(128,128,128,0.08); border: 1px solid rgba(128,128,128,0.25);
+                    border-radius: 6px; padding: 0.6em 1em; margin-bottom: 1.2em;
+                    font-size: 0.9em; color: #555; }
+    .front-matter h1 { font-size: 1.4em; margin: 0 0 0.3em 0; color: #333; }
+    .front-matter .fm-field { margin: 0.15em 0; }
+    .front-matter .fm-label { font-weight: bold; }
+    .front-matter .fm-tag { display: inline-block; background: rgba(0,120,215,0.12);
+                            border-radius: 3px; padding: 1px 6px; margin: 1px 2px;
+                            font-size: 0.85em; }
+    .front-matter .fm-draft { color: #d9534f; font-weight: bold; }
+    .front-matter .fm-link { display: inline-block; background: rgba(0,120,215,0.12);
+                             border-radius: 3px; padding: 1px 6px; margin: 1px 2px;
+                             font-size: 0.85em; text-decoration: none; color: #0078d7; }
+    .front-matter .fm-link:hover { text-decoration: underline; background: rgba(0,120,215,0.2); }
+    .front-matter .fm-summary { cursor: pointer; font-weight: bold; font-size: 0.9em;
+                                color: #666; padding: 0.2em 0; }
+    .front-matter .fm-summary:hover { color: #333; }
+    /* Copy button on code blocks */
+    pre { position: relative; }
+    pre .copy-btn { position: absolute; top: 4px; right: 4px; padding: 2px 8px;
+                    font-size: 0.75em; cursor: pointer; background: rgba(128,128,128,0.2);
+                    border: 1px solid rgba(128,128,128,0.3); border-radius: 4px;
+                    color: inherit; opacity: 0; transition: opacity 0.2s; }
+    pre:hover .copy-btn { opacity: 1; }
+    pre .copy-btn:hover { background: rgba(128,128,128,0.35); }
+    pre .copy-btn.copied { background: rgba(76,175,80,0.3); border-color: rgba(76,175,80,0.5); }
+    /* GitHub-style Alerts */
+    .markdown-alert { padding: 0.8em 1em; margin: 1em 0; border-left: 4px solid; border-radius: 6px; }
+    .markdown-alert-title { display: flex; align-items: center; font-weight: 600; margin-bottom: 0.4em; }
+    .markdown-alert-title svg { margin-right: 0.5em; }
+    .markdown-alert p { margin: 0.3em 0; }
+    .markdown-alert-note { background: rgba(9, 105, 218, 0.1); border-color: #0969da; }
+    .markdown-alert-note .markdown-alert-title { color: #0969da; }
+    .markdown-alert-tip { background: rgba(26, 127, 55, 0.1); border-color: #1a7f37; }
+    .markdown-alert-tip .markdown-alert-title { color: #1a7f37; }
+    .markdown-alert-important { background: rgba(130, 80, 223, 0.1); border-color: #8250df; }
+    .markdown-alert-important .markdown-alert-title { color: #8250df; }
+    .markdown-alert-warning { background: rgba(154, 103, 0, 0.1); border-color: #9a6700; }
+    .markdown-alert-warning .markdown-alert-title { color: #9a6700; }
+    .markdown-alert-caution { background: rgba(207, 34, 46, 0.1); border-color: #cf222e; }
+    .markdown-alert-caution .markdown-alert-title { color: #cf222e; }
+    /* Content container for incremental updates */
+    #mn-content { min-height: 1em; }
+    .mn-block { transition: background-color 0.15s ease-out; }
+  </style>
+</head>
+<body><div id="mn-frontmatter">{{FRONT_MATTER}}</div><div id="mn-content">{{CONTENT}}</div>
+<script>
+  // Debug: redirect console to Java alerts
+  (function() {
+    var originalLog = console.log;
+    var originalError = console.error;
+    var originalWarn = console.warn;
+    console.log = function() {
+      var msg = Array.prototype.slice.call(arguments).join(' ');
+      alert('[LOG] ' + msg);
+      originalLog.apply(console, arguments);
+    };
+    console.error = function() {
+      var msg = Array.prototype.slice.call(arguments).join(' ');
+      alert('[ERROR] ' + msg);
+      originalError.apply(console, arguments);
+    };
+    console.warn = function() {
+      var msg = Array.prototype.slice.call(arguments).join(' ');
+      alert('[WARN] ' + msg);
+      originalWarn.apply(console, arguments);
+    };
+    window.onerror = function(msg, url, line, col, error) {
+      alert('[UNCAUGHT] ' + msg + ' at ' + url + ':' + line + ':' + col);
+      return false;
+    };
+  })();
+</script>
+<script src="{{PREVIEW_JS_PATH}}"></script>
+<script>
+  // Initialize preview features
+  try {
+    initializePreview('{{MERMAID_THEME}}');
+  } catch(e) {
+    alert('[INIT ERROR] ' + e.message + '\n' + e.stack);
+  }
+</script>
+</body>
+</html>

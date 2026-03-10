@@ -10,7 +10,7 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
-![An illustration of the Main interface pf MarkNote](src/docs/illustrations/marknote-0.1.0-screenshot-002.png "The Main interface for MarkNote")
+![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.1-screenshot-002.png "The Main interface for MarkNote")
 
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
@@ -21,11 +21,11 @@ A lightweight and modern Markdown editor built with JavaFX.
 ## Features
 
 - **Markdown Editing** - Full-featured Markdown editor with syntax highlighting (headings, bold, italic, strikethrough, code, blockquotes, lists, links, images, horizontal rules)
-- **Live Preview** - Real-time HTML preview with WebView rendering
+- **Live Preview** - Real-time HTML preview with WebView rendering; supports external HTTP/HTTPS images
 - **Syntax Highlighting** - Code blocks with automatic language detection and theme-aware syntax coloring (via [highlight.js](https://highlightjs.org/)); each app theme maps to a matching highlight.js style
 - **Code Block Copy Button** - One-click copy for code blocks in preview, with visual "✓ Copied" feedback
 - **Markdown Tables** - Full GFM table support with styled rendering
-- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview; supports both the **official PlantUML online server** and a **local PlantUML jar** (configurable in Options → Tools); when local rendering is active a spinning ⚙ gear icon and a status indicator are shown in the status bar during generation
+- **PlantUML Diagrams** - Render PlantUML diagrams directly in preview; supports both the **official PlantUML online server** and a **local PlantUML jar** (configurable in Options → Tools); when local rendering is active a spinning ⚙ gear icon and a status indicator are shown in the status bar during generation; **in-memory SVG cache** based on source hash avoids regenerating unchanged diagrams
 - **Mermaid Diagrams** - Render Mermaid diagrams (flowcharts, sequences, etc.) directly in preview; Mermaid theme auto-matches app theme
 - **Math Equations** - LaTeX/MathML support via KaTeX for inline (`$...$`) and block (`$$...$$`) equations
 - **Front Matter Panel** - Collapsible panel above the editor for visual editing of YAML front matter (title, tags, authors, summary, UUID, created date, draft); supports custom fields and UUID-based document linking via drag & drop
@@ -54,13 +54,13 @@ A lightweight and modern Markdown editor built with JavaFX.
 
 MarkNote is available in 5 languages:
 
-| Language | Locale |
-|----------|--------|
-| Français (French) | `fr` |
-| English | `en` |
-| Deutsch (German) | `de` |
-| Español (Spanish) | `es` |
-| Italiano (Italian) | `it` |
+| Language           | Locale |
+| ------------------ | ------ |
+| Français (French)  | `fr`   |
+| English            | `en`   |
+| Deutsch (German)   | `de`   |
+| Español (Spanish)  | `es`   |
+| Italiano (Italian) | `it`   |
 
 The application automatically uses your system's locale.
 
@@ -81,13 +81,13 @@ cd marknote
 
 ### Build Commands
 
-| Command | Description |
-|---------|-------------|
-| `./build` | Compile the project and create the JAR |
-| `./build run` | Compile and run the application |
-| `./build test` | Run unit tests |
-| `./build package` | Create a distributable package for the **current platform** with embedded JRE |
-| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win) |
+| Command               | Description                                                                   |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `./build`             | Compile the project and create the JAR                                        |
+| `./build run`         | Compile and run the application                                               |
+| `./build test`        | Run unit tests                                                                |
+| `./build package`     | Create a distributable package for the **current platform** with embedded JRE |
+| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win)         |
 
 ## Running
 
@@ -106,7 +106,7 @@ Or use the build script:
 ### Running with a specific language
 
 ```bash
-java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.0.jar:target/build/libs/*" Main
+java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.2.jar:target/build/libs/*" Main
 ```
 
 ## Packaging
@@ -137,11 +137,11 @@ Create packages for **all three platforms** in one shot:
 
 This produces three ZIP archives in `target/`:
 
-| Archive | Platform |
-|---------|----------|
-| `MarkNote-{version}-linux.zip` | Linux x64 |
-| `MarkNote-{version}-mac.zip` | macOS |
-| `MarkNote-{version}-win.zip` | Windows x64 |
+| Archive                        | Platform    |
+| ------------------------------ | ----------- |
+| `MarkNote-{version}-linux.zip` | Linux x64   |
+| `MarkNote-{version}-mac.zip`   | macOS       |
+| `MarkNote-{version}-win.zip`   | Windows x64 |
 
 > **Note:** A minimal embedded JRE (via `jlink`) is bundled only for the current host platform.
 > Cross-platform packages include all required JARs but require a compatible Java runtime already
@@ -164,8 +164,8 @@ Where `{platform}` is:
 1. Download or build the package for your platform
 2. Extract the ZIP archive:
    ```bash
-   unzip MarkNote-0.1.0-linux.zip
-   cd MarkNote-0.1.0-linux
+   unzip MarkNote-0.1.2-linux.zip
+   cd MarkNote-0.1.2-linux
    ```
 3. Run the application:
    - **Linux/macOS:** `./MarkNote.sh`
