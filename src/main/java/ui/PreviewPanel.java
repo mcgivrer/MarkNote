@@ -122,6 +122,9 @@ public class PreviewPanel extends BasePanel {
         // Créer le WebView
         webView = new WebView();
         
+        // Autoriser JavaScript et les accès réseau
+        webView.getEngine().setJavaScriptEnabled(true);
+        
         // Activer le debug JavaScript : capturer les messages console et erreurs
         webView.getEngine().setOnAlert(event -> 
             System.out.println("[JS Alert] " + event.getData()));
@@ -343,6 +346,7 @@ public class PreviewPanel extends BasePanel {
                 <html>
                 <head>
                   <meta charset="UTF-8">
+                  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob: http: https:;">
                   %s
                   <script>%s</script>
                   <style>%s</style>
