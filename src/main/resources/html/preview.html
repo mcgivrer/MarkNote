@@ -81,10 +81,41 @@
   </style>
 </head>
 <body><div id="mn-frontmatter">{{FRONT_MATTER}}</div><div id="mn-content">{{CONTENT}}</div>
+<script>
+  // Debug: redirect console to Java alerts
+  (function() {
+    var originalLog = console.log;
+    var originalError = console.error;
+    var originalWarn = console.warn;
+    console.log = function() {
+      var msg = Array.prototype.slice.call(arguments).join(' ');
+      alert('[LOG] ' + msg);
+      originalLog.apply(console, arguments);
+    };
+    console.error = function() {
+      var msg = Array.prototype.slice.call(arguments).join(' ');
+      alert('[ERROR] ' + msg);
+      originalError.apply(console, arguments);
+    };
+    console.warn = function() {
+      var msg = Array.prototype.slice.call(arguments).join(' ');
+      alert('[WARN] ' + msg);
+      originalWarn.apply(console, arguments);
+    };
+    window.onerror = function(msg, url, line, col, error) {
+      alert('[UNCAUGHT] ' + msg + ' at ' + url + ':' + line + ':' + col);
+      return false;
+    };
+  })();
+</script>
 <script src="{{PREVIEW_JS_PATH}}"></script>
 <script>
   // Initialize preview features
-  initializePreview('{{MERMAID_THEME}}');
+  try {
+    initializePreview('{{MERMAID_THEME}}');
+  } catch(e) {
+    alert('[INIT ERROR] ' + e.message + '\n' + e.stack);
+  }
 </script>
 </body>
 </html>
