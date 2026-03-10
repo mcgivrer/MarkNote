@@ -122,6 +122,21 @@ public class PreviewPanel extends BasePanel {
         // Créer le WebView
         webView = new WebView();
         
+        // Activer le debug JavaScript : capturer les messages console et erreurs
+        webView.getEngine().setOnAlert(event -> 
+            System.out.println("[JS Alert] " + event.getData()));
+        
+        webView.getEngine().setOnError(event -> 
+            System.err.println("[JS Error] " + event.getMessage()));
+        
+        // Capturer les exceptions JavaScript via le gestionnaire d'état
+        webView.getEngine().getLoadWorker().exceptionProperty().addListener((obs, oldEx, newEx) -> {
+            if (newEx != null) {
+                System.err.println("[WebView Exception] " + newEx.getMessage());
+                newEx.printStackTrace();
+            }
+        });
+        
         // Ajouter les boutons de navigation dans le header
         prevButton = new Button("\u00AB");
         prevButton.getStyleClass().add("panel-nav-button");
@@ -280,41 +295,78 @@ public class PreviewPanel extends BasePanel {
                 || syntaxTheme.highlightStyle().contains("a11y-dark")
                 ? "dark" : "default";
 
+        // Charger les ressources CSS (petites, peuvent être inline)
+        String hljsCss = loadResourceAsString("/js/hljs/styles/" + hljsStyle + ".min.css");
+        String katexCss = loadResourceAsString("/js/katex/katex.min.css");
+        String previewJs = loadResourceAsString("/js/preview.js");
+        
+        // Extraire les fichiers JS volumineux vers des fichiers temporaires
+        // (loadContent() ne supporte pas les contenus > ~2MB)
+        File tempDir = ensureTempResourceDir();
+        String hljsJsUrl = extractResourceToTemp(tempDir, "/js/hljs/highlight.min.js", "hljs.min.js");
+        String mermaidJsUrl = extractResourceToTemp(tempDir, "/js/mermaid.min.js", "mermaid.min.js");
+        String katexJsUrl = extractResourceToTemp(tempDir, "/js/katex/katex.min.js", "katex.min.js");
+        
+        System.out.println("[Preview] Resources extracted to: " + tempDir.getAbsolutePath());
+        
+        // Script de redirection console vers Java (via alert intercepté par setOnAlert)
+        String consoleRedirect = """
+            (function() {
+              var originalLog = console.log;
+              var originalError = console.error;
+              var originalWarn = console.warn;
+              console.log = function() {
+                var msg = Array.prototype.slice.call(arguments).join(' ');
+                alert('[LOG] ' + msg);
+                originalLog.apply(console, arguments);
+              };
+              console.error = function() {
+                var msg = Array.prototype.slice.call(arguments).join(' ');
+                alert('[ERROR] ' + msg);
+                originalError.apply(console, arguments);
+              };
+              console.warn = function() {
+                var msg = Array.prototype.slice.call(arguments).join(' ');
+                alert('[WARN] ' + msg);
+                originalWarn.apply(console, arguments);
+              };
+              window.onerror = function(msg, url, line, col, error) {
+                alert('[UNCAUGHT] ' + msg + ' at line ' + line + ':' + col);
+                return false;
+              };
+            })();
+            """;
+        
+        // Construire le HTML avec les scripts chargés depuis des fichiers temporaires
         String htmlPage = """
+                <!DOCTYPE html>
                 <html>
                 <head>
                   <meta charset="UTF-8">
                   %s
-                  <link rel="stylesheet"
-                        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/%s.min.css">
-                  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-                  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-                  <link rel="stylesheet"
-                        href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-                  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+                  <script>%s</script>
+                  <style>%s</style>
+                  <script src="%s"></script>
+                  <script src="%s"></script>
+                  <style>%s</style>
+                  <script src="%s"></script>
                   <style>
                     body { font-family: sans-serif; margin: 1em; }
-                    pre { background: %s; padding: 0.8em; border-radius: 6px; overflow-x: auto; }
+                    pre { background: %s; padding: 0.8em; border-radius: 6px; overflow-x: auto; position: relative; }
                     pre code { font-family: 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
                                font-size: 0.9em; color: %s; }
                     code { font-family: monospace; }
-                    img { max-width: 100%%%%; height: auto; }
-                    /* PlantUML diagrams */
+                    img { max-width: 100%%; height: auto; }
                     .plantuml-diagram { text-align: center; margin: 1em 0; }
-                    .plantuml-diagram img { max-width: 100%%%%; height: auto; }
-                    /* Mermaid diagrams */
+                    .plantuml-diagram img { max-width: 100%%; height: auto; }
                     .mermaid { text-align: center; margin: 1em 0; }
-                    /* Tables */
                     table { border-collapse: collapse; width: auto; margin: 1em 0; }
                     th, td { border: 1px solid #888; padding: 6px 12px; text-align: left; }
                     th { background: rgba(128,128,128,0.15); font-weight: bold; }
                     tr:nth-child(even) { background: rgba(128,128,128,0.06); }
-                    /* Checkboxes (task list) */
                     input[type="checkbox"] { width: 1.1em; height: 1.1em; margin-right: 0.4em; 
-                                             vertical-align: middle; cursor: default; 
-                                             accent-color: #0078d7; }
+                                             vertical-align: middle; cursor: default; accent-color: #0078d7; }
                     li:has(input[type="checkbox"]) { list-style: none; margin-left: -1.2em; }
-                    /* Front Matter metadata */
                     .front-matter { background: rgba(128,128,128,0.08); border: 1px solid rgba(128,128,128,0.25);
                                     border-radius: 6px; padding: 0.6em 1em; margin-bottom: 1.2em;
                                     font-size: 0.9em; color: #555; }
@@ -322,18 +374,14 @@ public class PreviewPanel extends BasePanel {
                     .front-matter .fm-field { margin: 0.15em 0; }
                     .front-matter .fm-label { font-weight: bold; }
                     .front-matter .fm-tag { display: inline-block; background: rgba(0,120,215,0.12);
-                                            border-radius: 3px; padding: 1px 6px; margin: 1px 2px;
-                                            font-size: 0.85em; }
+                                            border-radius: 3px; padding: 1px 6px; margin: 1px 2px; font-size: 0.85em; }
                     .front-matter .fm-draft { color: #d9534f; font-weight: bold; }
                     .front-matter .fm-link { display: inline-block; background: rgba(0,120,215,0.12);
                                              border-radius: 3px; padding: 1px 6px; margin: 1px 2px;
                                              font-size: 0.85em; text-decoration: none; color: #0078d7; }
                     .front-matter .fm-link:hover { text-decoration: underline; background: rgba(0,120,215,0.2); }
-                    .front-matter .fm-summary { cursor: pointer; font-weight: bold; font-size: 0.9em;
-                                                color: #666; padding: 0.2em 0; }
+                    .front-matter .fm-summary { cursor: pointer; font-weight: bold; font-size: 0.9em; color: #666; padding: 0.2em 0; }
                     .front-matter .fm-summary:hover { color: #333; }
-                    /* Copy button on code blocks */
-                    pre { position: relative; }
                     pre .copy-btn { position: absolute; top: 4px; right: 4px; padding: 2px 8px;
                                     font-size: 0.75em; cursor: pointer; background: rgba(128,128,128,0.2);
                                     border: 1px solid rgba(128,128,128,0.3); border-radius: 4px;
@@ -341,7 +389,6 @@ public class PreviewPanel extends BasePanel {
                     pre:hover .copy-btn { opacity: 1; }
                     pre .copy-btn:hover { background: rgba(128,128,128,0.35); }
                     pre .copy-btn.copied { background: rgba(76,175,80,0.3); border-color: rgba(76,175,80,0.5); }
-                    /* GitHub-style Alerts */
                     .markdown-alert { padding: 0.8em 1em; margin: 1em 0; border-left: 4px solid; border-radius: 6px; }
                     .markdown-alert-title { display: flex; align-items: center; font-weight: 600; margin-bottom: 0.4em; }
                     .markdown-alert-title svg { margin-right: 0.5em; }
@@ -359,73 +406,121 @@ public class PreviewPanel extends BasePanel {
                   </style>
                 </head>
                 <body>%s%s
+                <script>%s</script>
                 <script>
-                  // highlight.js
-                  hljs.highlightAll();
-                  // Mermaid : transformer les blocs <pre><code class="language-mermaid">
-                  // en <div class="mermaid"> puis initialiser.
-                  document.querySelectorAll('pre code.language-mermaid').forEach(function(block) {
-                    var pre = block.parentElement;
-                    var div = document.createElement('div');
-                    div.className = 'mermaid';
-                    div.textContent = block.textContent;
-                    pre.parentNode.replaceChild(div, pre);
-                  });
-                  mermaid.initialize({ startOnLoad: true, theme: '%s' });
-                  // KaTeX : rendre les expressions mathématiques
-                  // Bloc $$...$$ puis inline $...$
-                  (function() {
-                    function renderMath(el) {
-                      var html = el.innerHTML;
-                      // Bloc : $$...$$
-                      html = html.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g, function(m, tex) {
-                        try {
-                          return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false });
-                        } catch(e) { return m; }
-                      });
-                      // Inline : $...$  (pas précédé de \\, pas suivi de chiffre)
-                      html = html.replace(/(?<!\\\\)\\$([^\\$\\n]+?)\\$/g, function(m, tex) {
-                        try {
-                          return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false });
-                        } catch(e) { return m; }
-                      });
-                      el.innerHTML = html;
-                    }
-                    renderMath(document.body);
-                  })();
-                  // Copy buttons on code blocks
-                  document.querySelectorAll('pre > code').forEach(function(codeEl) {
-                    var pre = codeEl.parentElement;
-                    if (pre.querySelector('.copy-btn')) return;
-                    var btn = document.createElement('button');
-                    btn.className = 'copy-btn';
-                    btn.textContent = 'Copy';
-                    btn.addEventListener('click', function() {
-                      var text = codeEl.textContent;
-                      if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(text).then(function() {
-                          btn.textContent = '\u2713 Copied';
-                          btn.classList.add('copied');
-                          setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
-                        });
-                      } else {
-                        var ta = document.createElement('textarea');
-                        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                        document.body.appendChild(ta); ta.select();
-                        document.execCommand('copy'); document.body.removeChild(ta);
-                        btn.textContent = '\u2713 Copied';
-                        btn.classList.add('copied');
-                        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
-                      }
-                    });
-                    pre.appendChild(btn);
-                  });
+                  // Vérifications de chargement des bibliothèques
+                  alert('[CHECK] hljs: ' + (typeof hljs !== 'undefined' ? 'OK' : 'MISSING'));
+                  alert('[CHECK] mermaid: ' + (typeof mermaid !== 'undefined' ? 'OK' : 'MISSING'));
+                  alert('[CHECK] katex: ' + (typeof katex !== 'undefined' ? 'OK' : 'MISSING'));
+                  alert('[CHECK] initializePreview: ' + (typeof initializePreview !== 'undefined' ? 'OK' : 'MISSING'));
+                  try {
+                    initializePreview('%s');
+                    alert('[INIT] Preview initialized successfully');
+                  } catch(e) {
+                    alert('[INIT ERROR] ' + e.message + '\\n' + e.stack);
+                  }
                 </script>
                 </body>
                 </html>
-                """.formatted(baseTag, hljsStyle, preBg, codeFg, frontMatterHtml, html, mermaidTheme);
-        webView.getEngine().loadContent(htmlPage);
+                """.formatted(baseTag, consoleRedirect, hljsCss, hljsJsUrl, mermaidJsUrl, katexCss, katexJsUrl, 
+                              preBg, codeFg, frontMatterHtml, html, previewJs, mermaidTheme);
+
+        // Sauvegarder le HTML dans un fichier temporaire et le charger via load()
+        // (loadContent() bloque le chargement des scripts externes file://)
+        try {
+            File htmlFile = new File(tempDir, "preview.html");
+            Files.writeString(htmlFile.toPath(), htmlPage, StandardCharsets.UTF_8);
+            htmlFile.deleteOnExit();
+            webView.getEngine().load(htmlFile.toURI().toString());
+            System.out.println("[Preview] HTML file: " + htmlFile.toURI() + " - size: " + htmlPage.length() + " bytes");
+        } catch (Exception e) {
+            System.err.println("[Preview] Failed to write HTML file: " + e.getMessage());
+            // Fallback sur loadContent (sans scripts externes)
+            webView.getEngine().loadContent(htmlPage, "text/html; charset=UTF-8");
+        }
+        System.out.println("[Preview] Content preview: " + 
+                           (html.length() > 100 ? html.substring(0, 100) + "..." : html));
         this.currentHtml = htmlPage;
+    }
+
+    /** Répertoire temporaire pour les ressources JS volumineuses. */
+    private File tempResourceDir;
+    
+    /**
+     * Assure l'existence du répertoire temporaire pour les ressources JS.
+     * @return Le répertoire temporaire
+     */
+    private File ensureTempResourceDir() {
+        if (tempResourceDir == null || !tempResourceDir.exists()) {
+            try {
+                tempResourceDir = Files.createTempDirectory("marknote-preview-").toFile();
+                tempResourceDir.deleteOnExit();
+                System.out.println("[Preview] Created temp dir: " + tempResourceDir.getAbsolutePath());
+            } catch (Exception e) {
+                System.err.println("[Preview] Failed to create temp dir: " + e.getMessage());
+                // Fallback vers le répertoire tmp système
+                tempResourceDir = new File(System.getProperty("java.io.tmpdir"), "marknote-preview");
+                tempResourceDir.mkdirs();
+            }
+        }
+        return tempResourceDir;
+    }
+    
+    /** Cache des URLs de fichiers temporaires déjà extraits. */
+    private final Map<String, String> tempFileUrlCache = new HashMap<>();
+    
+    /**
+     * Extrait une ressource du classpath vers un fichier temporaire.
+     * Le fichier est mis en cache pour éviter les extractions répétées.
+     * 
+     * @param tempDir Le répertoire temporaire
+     * @param resourcePath Chemin de la ressource dans le classpath
+     * @param fileName Nom du fichier de destination
+     * @return URL file:// vers le fichier extrait
+     */
+    private String extractResourceToTemp(File tempDir, String resourcePath, String fileName) {
+        String cacheKey = resourcePath + ":" + fileName;
+        return tempFileUrlCache.computeIfAbsent(cacheKey, k -> {
+            File targetFile = new File(tempDir, fileName);
+            if (!targetFile.exists()) {
+                try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+                    if (is != null) {
+                        Files.copy(is, targetFile.toPath());
+                        targetFile.deleteOnExit();
+                        System.out.println("[Preview] Extracted: " + resourcePath + " -> " + targetFile.getAbsolutePath());
+                    } else {
+                        System.err.println("[Preview] Resource not found: " + resourcePath);
+                        return "";
+                    }
+                } catch (Exception e) {
+                    System.err.println("[Preview] Failed to extract " + resourcePath + ": " + e.getMessage());
+                    return "";
+                }
+            }
+            return targetFile.toURI().toString();
+        });
+    }
+
+    /**
+     * Charge une ressource comme String depuis le classpath.
+     * Le contenu est mis en cache après le premier chargement.
+     */
+    private final Map<String, String> resourceCache = new HashMap<>();
+    
+    private String loadResourceAsString(String resourcePath) {
+        return resourceCache.computeIfAbsent(resourcePath, path -> {
+            try (InputStream is = getClass().getResourceAsStream(path)) {
+                if (is != null) {
+                    return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                } else {
+                    System.err.println("[ERROR] Resource not found: " + path);
+                    return "";
+                }
+            } catch (Exception e) {
+                System.err.println("[ERROR] Error loading resource " + path + ": " + e.getMessage());
+                return "";
+            }
+        });
     }
 
     /**
