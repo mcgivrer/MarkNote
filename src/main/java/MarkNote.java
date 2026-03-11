@@ -8,6 +8,8 @@ import config.AppConfig;
 import config.ThemeManager;
 import ui.BasePanel;
 import ui.ConsolePanel;
+import ui.DockingManager;
+import ui.DockZone;
 import ui.DocumentTab;
 import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
@@ -72,10 +74,8 @@ public class MarkNote extends Application {
     private Menu recentMenu;
 
     // Panels et SplitPanes pour la gestion de l'affichage
-    private SplitPane mainSplit;
     private SplitPane editorSplit;
-    private SplitPane leftSplit;
-    private SplitPane consoleSplit;
+    private DockingManager dockingManager;
 
     private ConsolePanel consolePanel;
     private CheckMenuItem showConsoleMenuItem;
@@ -228,37 +228,29 @@ public class MarkNote extends Application {
             visualLinkPanel.updateDiagram(indexService.getEntries());
         });
 
-        // Conteneur gauche : explorateur + tag cloud + diagramme réseau
-        // (redimensionnable)
-        leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
-        leftSplit.setOrientation(Orientation.VERTICAL);
-        leftSplit.setDividerPositions(0.55, 0.78);
-
-        // SplitPane éditeur | preview
+        // SplitPane éditeur | preview (zone centrale)
         editorSplit = new SplitPane(mainTabPane, previewPanel);
         editorSplit.setOrientation(Orientation.HORIZONTAL);
         editorSplit.setDividerPositions(0.5);
 
-        // SplitPane principal : explorateur | éditeur/preview
-        mainSplit = new SplitPane(leftSplit, editorSplit);
-        mainSplit.setOrientation(Orientation.HORIZONTAL);
-        mainSplit.setDividerPositions(0.2);
+        // Initialiser le DockingManager
+        dockingManager = new DockingManager(root);
+        dockingManager.setCenterContent(editorSplit);
+
+        // Dock des panels à gauche
+        dockingManager.dock(projectExplorerPanel, DockZone.LEFT);
+        dockingManager.dock(tagCloudPanel, DockZone.LEFT);
+        dockingManager.dock(visualLinkPanel, DockZone.LEFT);
 
         // Console panel (si --console-debug est passé)
         if (consoleDebugEnabled) {
             consolePanel = new ConsolePanel();
-
-            // Conteneur vertical : mainSplit en haut, consolePanel en bas
-            consoleSplit = new SplitPane(mainSplit, consolePanel);
-            consoleSplit.setOrientation(Orientation.VERTICAL);
-            consoleSplit.setDividerPositions(0.8);
-            root.setCenter(consoleSplit);
-
-            // Démarrer la capture console
+            dockingManager.dock(consolePanel, DockZone.BOTTOM);
             consolePanel.startCapture();
-        } else {
-            root.setCenter(mainSplit);
         }
+
+        // Appliquer le layout
+        root.setCenter(dockingManager.getRootNode());
 
         // Status bar en bas
         root.setBottom(statusBar);
@@ -371,18 +363,10 @@ public class MarkNote extends Application {
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
         showProjectPanel.setSelected(true);
         showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            // The project explorer and tag cloud are in a vertical SplitPane (leftSplit).
-            // We need to find it — it's the parent of projectExplorerPanel.
-            javafx.scene.Parent leftPane = projectExplorerPanel.getParent();
-            if (leftPane == null)
-                leftPane = projectExplorerPanel; // fallback
             if (isSelected) {
-                if (!mainSplit.getItems().contains(leftPane)) {
-                    mainSplit.getItems().addFirst(leftPane);
-                    mainSplit.setDividerPositions(0.2);
-                }
+                dockingManager.showPanel(projectExplorerPanel, DockZone.LEFT);
             } else {
-                mainSplit.getItems().remove(leftPane);
+                dockingManager.hidePanel(projectExplorerPanel);
             }
         });
 
@@ -411,13 +395,9 @@ public class MarkNote extends Application {
         showTagCloud.setSelected(true);
         showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
             if (isSelected) {
-                if (!leftSplit.getItems().contains(tagCloudPanel)) {
-                    // Insérer après l'explorateur (index 1) ou en fin
-                    int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
-                    leftSplit.getItems().add(idx + 1, tagCloudPanel);
-                }
+                dockingManager.showPanel(tagCloudPanel, DockZone.LEFT);
             } else {
-                leftSplit.getItems().remove(tagCloudPanel);
+                dockingManager.hidePanel(tagCloudPanel);
             }
         });
 
@@ -429,11 +409,9 @@ public class MarkNote extends Application {
         showNetworkDiagram.setSelected(true);
         showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
             if (isSelected) {
-                if (!leftSplit.getItems().contains(visualLinkPanel)) {
-                    leftSplit.getItems().add(visualLinkPanel);
-                }
+                dockingManager.showPanel(visualLinkPanel, DockZone.LEFT);
             } else {
-                leftSplit.getItems().remove(visualLinkPanel);
+                dockingManager.hidePanel(visualLinkPanel);
             }
         });
 
@@ -453,12 +431,9 @@ public class MarkNote extends Application {
             showConsoleMenuItem.setSelected(true);
             showConsoleMenuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
                 if (isSelected) {
-                    if (!consoleSplit.getItems().contains(consolePanel)) {
-                        consoleSplit.getItems().add(consolePanel);
-                        consoleSplit.setDividerPositions(0.8);
-                    }
+                    dockingManager.showPanel(consolePanel);
                 } else {
-                    consoleSplit.getItems().remove(consolePanel);
+                    dockingManager.hidePanel(consolePanel);
                 }
             });
 
@@ -584,32 +559,25 @@ public class MarkNote extends Application {
             }
         }
 
-        // Masquer le panel dans le SplitPane approprié
-        if (panel == consolePanel && consoleSplit != null) {
-            consoleSplit.getItems().remove(panel);
-            // Décocher le menu sans déclencher le listener
-            if (showConsoleMenuItem != null) {
-                showConsoleMenuItem.setSelected(false);
-            }
-        } else {
-            leftSplit.getItems().remove(panel);
+        // Mémoriser la zone de dock actuelle
+        DockZone originalZone = dockingManager.getZone(panel);
+
+        // Masquer le panel via le DockingManager
+        dockingManager.undock(panel);
+
+        // Décocher le menu console si nécessaire
+        if (panel == consolePanel && showConsoleMenuItem != null) {
+            showConsoleMenuItem.setSelected(false);
         }
 
         // Créer l'onglet
         DetachedPanelTab detachedTab = new DetachedPanelTab(panel);
         detachedTab.setOnCloseAction(() -> {
-            // Réafficher le panel dans le bon SplitPane
-            if (panel == consolePanel && consoleSplit != null) {
-                if (!consoleSplit.getItems().contains(panel)) {
-                    consoleSplit.getItems().add(panel);
-                    consoleSplit.setDividerPositions(0.8);
-                    if (showConsoleMenuItem != null) {
-                        showConsoleMenuItem.setSelected(true);
-                    }
-                }
-            } else if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(panel)) {
-                if (!leftSplit.getItems().contains(panel)) {
-                    leftSplit.getItems().add(panel);
+            // Réafficher le panel dans sa zone d'origine
+            if (originalZone != null) {
+                dockingManager.dock(panel, originalZone);
+                if (panel == consolePanel && showConsoleMenuItem != null) {
+                    showConsoleMenuItem.setSelected(true);
                 }
             }
         });

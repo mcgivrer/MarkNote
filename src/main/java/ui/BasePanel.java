@@ -125,11 +125,12 @@ public abstract class BasePanel extends BorderPane implements Detachable {
     }
 
     /**
-     * Retourne le header HBox pour permettre l'ajout de boutons supplémentaires.
+     * Retourne le header HBox pour permettre l'ajout de boutons supplémentaires
+     * ou la configuration du drag & drop.
      *
      * @return Le header HBox
      */
-    protected HBox getHeader() {
+    public HBox getHeader() {
         return header;
     }
 
