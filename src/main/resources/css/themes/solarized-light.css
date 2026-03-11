@@ -383,3 +383,18 @@
     -fx-background-color: #268bd2;
     -fx-background-radius: 2px;
 }
+
+/* === Console Panel === */
+.console-area {
+    -fx-background-color: #fdf6e3;
+    -fx-control-inner-background: #fdf6e3;
+    -fx-text-fill: #859900;
+    -fx-highlight-fill: #268bd2;
+    -fx-highlight-text-fill: #fdf6e3;
+    -fx-font-family: 'Monospace', 'Courier New', monospace;
+    -fx-font-size: 12px;
+}
+
+.console-area .content {
+    -fx-background-color: #fdf6e3;
+}

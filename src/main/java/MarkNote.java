@@ -7,6 +7,7 @@ import java.util.ResourceBundle;
 import config.AppConfig;
 import config.ThemeManager;
 import ui.BasePanel;
+import ui.ConsolePanel;
 import ui.DocumentTab;
 import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
@@ -24,6 +25,7 @@ import ui.WelcomeTab;
 import utils.DocumentService;
 import utils.GitService;
 import utils.IndexService;
+import utils.LogService;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -73,6 +75,11 @@ public class MarkNote extends Application {
     private SplitPane mainSplit;
     private SplitPane editorSplit;
     private SplitPane leftSplit;
+    private SplitPane consoleSplit;
+
+    private ConsolePanel consolePanel;
+    private CheckMenuItem showConsoleMenuItem;
+    private boolean consoleDebugEnabled = false;
 
     private GitService gitService;
 
@@ -85,6 +92,17 @@ public class MarkNote extends Application {
         // Charger la configuration avant tout pour définir la locale
         config = new AppConfig();
         config.load();
+
+        // Vérifier l'argument --console-debug
+        for (String arg : getParameters().getRaw()) {
+            if ("--console-debug".equals(arg)) {
+                consoleDebugEnabled = true;
+                break;
+            }
+        }
+
+        // Initialiser le service de logging
+        LogService.getInstance().setConsoleDebugEnabled(consoleDebugEnabled);
 
         // Appliquer la langue configurée
         String language = config.getLanguage();
@@ -226,7 +244,21 @@ public class MarkNote extends Application {
         mainSplit.setOrientation(Orientation.HORIZONTAL);
         mainSplit.setDividerPositions(0.2);
 
-        root.setCenter(mainSplit);
+        // Console panel (si --console-debug est passé)
+        if (consoleDebugEnabled) {
+            consolePanel = new ConsolePanel();
+
+            // Conteneur vertical : mainSplit en haut, consolePanel en bas
+            consoleSplit = new SplitPane(mainSplit, consolePanel);
+            consoleSplit.setOrientation(Orientation.VERTICAL);
+            consoleSplit.setDividerPositions(0.8);
+            root.setCenter(consoleSplit);
+
+            // Démarrer la capture console
+            consolePanel.startCapture();
+        } else {
+            root.setCenter(mainSplit);
+        }
 
         // Status bar en bas
         root.setBottom(statusBar);
@@ -415,6 +447,31 @@ public class MarkNote extends Application {
         viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, new SeparatorMenuItem(), showTagCloud,
                 showNetworkDiagram, new SeparatorMenuItem(), showWelcomeItem);
 
+        // Option Console (uniquement si --console-debug est actif)
+        if (consoleDebugEnabled) {
+            showConsoleMenuItem = new CheckMenuItem(messages.getString("menu.view.console"));
+            showConsoleMenuItem.setSelected(true);
+            showConsoleMenuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                if (isSelected) {
+                    if (!consoleSplit.getItems().contains(consolePanel)) {
+                        consoleSplit.getItems().add(consolePanel);
+                        consoleSplit.setDividerPositions(0.8);
+                    }
+                } else {
+                    consoleSplit.getItems().remove(consolePanel);
+                }
+            });
+
+            // Callback fermeture du panel -> décoche le menu
+            consolePanel.setOnClose(() -> showConsoleMenuItem.setSelected(false));
+
+            // Callback détachement du panel
+            consolePanel.setOnDetach(() -> detachPanel(consolePanel));
+
+            viewMenu.getItems().add(viewMenu.getItems().size() - 1, new SeparatorMenuItem());
+            viewMenu.getItems().add(viewMenu.getItems().size() - 1, showConsoleMenuItem);
+        }
+
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
 
@@ -527,14 +584,30 @@ public class MarkNote extends Application {
             }
         }
 
-        // Masquer le panel dans le SplitPane
-        leftSplit.getItems().remove(panel);
+        // Masquer le panel dans le SplitPane approprié
+        if (panel == consolePanel && consoleSplit != null) {
+            consoleSplit.getItems().remove(panel);
+            // Décocher le menu sans déclencher le listener
+            if (showConsoleMenuItem != null) {
+                showConsoleMenuItem.setSelected(false);
+            }
+        } else {
+            leftSplit.getItems().remove(panel);
+        }
 
         // Créer l'onglet
         DetachedPanelTab detachedTab = new DetachedPanelTab(panel);
         detachedTab.setOnCloseAction(() -> {
-            // Réafficher le panel si l'option est activée
-            if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(panel)) {
+            // Réafficher le panel dans le bon SplitPane
+            if (panel == consolePanel && consoleSplit != null) {
+                if (!consoleSplit.getItems().contains(panel)) {
+                    consoleSplit.getItems().add(panel);
+                    consoleSplit.setDividerPositions(0.8);
+                    if (showConsoleMenuItem != null) {
+                        showConsoleMenuItem.setSelected(true);
+                    }
+                }
+            } else if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(panel)) {
                 if (!leftSplit.getItems().contains(panel)) {
                     leftSplit.getItems().add(panel);
                 }

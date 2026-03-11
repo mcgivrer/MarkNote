@@ -26,6 +26,9 @@ import javafx.concurrent.Task;
  */
 public class IndexService {
 
+    private static final String LOG_SOURCE = "IndexService";
+    private final LogService log = LogService.getInstance();
+
     /** Nom du fichier d'index stocké dans le répertoire racine du projet. */
     public static final String INDEX_FILENAME = ".marknote-index.json";
 
@@ -167,6 +170,9 @@ public class IndexService {
         tagCounts.clear();
         if (projectDir == null || !projectDir.isDirectory()) return;
 
+        log.startOperation(LOG_SOURCE, "Build Index");
+        log.info(LOG_SOURCE, "Scanning project: " + projectDir.getAbsolutePath());
+
         try (Stream<Path> walk = Files.walk(projectDir.toPath())) {
             List<Path> mdFiles = walk
                 .filter(Files::isRegularFile)
@@ -175,18 +181,22 @@ public class IndexService {
                 .toList();
 
             int total = mdFiles.size();
+            log.info(LOG_SOURCE, "Found " + total + " Markdown file(s) to index");
             int done = 0;
             for (Path p : mdFiles) {
                 indexFile(p);
                 done++;
                 reportProgress(done, total);
             }
+            log.info(LOG_SOURCE, "Indexed " + done + " file(s)");
         } catch (IOException e) {
-            System.err.println("IndexService: error scanning project: " + e.getMessage());
+            log.error(LOG_SOURCE, "Error scanning project: " + e.getMessage());
         }
 
         sortTagCounts();
+        log.debug(LOG_SOURCE, "Found " + tagCounts.size() + " unique tag(s)");
         saveIndex();
+        log.endOperation(LOG_SOURCE, "Build Index", "SUCCESS");
     }
 
     /**
@@ -207,7 +217,7 @@ public class IndexService {
             if (onFinished != null) Platform.runLater(onFinished);
         });
         task.setOnFailed(e -> {
-            System.err.println("IndexService: async indexing failed: " + task.getException());
+            log.error(LOG_SOURCE, "Async indexing failed", task.getException());
             if (onFinished != null) Platform.runLater(onFinished);
         });
 
@@ -229,14 +239,19 @@ public class IndexService {
         if (projectDir == null) return false;
 
         File indexFile = new File(projectDir, INDEX_FILENAME);
-        if (!indexFile.exists()) return false;
+        if (!indexFile.exists()) {
+            log.debug(LOG_SOURCE, "No existing index file found");
+            return false;
+        }
 
         try {
+            log.debug(LOG_SOURCE, "Loading index from " + indexFile.getName());
             String json = Files.readString(indexFile.toPath());
             parseJson(json);
+            log.info(LOG_SOURCE, "Loaded " + entries.size() + " entries from index");
             return true;
         } catch (IOException e) {
-            System.err.println("IndexService: error loading index: " + e.getMessage());
+            log.error(LOG_SOURCE, "Error loading index: " + e.getMessage());
             return false;
         }
     }
@@ -251,9 +266,11 @@ public class IndexService {
         File indexFile = new File(projectDir, INDEX_FILENAME);
         if (indexFile.exists()) {
             indexFile.delete();
+            log.info(LOG_SOURCE, "Index file deleted");
         }
         entries.clear();
         tagCounts.clear();
+        log.info(LOG_SOURCE, "Index reset completed");
     }
 
     /**
@@ -384,6 +401,7 @@ public class IndexService {
 
         // Indexer le fichier s'il existe encore (pourrait avoir été supprimé)
         if (file.exists() && file.isFile()) {
+            log.debug(LOG_SOURCE, "Updating index for: " + relativePath);
             indexFile(file.toPath());
         }
 
@@ -400,6 +418,7 @@ public class IndexService {
     public void removeFile(File file) {
         if (projectDir == null || file == null) return;
         String relativePath = projectDir.toPath().relativize(file.toPath()).toString();
+        log.debug(LOG_SOURCE, "Removing from index: " + relativePath);
         entries.removeIf(e -> e.relativePath.equals(relativePath));
         rebuildTagCounts();
         saveIndex();
@@ -414,8 +433,14 @@ public class IndexService {
     public void removeFilesUnder(File dir) {
         if (projectDir == null || dir == null) return;
         String relativePrefix = projectDir.toPath().relativize(dir.toPath()).toString();
+        log.debug(LOG_SOURCE, "Removing from index all files under: " + relativePrefix);
         // Retirer toutes les entrées dont le chemin relatif commence par ce préfixe
+        int countBefore = entries.size();
         entries.removeIf(e -> e.relativePath.startsWith(relativePrefix));
+        int removed = countBefore - entries.size();
+        if (removed > 0) {
+            log.info(LOG_SOURCE, "Removed " + removed + " entries from index");
+        }
         rebuildTagCounts();
         saveIndex();
     }
@@ -432,12 +457,15 @@ public class IndexService {
         if (oldFile.isDirectory() || (newFile != null && newFile.isDirectory())) {
             // Pour un répertoire renommé, reconstruire tout l'index
             // car les chemins relatifs de tous les fichiers enfants changent.
+            log.info(LOG_SOURCE, "Directory renamed, rebuilding full index");
             buildIndex(projectDir);
             return;
         }
 
         // Retirer l'ancienne entrée
         String oldRelativePath = projectDir.toPath().relativize(oldFile.toPath()).toString();
+        log.debug(LOG_SOURCE, "Renaming in index: " + oldRelativePath + " -> " + 
+                  (newFile != null ? projectDir.toPath().relativize(newFile.toPath()).toString() : "(deleted)"));
         entries.removeIf(e -> e.relativePath.equals(oldRelativePath));
 
         // Indexer le nouveau fichier
@@ -458,6 +486,9 @@ public class IndexService {
      */
     public void handleMove(List<File> movedFiles, File targetDir) {
         if (projectDir == null || movedFiles == null || targetDir == null) return;
+
+        log.info(LOG_SOURCE, "Moving " + movedFiles.size() + " file(s) to " + 
+                 projectDir.toPath().relativize(targetDir.toPath()).toString());
 
         for (File oldFile : movedFiles) {
             String oldRelativePath = projectDir.toPath().relativize(oldFile.toPath()).toString();
@@ -494,6 +525,8 @@ public class IndexService {
     public void handleCopy(List<File> copiedFiles, File targetDir) {
         if (projectDir == null || copiedFiles == null || targetDir == null) return;
 
+        log.info(LOG_SOURCE, "Copying " + copiedFiles.size() + " file(s) to index");
+
         for (File srcFile : copiedFiles) {
             File newFile = new File(targetDir, srcFile.getName());
             if (newFile.exists()) {
@@ -515,13 +548,14 @@ public class IndexService {
      */
     private void indexDirectory(File dir) {
         if (dir == null || !dir.isDirectory()) return;
+        log.debug(LOG_SOURCE, "Indexing directory: " + dir.getName());
         try (Stream<Path> walk = Files.walk(dir.toPath())) {
             walk.filter(Files::isRegularFile)
                 .filter(p -> p.toString().toLowerCase().endsWith(".md"))
                 .filter(p -> !p.getFileName().toString().startsWith("."))
                 .forEach(this::indexFile);
         } catch (IOException e) {
-            System.err.println("IndexService: error indexing directory " + dir + ": " + e.getMessage());
+            log.error(LOG_SOURCE, "Error indexing directory " + dir + ": " + e.getMessage());
         }
     }
 
