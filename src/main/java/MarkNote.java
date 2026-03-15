@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 
 import config.AppConfig;
+import config.LLMConfig;
 import config.ThemeManager;
 import ui.BasePanel;
 import ui.ConsolePanel;
@@ -17,6 +18,7 @@ import ui.DetachedPanelTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
+import ui.PromptPanel;
 import ui.SearchBox;
 import ui.SplashScreen;
 import ui.StatusBar;
@@ -82,6 +84,11 @@ public class MarkNote extends Application {
     private boolean consoleDebugEnabled = false;
 
     private GitService gitService;
+
+    // LLM Chat Panel
+    private PromptPanel promptPanel;
+    private LLMConfig llmConfig;
+    private CheckMenuItem showLLMPanelMenuItem;
 
     public static void main(String[] args) {
         launch(args);
@@ -241,6 +248,20 @@ public class MarkNote extends Application {
         dockingManager.dock(projectExplorerPanel, DockZone.LEFT);
         dockingManager.dock(tagCloudPanel, DockZone.LEFT);
         dockingManager.dock(visualLinkPanel, DockZone.LEFT);
+
+        // LLM Chat Panel (à gauche)
+        llmConfig = new LLMConfig();
+        llmConfig.load();
+        if (llmConfig.isEnabled()) {
+            promptPanel = new PromptPanel(llmConfig);
+            promptPanel.setOnClose(() -> {
+                if (showLLMPanelMenuItem != null) {
+                    showLLMPanelMenuItem.setSelected(false);
+                }
+            });
+            promptPanel.setOnDetach(() -> detachPanel(promptPanel));
+            dockingManager.dock(promptPanel, DockZone.LEFT);
+        }
 
         // Console panel (si --console-debug est passé)
         if (consoleDebugEnabled) {
@@ -418,12 +439,33 @@ public class MarkNote extends Application {
         // Bouton [x] du diagramme réseau décoche le menu
         visualLinkPanel.setOnClose(() -> showNetworkDiagram.setSelected(false));
 
+        // Option LLM Panel (si activé dans la config)
+        if (llmConfig.isEnabled() && promptPanel != null) {
+            showLLMPanelMenuItem = new CheckMenuItem(messages.getString("menu.view.llmPanel"));
+            showLLMPanelMenuItem.setAccelerator(KeyCombination.keyCombination("Ctrl+M"));
+            showLLMPanelMenuItem.setSelected(true);
+            showLLMPanelMenuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                if (isSelected) {
+                    dockingManager.showPanel(promptPanel, DockZone.LEFT);
+                } else {
+                    dockingManager.hidePanel(promptPanel);
+                }
+            });
+        }
+
         // Option Afficher Welcome
         MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
         showWelcomeItem.setOnAction(e -> showWelcomeTab());
 
         viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, new SeparatorMenuItem(), showTagCloud,
-                showNetworkDiagram, new SeparatorMenuItem(), showWelcomeItem);
+                showNetworkDiagram);
+        
+        // Ajouter l'option LLM si disponible
+        if (showLLMPanelMenuItem != null) {
+            viewMenu.getItems().add(showLLMPanelMenuItem);
+        }
+        
+        viewMenu.getItems().addAll(new SeparatorMenuItem(), showWelcomeItem);
 
         // Option Console (uniquement si --console-debug est actif)
         if (consoleDebugEnabled) {

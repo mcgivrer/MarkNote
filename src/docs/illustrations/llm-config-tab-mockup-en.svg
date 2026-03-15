@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400" width="500" height="400">
+  <defs>
+    <linearGradient id="tabActiveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3182ce;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2b6cb0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="buttonGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#48bb78;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38a169;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <!-- Dialog Background -->
+  <rect x="0" y="0" width="500" height="400" fill="#1a202c" rx="8"/>
+  
+  <!-- Dialog Header -->
+  <rect x="0" y="0" width="500" height="40" fill="#2d3748" rx="8"/>
+  <rect x="0" y="32" width="500" height="8" fill="#2d3748"/>
+  <text x="20" y="26" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#e2e8f0">Options</text>
+  
+  <!-- Close button -->
+  <g transform="translate(465, 10)">
+    <rect x="0" y="0" width="24" height="20" rx="3" fill="#e53e3e"/>
+    <text x="12" y="15" font-family="Arial" font-size="12" fill="#fff" text-anchor="middle">✕</text>
+  </g>
+  
+  <!-- Tab Bar -->
+  <rect x="0" y="40" width="500" height="36" fill="#2d3748"/>
+  
+  <!-- Tabs -->
+  <g transform="translate(10, 44)">
+    <!-- Misc Tab -->
+    <rect x="0" y="0" width="70" height="28" rx="4" fill="#4a5568"/>
+    <text x="35" y="19" font-family="Arial" font-size="11" fill="#a0aec0" text-anchor="middle">General</text>
+    
+    <!-- Themes Tab -->
+    <rect x="78" y="0" width="70" height="28" rx="4" fill="#4a5568"/>
+    <text x="113" y="19" font-family="Arial" font-size="11" fill="#a0aec0" text-anchor="middle">Themes</text>
+    
+    <!-- Tools Tab -->
+    <rect x="156" y="0" width="70" height="28" rx="4" fill="#4a5568"/>
+    <text x="191" y="19" font-family="Arial" font-size="11" fill="#a0aec0" text-anchor="middle">Tools</text>
+    
+    <!-- Git Tab -->
+    <rect x="234" y="0" width="50" height="28" rx="4" fill="#4a5568"/>
+    <text x="259" y="19" font-family="Arial" font-size="11" fill="#a0aec0" text-anchor="middle">Git</text>
+    
+    <!-- LLM Tab (Active) -->
+    <rect x="292" y="0" width="50" height="28" rx="4" fill="url(#tabActiveGrad)" filter="url(#shadow)"/>
+    <text x="317" y="19" font-family="Arial" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">LLM</text>
+  </g>
+  
+  <!-- Tab Content Area -->
+  <rect x="10" y="86" width="480" height="260" fill="#2d3748" rx="6"/>
+  
+  <!-- LLM Configuration Form -->
+  
+  <!-- Enable Checkbox -->
+  <g transform="translate(24, 100)">
+    <rect x="0" y="0" width="18" height="18" rx="3" fill="#3182ce" stroke="#63b3ed" stroke-width="1"/>
+    <text x="9" y="14" font-family="Arial" font-size="12" fill="#fff" text-anchor="middle">✓</text>
+    <text x="28" y="14" font-family="Arial" font-size="12" fill="#e2e8f0">Enable LLM support</text>
+  </g>
+  
+  <!-- API Endpoint URL -->
+  <g transform="translate(24, 134)">
+    <text x="0" y="0" font-family="Arial" font-size="11" fill="#a0aec0">API URL</text>
+    <rect x="0" y="8" width="440" height="32" rx="4" fill="#1a202c" stroke="#4a5568" stroke-width="1"/>
+    <text x="12" y="30" font-family="monospace" font-size="11" fill="#e2e8f0">http://localhost:11434/api/chat</text>
+  </g>
+  
+  <!-- API Key -->
+  <g transform="translate(24, 186)">
+    <text x="0" y="0" font-family="Arial" font-size="11" fill="#a0aec0">API Key (optional)</text>
+    <rect x="0" y="8" width="440" height="32" rx="4" fill="#1a202c" stroke="#4a5568" stroke-width="1"/>
+    <text x="12" y="30" font-family="monospace" font-size="11" fill="#718096">••••••••••••••••</text>
+    <!-- Show/Hide button -->
+    <rect x="408" y="12" width="24" height="24" rx="3" fill="#4a5568"/>
+    <text x="420" y="29" font-family="Arial" font-size="10" fill="#a0aec0" text-anchor="middle">👁</text>
+  </g>
+  
+  <!-- Model Selection -->
+  <g transform="translate(24, 238)">
+    <text x="0" y="0" font-family="Arial" font-size="11" fill="#a0aec0">Model</text>
+    <rect x="0" y="8" width="200" height="32" rx="4" fill="#1a202c" stroke="#4a5568" stroke-width="1"/>
+    <text x="12" y="30" font-family="Arial" font-size="11" fill="#e2e8f0">llama3.2:latest</text>
+    <!-- Dropdown arrow -->
+    <text x="180" y="30" font-family="Arial" font-size="10" fill="#718096">▼</text>
+  </g>
+  
+  <!-- Timeout -->
+  <g transform="translate(244, 238)">
+    <text x="0" y="0" font-family="Arial" font-size="11" fill="#a0aec0">Timeout (seconds)</text>
+    <rect x="0" y="8" width="100" height="32" rx="4" fill="#1a202c" stroke="#4a5568" stroke-width="1"/>
+    <text x="12" y="30" font-family="Arial" font-size="11" fill="#e2e8f0">60</text>
+  </g>
+  
+  <!-- Test Connection Button -->
+  <g transform="translate(364, 246)">
+    <rect x="0" y="0" width="100" height="32" rx="4" fill="url(#buttonGrad)" filter="url(#shadow)"/>
+    <text x="50" y="21" font-family="Arial" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">Test</text>
+  </g>
+  
+  <!-- System Context -->
+  <g transform="translate(24, 290)">
+    <text x="0" y="0" font-family="Arial" font-size="11" fill="#a0aec0">Default system context</text>
+    <rect x="0" y="8" width="440" height="44" rx="4" fill="#1a202c" stroke="#4a5568" stroke-width="1"/>
+    <text x="12" y="28" font-family="Arial" font-size="10" fill="#718096">You are an assistant specialized in writing</text>
+    <text x="12" y="42" font-family="Arial" font-size="10" fill="#718096">Markdown notes...</text>
+  </g>
+  
+  <!-- Dialog Footer -->
+  <rect x="0" y="354" width="500" height="46" fill="#2d3748" rx="8"/>
+  <rect x="0" y="354" width="500" height="8" fill="#2d3748"/>
+  
+  <!-- Footer Buttons -->
+  <g transform="translate(290, 364)">
+    <!-- Cancel -->
+    <rect x="0" y="0" width="90" height="28" rx="4" fill="#4a5568" stroke="#718096" stroke-width="1"/>
+    <text x="45" y="19" font-family="Arial" font-size="11" fill="#e2e8f0" text-anchor="middle">Cancel</text>
+    
+    <!-- Save -->
+    <rect x="100" y="0" width="90" height="28" rx="4" fill="url(#tabActiveGrad)" filter="url(#shadow)"/>
+    <text x="145" y="19" font-family="Arial" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">Save</text>
+  </g>
+</svg>

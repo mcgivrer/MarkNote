@@ -2,12 +2,15 @@ package ui;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 import config.AppConfig;
+import config.LLMConfig;
 import config.ThemeManager;
+import services.LLMService;
 
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -25,6 +28,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
@@ -421,6 +425,116 @@ public class OptionsDialog {
         gitTab.setContent(gitGrid);
         optionsTabs.getTabs().add(gitTab);
 
+        // --- Onglet LLM ---
+        Tab llmTab = new Tab(getMessages().getString("llm.config.tab"));
+        
+        LLMConfig llmConfig = new LLMConfig();
+        llmConfig.load();
+
+        GridPane llmGrid = new GridPane();
+        llmGrid.setHgap(10);
+        llmGrid.setVgap(10);
+        llmGrid.setPadding(new Insets(20));
+
+        // Header
+        Label llmHeader = new Label(getMessages().getString("llm.config.header"));
+        llmHeader.setStyle("-fx-font-weight: bold;");
+        llmGrid.add(llmHeader, 0, 0, 3, 1);
+
+        // Enable LLM
+        Label enableLabel = new Label(getMessages().getString("llm.config.enabled"));
+        CheckBox enableCheck = new CheckBox();
+        enableCheck.setSelected(llmConfig.isEnabled());
+        llmGrid.add(enableLabel, 0, 1);
+        llmGrid.add(enableCheck, 1, 1);
+
+        // Endpoint URL
+        Label urlLabel = new Label(getMessages().getString("llm.config.url"));
+        TextField urlField = new TextField(llmConfig.getEndpointUrl());
+        urlField.setPromptText(getMessages().getString("llm.config.url.prompt"));
+        urlField.setPrefWidth(280);
+        GridPane.setHgrow(urlField, Priority.ALWAYS);
+        llmGrid.add(urlLabel, 0, 2);
+        llmGrid.add(urlField, 1, 2, 2, 1);
+
+        // API Key
+        Label apiKeyLabel = new Label(getMessages().getString("llm.config.apikey"));
+        PasswordField apiKeyField = new PasswordField();
+        apiKeyField.setText(llmConfig.getApiKey());
+        apiKeyField.setPromptText(getMessages().getString("llm.config.apikey.prompt"));
+        apiKeyField.setPrefWidth(280);
+        llmGrid.add(apiKeyLabel, 0, 3);
+        llmGrid.add(apiKeyField, 1, 3, 2, 1);
+
+        // Model
+        Label modelLabel = new Label(getMessages().getString("llm.config.model"));
+        ComboBox<String> modelCombo = new ComboBox<>();
+        modelCombo.setEditable(true);
+        modelCombo.setValue(llmConfig.getModel());
+        modelCombo.setPromptText(getMessages().getString("llm.config.model.prompt"));
+        modelCombo.setPrefWidth(180);
+        
+        Button refreshModelsBtn = new Button(getMessages().getString("llm.config.refresh"));
+        refreshModelsBtn.setOnAction(e -> {
+            LLMConfig tempConfig = new LLMConfig();
+            tempConfig.setEndpointUrl(urlField.getText());
+            tempConfig.setApiKey(apiKeyField.getText());
+            LLMService tempService = new LLMService(tempConfig);
+            List<String> models = tempService.getAvailableModels();
+            if (!models.isEmpty()) {
+                modelCombo.getItems().clear();
+                modelCombo.getItems().addAll(models);
+                if (!models.contains(modelCombo.getValue())) {
+                    modelCombo.setValue(models.get(0));
+                }
+            }
+        });
+        llmGrid.add(modelLabel, 0, 4);
+        llmGrid.add(modelCombo, 1, 4);
+        llmGrid.add(refreshModelsBtn, 2, 4);
+
+        // Timeout
+        Label timeoutLabel = new Label(getMessages().getString("llm.config.timeout"));
+        Spinner<Integer> timeoutSpinner = new Spinner<>(1, 300, llmConfig.getTimeout());
+        timeoutSpinner.setEditable(true);
+        timeoutSpinner.setPrefWidth(100);
+        llmGrid.add(timeoutLabel, 0, 5);
+        llmGrid.add(timeoutSpinner, 1, 5);
+
+        // Test Connection button
+        Button testBtn = new Button(getMessages().getString("llm.config.test"));
+        testBtn.setOnAction(e -> {
+            LLMConfig tempConfig = new LLMConfig();
+            tempConfig.setEndpointUrl(urlField.getText());
+            tempConfig.setApiKey(apiKeyField.getText());
+            tempConfig.setModel(modelCombo.getValue() != null ? modelCombo.getValue() : "");
+            tempConfig.setTimeout(timeoutSpinner.getValue());
+            LLMService tempService = new LLMService(tempConfig);
+            
+            boolean success = tempService.testConnection();
+            Alert alert = new Alert(success ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+            alert.initOwner(dialog);
+            alert.setTitle(getMessages().getString("llm.config.test"));
+            alert.setHeaderText(null);
+            alert.setContentText(getMessages().getString(
+                    success ? "llm.config.test.success" : "llm.config.test.failure"));
+            alert.showAndWait();
+        });
+        llmGrid.add(testBtn, 2, 5);
+
+        // System context
+        Label contextLabel = new Label(getMessages().getString("llm.config.context"));
+        llmGrid.add(contextLabel, 0, 6);
+        
+        TextArea contextArea = new TextArea(llmConfig.getSystemContext());
+        contextArea.setPromptText(getMessages().getString("llm.config.context.prompt"));
+        contextArea.setPrefRowCount(3);
+        contextArea.setWrapText(true);
+        llmGrid.add(contextArea, 0, 7, 3, 1);
+
+        llmTab.setContent(llmGrid);
+        optionsTabs.getTabs().add(llmTab);
+
         // --- Boutons OK / Annuler ---
         Button okBtn = new Button(getMessages().getString("options.ok"));
         Button cancelBtn = new Button(getMessages().getString("options.cancel"));
@@ -446,6 +560,16 @@ public class OptionsDialog {
             config.setGitUsername(usernameField.getText().trim());
             config.setGitToken(tokenField.getText());
             config.save();
+            
+            // Save LLM config
+            llmConfig.setEnabled(enableCheck.isSelected());
+            llmConfig.setEndpointUrl(urlField.getText().trim());
+            llmConfig.setApiKey(apiKeyField.getText());
+            llmConfig.setModel(modelCombo.getValue() != null ? modelCombo.getValue() : "");
+            llmConfig.setTimeout(timeoutSpinner.getValue());
+            llmConfig.setSystemContext(contextArea.getText());
+            llmConfig.save();
+            
             saved = true;
             dialog.close();
         });
