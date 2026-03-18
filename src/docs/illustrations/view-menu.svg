@@ -1,95 +1,113 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
-  <!-- Background -->
-  <rect width="800" height="400" fill="#f5f5f5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 460" width="800" height="460">
+  <!-- Light theme -->
+  <rect width="800" height="460" fill="#e8edf3"/>
 
   <!-- Window frame -->
-  <rect x="20" y="20" width="760" height="360" rx="8" fill="#2d2d2d" stroke="#1a1a1a" stroke-width="2"/>
+  <rect x="20" y="20" width="760" height="420" rx="8" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
 
   <!-- Title bar -->
-  <rect x="20" y="20" width="760" height="35" rx="8" fill="#3d3d3d"/>
-  <rect x="20" y="45" width="760" height="10" fill="#3d3d3d"/>
+  <rect x="20" y="20" width="760" height="32" rx="8" fill="#f1f3f5"/>
+  <rect x="20" y="44" width="760" height="8" fill="#f1f3f5"/>
+  <line x1="20" y1="52" x2="780" y2="52" stroke="#dde1e8" stroke-width="1"/>
 
   <!-- Window controls -->
-  <circle cx="45" cy="37" r="7" fill="#ff5f56"/>
-  <circle cx="70" cy="37" r="7" fill="#ffbd2e"/>
-  <circle cx="95" cy="37" r="7" fill="#27ca40"/>
+  <circle cx="44" cy="36" r="6" fill="#ef4444"/>
+  <circle cx="66" cy="36" r="6" fill="#f59e0b"/>
+  <circle cx="88" cy="36" r="6" fill="#22c55e"/>
 
   <!-- Title -->
-  <text x="400" y="42" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle">MarkNote - View Menu</text>
+  <text x="400" y="40" font-family="Arial, sans-serif" font-size="13" fill="#374151" text-anchor="middle">MarkNote — View Menu</text>
 
   <!-- Menu bar -->
-  <rect x="20" y="55" width="760" height="30" fill="#404040"/>
-  <text x="40" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">File</text>
-  <rect x="75" y="59" width="40" height="22" rx="3" fill="#555555"/>
-  <text x="85" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" font-weight="bold">View</text>
-  <text x="130" y="75" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Help</text>
+  <rect x="20" y="53" width="760" height="28" fill="#f8f9fa"/>
+  <line x1="20" y1="81" x2="780" y2="81" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="36" y="71" font-family="Arial, sans-serif" font-size="12" fill="#374151">File</text>
+  <!-- View menu button: active/pressed -->
+  <rect x="68" y="56" width="38" height="22" rx="3" fill="#dbeafe"/>
+  <text x="77" y="71" font-family="Arial, sans-serif" font-size="12" fill="#1d4ed8" font-weight="bold">View</text>
+  <text x="120" y="71" font-family="Arial, sans-serif" font-size="12" fill="#374151">Help</text>
 
   <!-- View menu dropdown -->
-  <rect x="75" y="85" width="240" height="210" rx="4" fill="#3c3c3c" stroke="#555555" stroke-width="1"/>
+  <rect x="68" y="82" width="256" height="270" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <!-- shadow -->
+  <rect x="70" y="85" width="256" height="270" rx="4" fill="#00000011"/>
+  <rect x="68" y="82" width="256" height="270" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
 
-  <!-- Menu items -->
-  <!-- Project explorer (checked) -->
-  <rect x="77" y="87" width="236" height="28" fill="#4a4a4a"/>
-  <text x="95" y="106" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">✓</text>
-  <text x="115" y="106" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Project explorer</text>
-  <text x="295" y="106" font-family="Arial, sans-serif" font-size="11" fill="#888888" text-anchor="end">Ctrl+E</text>
+  <!-- Project explorer (checked, highlighted) -->
+  <rect x="70" y="84" width="252" height="28" rx="2" fill="#eff6ff"/>
+  <text x="84" y="102" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">✓</text>
+  <text x="100" y="102" font-family="Arial, sans-serif" font-size="12" fill="#1f2937">Project explorer</text>
+  <text x="316" y="102" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+E</text>
 
   <!-- Preview panel (checked) -->
-  <rect x="77" y="117" width="236" height="28" fill="transparent"/>
-  <text x="95" y="136" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">✓</text>
-  <text x="115" y="136" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Preview panel</text>
-  <text x="295" y="136" font-family="Arial, sans-serif" font-size="11" fill="#888888" text-anchor="end">Ctrl+P</text>
+  <rect x="70" y="114" width="252" height="28" rx="2" fill="transparent"/>
+  <text x="84" y="132" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">✓</text>
+  <text x="100" y="132" font-family="Arial, sans-serif" font-size="12" fill="#1f2937">Preview panel</text>
+  <text x="316" y="132" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+P</text>
 
   <!-- Separator -->
-  <line x1="85" y1="149" x2="305" y2="149" stroke="#555555" stroke-width="1"/>
+  <line x1="80" y1="146" x2="316" y2="146" stroke="#e5e7eb" stroke-width="1"/>
 
   <!-- Tag Cloud (checked) -->
-  <rect x="77" y="153" width="236" height="28" fill="transparent"/>
-  <text x="95" y="172" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">✓</text>
-  <text x="115" y="172" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Tag Cloud</text>
-  <text x="295" y="172" font-family="Arial, sans-serif" font-size="11" fill="#888888" text-anchor="end">Ctrl+T</text>
+  <rect x="70" y="150" width="252" height="28" rx="2" fill="transparent"/>
+  <text x="84" y="168" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">✓</text>
+  <text x="100" y="168" font-family="Arial, sans-serif" font-size="12" fill="#1f2937">Tag Cloud</text>
+  <text x="316" y="168" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+T</text>
 
   <!-- Network Diagram (checked) -->
-  <rect x="77" y="183" width="236" height="28" fill="transparent"/>
-  <text x="95" y="202" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">✓</text>
-  <text x="115" y="202" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Network Diagram</text>
-  <text x="295" y="202" font-family="Arial, sans-serif" font-size="11" fill="#888888" text-anchor="end">Ctrl+L</text>
+  <rect x="70" y="180" width="252" height="28" rx="2" fill="transparent"/>
+  <text x="84" y="198" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">✓</text>
+  <text x="100" y="198" font-family="Arial, sans-serif" font-size="12" fill="#1f2937">Network Diagram</text>
+  <text x="316" y="198" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+L</text>
+
+  <!-- LLM Chat (checked – new!) -->
+  <rect x="70" y="210" width="252" height="28" rx="2" fill="#f5f3ff"/>
+  <text x="84" y="228" font-family="Arial, sans-serif" font-size="12" fill="#7c3aed">✓</text>
+  <text x="100" y="228" font-family="Arial, sans-serif" font-size="12" fill="#1f2937">LLM Chat</text>
+  <text x="316" y="228" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+M</text>
+  <!-- NEW badge -->
+  <rect x="190" y="215" width="30" height="14" rx="3" fill="#7c3aed"/>
+  <text x="205" y="226" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">NEW</text>
 
   <!-- Separator -->
-  <line x1="85" y1="215" x2="305" y2="215" stroke="#555555" stroke-width="1"/>
+  <line x1="80" y1="242" x2="316" y2="242" stroke="#e5e7eb" stroke-width="1"/>
 
   <!-- Show Welcome -->
-  <rect x="77" y="219" width="236" height="28" fill="transparent"/>
-  <text x="115" y="238" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Show Welcome</text>
+  <rect x="70" y="246" width="252" height="28" rx="2" fill="transparent"/>
+  <text x="100" y="264" font-family="Arial, sans-serif" font-size="12" fill="#1f2937">Show Welcome</text>
 
-  <!-- Dimmed editor area -->
-  <rect x="320" y="85" width="455" height="290" fill="#1e1e1e" opacity="0.5"/>
+  <!-- Separator -->
+  <line x1="80" y1="278" x2="316" y2="278" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- Show Console (dev mode) -->
+  <rect x="70" y="282" width="252" height="28" rx="2" fill="transparent"/>
+  <text x="100" y="300" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af">Console  (dev mode)</text>
+
+  <!-- Main editor area dimmed -->
+  <rect x="330" y="82" width="450" height="340" fill="#f8f9fa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="430" y="170" font-family="monospace" font-size="11" fill="#c0c0c0"># README</text>
+  <text x="430" y="190" font-family="monospace" font-size="11" fill="#d0d0d0">Welcome to **MarkNote**</text>
 
   <!-- Explanation box -->
-  <rect x="350" y="110" width="400" height="240" rx="8" fill="#383838" opacity="0.95"/>
+  <rect x="340" y="190" width="430" height="220" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+  <text x="365" y="220" font-family="Arial, sans-serif" font-size="16" fill="#0c4a6e" font-weight="bold">View Menu</text>
+  <line x1="365" y1="228" x2="750" y2="228" stroke="#bae6fd" stroke-width="1"/>
+  <text x="365" y="250" font-family="Arial, sans-serif" font-size="12" fill="#334155">Use checkboxes to toggle panel visibility:</text>
+  <text x="380" y="274" font-family="Arial, sans-serif" font-size="12" fill="#16a34a">✓ Project explorer</text>
+  <text x="560" y="274" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">Ctrl+E</text>
+  <text x="380" y="295" font-family="Arial, sans-serif" font-size="12" fill="#16a34a">✓ Preview panel</text>
+  <text x="560" y="295" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">Ctrl+P</text>
+  <text x="380" y="316" font-family="Arial, sans-serif" font-size="12" fill="#16a34a">✓ Tag Cloud</text>
+  <text x="560" y="316" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">Ctrl+T</text>
+  <text x="380" y="337" font-family="Arial, sans-serif" font-size="12" fill="#16a34a">✓ Network Diagram</text>
+  <text x="560" y="337" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">Ctrl+L</text>
+  <text x="380" y="358" font-family="Arial, sans-serif" font-size="12" fill="#7c3aed" font-weight="bold">✓ LLM Chat</text>
+  <text x="560" y="358" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">Ctrl+M</text>
+  <rect x="608" y="346" width="30" height="14" rx="3" fill="#7c3aed"/>
+  <text x="623" y="357" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">NEW</text>
+  <line x1="365" y1="372" x2="750" y2="372" stroke="#bae6fd" stroke-width="1"/>
+  <text x="365" y="392" font-family="Arial, sans-serif" font-size="11" fill="#475569">Close any panel with its × button; reopen from here.</text>
 
-  <text x="380" y="145" font-family="Arial, sans-serif" font-size="18" fill="#ffffff" font-weight="bold">View Menu</text>
-  <line x1="380" y1="155" x2="720" y2="155" stroke="#555555" stroke-width="1"/>
-
-  <text x="380" y="180" font-family="Arial, sans-serif" font-size="13" fill="#cccccc">Toggle visibility of panels using checkboxes:</text>
-
-  <text x="400" y="210" font-family="Arial, sans-serif" font-size="12" fill="#98c379">✓ Project explorer</text>
-  <text x="560" y="210" font-family="Arial, sans-serif" font-size="12" fill="#888888">Ctrl+E</text>
-
-  <text x="400" y="232" font-family="Arial, sans-serif" font-size="12" fill="#98c379">✓ Preview panel</text>
-  <text x="560" y="232" font-family="Arial, sans-serif" font-size="12" fill="#888888">Ctrl+P</text>
-
-  <text x="400" y="254" font-family="Arial, sans-serif" font-size="12" fill="#98c379">✓ Tag Cloud</text>
-  <text x="560" y="254" font-family="Arial, sans-serif" font-size="12" fill="#888888">Ctrl+T</text>
-
-  <text x="400" y="276" font-family="Arial, sans-serif" font-size="12" fill="#98c379">✓ Network Diagram</text>
-  <text x="560" y="276" font-family="Arial, sans-serif" font-size="12" fill="#888888">Ctrl+L</text>
-
-  <line x1="380" y1="290" x2="720" y2="290" stroke="#555555" stroke-width="1"/>
-
-  <text x="380" y="315" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Each panel can also be closed with its</text>
-  <text x="380" y="333" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">header × button. Re-open from this menu.</text>
-
-  <!-- Arrow from menu to explanation -->
-  <line x1="315" y1="180" x2="350" y2="180" stroke="#4a90d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <!-- Arrow from dropdown to callout -->
+  <line x1="328" y1="220" x2="340" y2="220" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,3"/>
 </svg>
