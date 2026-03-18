@@ -1,7 +1,7 @@
 ---
 title: "MarkNote User Guide"
 date: 2026-03-10
-version: "0.1.2"
+version: "0.1.3"
 author: "Frédéric Delorme"
 description: "Official user guide for MarkNote, a lightweight Markdown editor built with JavaFX."
 summary: "Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features."
@@ -12,7 +12,7 @@ status: draft
 
 # MarkNote User Guide
 
-Version 0.1.2
+Version 0.1.3
 
 Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features.
 
@@ -1231,7 +1231,7 @@ If you encounter issues not covered here:
 
 ## About MarkNote
 
-**Version:** 0.1.2
+**Version:** 0.1.3
 **Author:** Frédéric Delorme  
 **Copyright:** © SnapGames 2026  
 **License:** MIT  
