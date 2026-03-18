@@ -62,10 +62,14 @@ public class VisualLinkPanel extends BasePanel {
     private static final double MIN_VELOCITY = 0.1;
     private static final double IDEAL_DISTANCE = 120.0;
     private static final double CENTER_GRAVITY = 0.005;
+    private static final long MAX_SIMULATION_DURATION_NS = 8_000_000_000L;
 
     // ── Rendu ───────────────────────────────────────────────────
     private static final double NODE_RADIUS = 14.0;
     private static final double TAG_RADIUS = 8.0;
+    private static final double COMPONENT_MIN_GAP_PX = 10.0;
+    private static final double COMPONENT_RELAXED_GAP_PX = 12.0;
+    private static final double COMPONENT_DRAG_GAP_PX = 16.0;
     private static final Font DOC_FONT = Font.font("System", FontWeight.NORMAL, 10);
     private static final Font TAG_FONT = Font.font("System", FontWeight.NORMAL, 9);
 
@@ -87,6 +91,7 @@ public class VisualLinkPanel extends BasePanel {
     private final Canvas canvas;
     private final Pane canvasContainer;
     private AnimationTimer timer;
+    private long simulationStartNanos = 0L;
     private boolean stable = false;
     private int stableFrames = 0;
     private boolean fitDone = false;
@@ -224,6 +229,7 @@ public class VisualLinkPanel extends BasePanel {
                 draggedNode.y = toWorldY(e.getY()) - dragOffsetY;
                 draggedNode.vx = 0;
                 draggedNode.vy = 0;
+                refreshComponentCircles();
                 stable = false;
                 stableFrames = 0;
                 startSimulation();
@@ -414,8 +420,31 @@ public class VisualLinkPanel extends BasePanel {
             colorIndex++;
         }
 
-        // Séparer les cercles qui se chevauchent
-        separateCircles();
+        refreshComponentCircles();
+    }
+
+    /** Recalcule les bornes des cercles à partir des positions courantes des nœuds. */
+    private void refreshComponentCircles() {
+        for (ComponentCircle circle : componentCircles) {
+            computeCircleBounds(circle);
+        }
+        separateCircles(getComponentMinGapWorld());
+    }
+
+    /** Convertit l'écart minimal souhaité en pixels écran vers les coordonnées du graphe. */
+    private double getComponentMinGapWorld() {
+        return getCurrentComponentGapPx() / Math.max(zoom, 0.0001);
+    }
+
+    /** Retourne l'écart bord à bord à appliquer selon l'état courant du graphe. */
+    private double getCurrentComponentGapPx() {
+        if (draggedNode != null) {
+            return COMPONENT_DRAG_GAP_PX;
+        }
+        if (timer != null) {
+            return COMPONENT_RELAXED_GAP_PX;
+        }
+        return COMPONENT_MIN_GAP_PX;
     }
 
     /** Charge les informations du groupe depuis l'IndexService */
@@ -465,10 +494,9 @@ public class VisualLinkPanel extends BasePanel {
     }
 
     /** Sépare les cercles qui se chevauchent en les déplaçant avec leurs nœuds */
-    private void separateCircles() {
+    private void separateCircles(double minSeparation) {
         if (componentCircles.size() < 2) return;
 
-        double minSeparation = 10.0; // espace minimal entre cercles
         int maxIterations = 100;
 
         for (int iter = 0; iter < maxIterations; iter++) {
@@ -624,7 +652,6 @@ public class VisualLinkPanel extends BasePanel {
         entryByPath.clear();
 
         for (IndexEntry entry : entries) {
-            String id = !entry.getUuid().isBlank() ? entry.getUuid() : entry.getRelativePath();
             GraphNode node = new GraphNode(entry.getRelativePath(), entry.getDisplayTitle(), NodeType.DOCUMENT);
             nodes.add(node);
             nodeByPath.put(entry.getRelativePath(), node);
@@ -706,6 +733,7 @@ public class VisualLinkPanel extends BasePanel {
         stable = false;
         stableFrames = 0;
         fitDone = false;
+        computeComponentCircles();
         startSimulation();
     }
 
@@ -717,6 +745,7 @@ public class VisualLinkPanel extends BasePanel {
 
     private void startSimulation() {
         if (timer != null) return;
+        simulationStartNanos = System.nanoTime();
         timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
@@ -724,6 +753,16 @@ public class VisualLinkPanel extends BasePanel {
                     stopSimulation();
                     return;
                 }
+
+                if (now - simulationStartNanos >= MAX_SIMULATION_DURATION_NS) {
+                    if (!fitDone) {
+                        zoomToFit();
+                        fitDone = true;
+                    }
+                    stopSimulation();
+                    return;
+                }
+
                 step();
                 draw();
                 if (stable) {
@@ -735,6 +774,8 @@ public class VisualLinkPanel extends BasePanel {
                         }
                         stopSimulation();
                     }
+                } else {
+                    stableFrames = 0;
                 }
             }
         };
@@ -746,8 +787,14 @@ public class VisualLinkPanel extends BasePanel {
             timer.stop();
             timer = null;
         }
-        // Recalculer les cercles des composantes quand la simulation s'arrête
-        computeComponentCircles();
+        simulationStartNanos = 0L;
+        stable = true;
+        stableFrames = 0;
+        for (GraphNode node : nodes) {
+            node.vx = 0;
+            node.vy = 0;
+        }
+        refreshComponentCircles();
         draw();
     }
 
@@ -817,6 +864,8 @@ public class VisualLinkPanel extends BasePanel {
             maxVelocity = Math.max(maxVelocity, vel);
         }
 
+        refreshComponentCircles();
+
         stable = maxVelocity < MIN_VELOCITY;
     }
 
@@ -841,8 +890,7 @@ public class VisualLinkPanel extends BasePanel {
             return;
         }
 
-        // Dessiner les cercles englobants pour chaque composante connexe
-        // (recalculer si la liste est vide, sinon utiliser le cache)
+        // Dessiner les cercles englobants pour chaque composante connexe.
         if (componentCircles.isEmpty() && !nodes.isEmpty()) {
             computeComponentCircles();
         }
