@@ -10,7 +10,7 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
-![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.0-screenshot-002.png "The Main interface for MarkNote")
+![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.3-screenshot-003.png "The Main interface for MarkNote")
 
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
@@ -35,6 +35,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Project Indexing** - Automatic incremental indexing of all Markdown files by front matter metadata (title, tags, authors, summary, created date, draft, links) and filenames, stored as a persistent local JSON index (`.marknote-index.json`)
 - **Search** - Instant full-text search across indexed documents with a live results popup (up to 20 results); matches on title, filename, tags, summary, authors, and UUID; keyboard navigation
 - **Search & Replace** - In-editor search/replace overlay (`Ctrl+F` / `Ctrl+H`) with optional **Regular Expression**, **Full Word**, and **Match Case** toggles; navigate occurrences with `▲`/`▼`; replace current match or all matches at once; result counter; closes with `Escape`
+- **LLM Chat** - Optional dockable chat panel for **Ollama** and **OpenAI-compatible** endpoints with streaming responses, conversation history, editable user prompts, cancel support, per-session export, message/session insertion into the active document, and configurable system context
 - **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
 - **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup; tooltips with title/author/date; current document highlighted with orange border; isolated nodes hidden; auto zoom-to-fit; **document groups** shown with pastel-colored circles (click to zoom, double-click to name); **detach button** to open diagram in a dedicated tab; **automatic label hiding** at high zoom-out for large projects
 - **Status Bar** - Bottom status bar showing current document name, cursor position (line:column), document statistics (docs/lines/words), indexing progress bar, and a **PlantUML local-jar indicator** (⚙ spinning gear during rendering + "● PlantUML: local jar" badge when local mode is active); indexing runs in a background thread
@@ -47,7 +48,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
 - **Application Icon** - Custom SVG icon with PNG exports (16, 32, 64, 128 px) shown in the title bar, taskbar, and Alt+Tab switcher
-- **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), and Network Diagram (`Ctrl+L`) via the View menu; Show Welcome
+- **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), Network Diagram (`Ctrl+L`), and **LLM Chat** (`Ctrl+M`) via the View menu; Show Welcome
 - **Close Tab** - Close the active document tab with `Ctrl+W`
 
 ## Supported Languages
@@ -193,8 +194,9 @@ MarkNote/
 │   ├── java/                # Java source files
 │   │   ├── Main.java
 │   │   ├── MarkNote.java
-│   │   ├── config/          # Configuration (AppConfig, ThemeManager)
-│   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud, VisualLinkPanel...)
+│   │   ├── config/          # Configuration (AppConfig, ThemeManager, LLMConfig)
+│   │   ├── services/        # Backend services (LLMService, Message, MessageRole)
+│   │   ├── ui/              # UI components (Editor, Preview, SearchBox, TagCloud, VisualLinkPanel, PromptPanel...)
 │   │   └── utils/           # Utilities (DocumentService, FrontMatter, IndexService, PlantUmlEncoder, GitService)
 │   └── resources/
 │       ├── css/             # Stylesheets

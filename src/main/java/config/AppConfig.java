@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Gère la configuration persistante de l'application.
@@ -29,11 +31,14 @@ public class AppConfig {
     private boolean useLocalPlantUml = false;
     private String plantUmlJarPath = "";
     private boolean reattachDiagramOnTabClose = true;
+    private final Map<String, PanelState> panelStates = new HashMap<>();
 
     // Git credentials (V1: SSH passphrase-less + HTTPS token)
     private String gitSshKeyPath = "";
     private String gitToken      = "";
     private String gitUsername   = "token";
+
+    public record PanelState(boolean visible, boolean docked, String zone) {}
 
     /**
      * Charge la configuration depuis le fichier.
@@ -88,6 +93,15 @@ public class AppConfig {
                     gitToken = line.substring("gitToken=".length()).trim();
                 } else if (line.startsWith("gitUsername=")) {
                     gitUsername = line.substring("gitUsername=".length()).trim();
+                } else if (line.startsWith("panelState=")) {
+                    String raw = line.substring("panelState=".length()).trim();
+                    String[] parts = raw.split("\\|", -1);
+                    if (parts.length >= 4 && !parts[0].isBlank()) {
+                        panelStates.put(parts[0], new PanelState(
+                                Boolean.parseBoolean(parts[1]),
+                                Boolean.parseBoolean(parts[2]),
+                                parts[3].trim()));
+                    }
                 }
             }
         } catch (IOException ignored) {
@@ -120,6 +134,10 @@ public class AppConfig {
             lines.add("gitSshKeyPath=" + gitSshKeyPath);
             lines.add("gitToken=" + gitToken);
             lines.add("gitUsername=" + gitUsername);
+            for (Map.Entry<String, PanelState> entry : panelStates.entrySet()) {
+                PanelState state = entry.getValue();
+                lines.add("panelState=" + entry.getKey() + "|" + state.visible() + "|" + state.docked() + "|" + state.zone());
+            }
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
             }
@@ -304,5 +322,24 @@ public class AppConfig {
     public void removeRecentDir(String path) {
         recentDirs.remove(path);
         save();
+    }
+
+    public PanelState getPanelState(String panelId) {
+        return panelStates.get(panelId);
+    }
+
+    public void setPanelState(String panelId, PanelState state) {
+        if (panelId == null || panelId.isBlank() || state == null) {
+            return;
+        }
+        panelStates.put(panelId, state);
+    }
+
+    public boolean hasPanelState(String panelId) {
+        return panelStates.containsKey(panelId);
+    }
+
+    public boolean hasAnyPanelStates() {
+        return !panelStates.isEmpty();
     }
 }

@@ -1,39 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 350" width="300" height="350">
-  <!-- Background -->
-  <rect width="300" height="350" fill="#f5f5f5"/>
-  
+  <!-- Light theme -->
+  <rect width="300" height="350" fill="#e8edf3"/>
+
   <!-- Project explorer panel -->
-  <rect x="20" y="20" width="260" height="310" rx="6" fill="#2a2a2a" stroke="#1a1a1a" stroke-width="1"/>
-  
+  <rect x="20" y="20" width="260" height="310" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+
   <!-- Header -->
-  <rect x="20" y="20" width="260" height="30" rx="6" fill="#383838"/>
-  <rect x="20" y="40" width="260" height="10" fill="#383838"/>
-  <text x="35" y="42" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Project Explorer</text>
-  <text x="262" y="42" font-family="Arial, sans-serif" font-size="16" fill="#888888">×</text>
-  
+  <rect x="20" y="20" width="260" height="30" rx="6" fill="#f1f5f9"/>
+  <rect x="20" y="40" width="260" height="10" fill="#f1f5f9"/>
+  <line x1="20" y1="50" x2="280" y2="50" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="35" y="42" font-family="Arial, sans-serif" font-size="12" fill="#374151" font-weight="600">Project Explorer</text>
+  <text x="264" y="42" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">×</text>
+
   <!-- Tree structure -->
   <g font-family="Consolas, monospace" font-size="12">
     <!-- Root folder -->
-    <text x="35" y="75" fill="#e5c07b">📁 my-documentation</text>
-    
+    <text x="35" y="75" fill="#d97706">📁 my-documentation</text>
+
     <!-- Level 1 items -->
-    <text x="50" y="100" fill="#61afef">📄 README.md</text>
-    <text x="50" y="125" fill="#61afef">📄 CHANGELOG.md</text>
-    
+    <!-- README.md with git staged dot -->
+    <text x="50" y="100" fill="#2563eb">📄 README.md</text>
+    <circle cx="268" cy="96" r="4" fill="#22c55e" title="staged"/>
+
+    <!-- CHANGELOG with modified dot -->
+    <text x="50" y="125" fill="#2563eb">📄 CHANGELOG.md</text>
+    <circle cx="268" cy="121" r="4" fill="#f59e0b" title="modified"/>
+
     <!-- Subfolder -->
-    <text x="50" y="150" fill="#e5c07b">📁 guides</text>
-    <text x="65" y="175" fill="#61afef">📄 getting-started.md</text>
-    <text x="65" y="200" fill="#61afef">📄 advanced.md</text>
-    
+    <text x="50" y="150" fill="#d97706">📁 guides</text>
+    <text x="65" y="175" fill="#2563eb">📄 getting-started.md</text>
+    <text x="65" y="200" fill="#2563eb">📄 advanced.md</text>
+    <!-- untracked dot -->
+    <circle cx="268" cy="196" r="4" fill="#ef4444" title="untracked"/>
+
     <!-- Another subfolder -->
-    <text x="50" y="225" fill="#e5c07b">📁 images</text>
-    <text x="65" y="250" fill="#98c379">🖼️ screenshot.png</text>
-    <text x="65" y="275" fill="#98c379">🖼️ logo.svg</text>
-    
+    <text x="50" y="225" fill="#d97706">📁 images</text>
+    <text x="65" y="250" fill="#16a34a">🖼️ screenshot.png</text>
+    <text x="65" y="275" fill="#16a34a">🖼️ logo.svg</text>
+
     <!-- More files -->
-    <text x="50" y="300" fill="#61afef">📄 notes.md</text>
+    <text x="50" y="300" fill="#2563eb">📄 notes.md</text>
   </g>
-  
-  <!-- Legend -->
-  <rect x="20" y="320" width="260" height="1" fill="#444"/>
+
+  <!-- Git legend -->
+  <line x1="20" y1="318" x2="280" y2="318" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="32" cy="328" r="4" fill="#22c55e"/>
+  <text x="40" y="332" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">staged</text>
+  <circle cx="88" cy="328" r="4" fill="#f59e0b"/>
+  <text x="96" y="332" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">modified</text>
+  <circle cx="156" cy="328" r="4" fill="#ef4444"/>
+  <text x="164" y="332" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">untracked</text>
 </svg>

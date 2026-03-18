@@ -1,59 +1,62 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 330" width="400" height="330">
-  <!-- Background -->
-  <rect width="400" height="330" fill="#f5f5f5"/>
-  
-  <!-- Menu dropdown -->
-  <rect x="20" y="20" width="150" height="230" rx="4" fill="#3d3d3d" stroke="#555" stroke-width="1"/>
-  
-  <!-- Menu items -->
-  <rect x="25" y="28" width="140" height="24" fill="#5a5a5a" rx="2"/>
-  <text x="35" y="45" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">New doc</text>
-  <text x="140" y="45" font-family="Arial, sans-serif" font-size="10" fill="#888888">Ctrl+N</text>
-  
-  <text x="35" y="72" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Open project...</text>
-  
-  <text x="35" y="96" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Open file...</text>
-  <text x="140" y="96" font-family="Arial, sans-serif" font-size="10" fill="#888888">Ctrl+O</text>
-  
-  <rect x="25" y="105" width="140" height="1" fill="#555555"/>
-  
-  <text x="35" y="124" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Recent files          ▶</text>
-  
-  <rect x="25" y="133" width="140" height="1" fill="#555555"/>
-  
-  <text x="35" y="152" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Save</text>
-  <text x="140" y="152" font-family="Arial, sans-serif" font-size="10" fill="#888888">Ctrl+S</text>
-  
-  <text x="35" y="176" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Save as...</text>
-  
-  <rect x="25" y="185" width="140" height="1" fill="#555555"/>
-  
-  <text x="35" y="204" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Close tab</text>
-  <text x="140" y="204" font-family="Arial, sans-serif" font-size="10" fill="#888888">Ctrl+W</text>
+  <!-- Light theme -->
+  <rect width="400" height="330" fill="#e8edf3"/>
 
-  <text x="35" y="228" font-family="Arial, sans-serif" font-size="12" fill="#cccccc">Quit</text>
-  <text x="140" y="228" font-family="Arial, sans-serif" font-size="10" fill="#888888">Ctrl+Q</text>
-  
+  <!-- Menu dropdown -->
+  <rect x="20" y="20" width="158" height="232" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <!-- shadow -->
+  <rect x="22" y="23" width="158" height="232" rx="4" fill="#00000010"/>
+  <rect x="20" y="20" width="158" height="232" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+
+  <!-- New doc (highlighted) -->
+  <rect x="24" y="26" width="150" height="26" fill="#eff6ff" rx="2"/>
+  <text x="36" y="44" font-family="Arial, sans-serif" font-size="12" fill="#1f2937">New doc</text>
+  <text x="153" y="44" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+N</text>
+
+  <text x="36" y="70" font-family="Arial, sans-serif" font-size="12" fill="#374151">Open project...</text>
+
+  <text x="36" y="94" font-family="Arial, sans-serif" font-size="12" fill="#374151">Open file...</text>
+  <text x="153" y="94" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+O</text>
+
+  <line x1="28" y1="104" x2="170" y2="104" stroke="#e5e7eb" stroke-width="1"/>
+
+  <text x="36" y="122" font-family="Arial, sans-serif" font-size="12" fill="#374151">Recent files ▶</text>
+
+  <line x1="28" y1="132" x2="170" y2="132" stroke="#e5e7eb" stroke-width="1"/>
+
+  <text x="36" y="150" font-family="Arial, sans-serif" font-size="12" fill="#374151">Save</text>
+  <text x="153" y="150" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+S</text>
+
+  <text x="36" y="174" font-family="Arial, sans-serif" font-size="12" fill="#374151">Save as...</text>
+
+  <line x1="28" y1="184" x2="170" y2="184" stroke="#e5e7eb" stroke-width="1"/>
+
+  <text x="36" y="202" font-family="Arial, sans-serif" font-size="12" fill="#374151">Close tab</text>
+  <text x="153" y="202" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+W</text>
+
+  <text x="36" y="226" font-family="Arial, sans-serif" font-size="12" fill="#374151">Quit</text>
+  <text x="153" y="226" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">Ctrl+Q</text>
+
   <!-- Arrow pointing to menu -->
-  <path d="M 200 50 L 175 50" stroke="#4a90d9" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
-  
   <defs>
-    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#4a90d9"/>
+    <marker id="arr2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
     </marker>
   </defs>
-  
+  <path d="M 205 50 L 182 50" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#arr2)"/>
+
   <!-- Description box -->
-  <rect x="200" y="30" width="180" height="120" rx="8" fill="#ffffff" stroke="#ddd" stroke-width="1"/>
-  <text x="215" y="55" font-family="Arial, sans-serif" font-size="13" fill="#333333" font-weight="bold">File Menu</text>
-  <text x="215" y="80" font-family="Arial, sans-serif" font-size="11" fill="#666666">• Create new documents</text>
-  <text x="215" y="98" font-family="Arial, sans-serif" font-size="11" fill="#666666">• Open projects/files</text>
-  <text x="215" y="116" font-family="Arial, sans-serif" font-size="11" fill="#666666">• Access recent files</text>
-  <text x="215" y="134" font-family="Arial, sans-serif" font-size="11" fill="#666666">• Save your work</text>
-  
-  <!-- Keyboard shortcut hint -->
-  <rect x="200" y="170" width="180" height="60" rx="8" fill="#e8f4fd" stroke="#4a90d9" stroke-width="1"/>
-  <text x="215" y="195" font-family="Arial, sans-serif" font-size="11" fill="#4a90d9" font-weight="bold">💡 Pro Tip</text>
-  <text x="215" y="215" font-family="Arial, sans-serif" font-size="10" fill="#333333">Use keyboard shortcuts for</text>
-  <text x="215" y="228" font-family="Arial, sans-serif" font-size="10" fill="#333333">faster navigation!</text>
+  <rect x="210" y="28" width="170" height="130" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <text x="225" y="50" font-family="Arial, sans-serif" font-size="13" fill="#0c4a6e" font-weight="bold">File Menu</text>
+  <text x="225" y="72" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Create new documents</text>
+  <text x="225" y="90" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Open projects/files</text>
+  <text x="225" y="108" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Access recent files</text>
+  <text x="225" y="126" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Save your work</text>
+  <text x="225" y="148" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Quit the application</text>
+
+  <!-- Tip box -->
+  <rect x="210" y="175" width="170" height="70" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+  <text x="225" y="196" font-family="Arial, sans-serif" font-size="11" fill="#166534" font-weight="bold">💡 Pro Tip</text>
+  <text x="225" y="214" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">Use keyboard shortcuts</text>
+  <text x="225" y="230" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">for faster navigation!</text>
 </svg>

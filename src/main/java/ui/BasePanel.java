@@ -172,6 +172,11 @@ public abstract class BasePanel extends BorderPane implements Detachable {
         closeButton.setVisible(enabled);
         closeButton.setManaged(enabled);
     }
+
+    public String getPanelStateId() {
+        return getClass().getSimpleName();
+    }
+
     // ══════════════════════════════════════════════════════════════
     // Implémentation de l'interface Detachable
     // ══════════════════════════════════════════════════════════════
