@@ -38,6 +38,9 @@ import javafx.application.Platform;
  */
 public class GitService {
 
+    private static final String LOG_SOURCE = "GitService";
+    private final LogService log = LogService.getInstance();
+
     // -------------------------------------------------------------------------
     // Statut git d'un fichier
     // -------------------------------------------------------------------------
@@ -138,51 +141,77 @@ public class GitService {
      */
     public void syncAsync() {
         Thread t = new Thread(() -> {
-            StringBuilder log = new StringBuilder();
+            StringBuilder logBuilder = new StringBuilder();
+            log.startOperation(LOG_SOURCE, "Git Sync");
             try {
                 // 1. Recenser les fichiers modifiés avant staging
+                log.debug(LOG_SOURCE, "Refreshing git status...");
                 refreshStatus();
                 List<String> changedFiles = statusMap.entrySet().stream()
                         .filter(e -> e.getValue() != GitStatus.CLEAN)
                         .map(Map.Entry::getKey)
                         .sorted()
                         .collect(Collectors.toList());
+                log.info(LOG_SOURCE, "Found " + changedFiles.size() + " changed file(s)");
 
                 // 2. Commit si des changements existent
                 if (!changedFiles.isEmpty()) {
                     String message = buildCommitMessage(changedFiles);
+                    log.info(LOG_SOURCE, "Staging all changes...");
                     runGit("add", "-A");
+                    log.info(LOG_SOURCE, "Committing " + changedFiles.size() + " file(s)...");
                     List<String> commitOut = runGit("commit", "-m", message);
-                    log.append("Committed:\n");
-                    changedFiles.forEach(f -> log.append("  ").append(f).append("\n"));
-                    log.append("\n");
-                    commitOut.forEach(l -> log.append(l).append("\n"));
-                    log.append("\n");
+                    logBuilder.append("Committed:\n");
+                    changedFiles.forEach(f -> {
+                        logBuilder.append("  ").append(f).append("\n");
+                        log.debug(LOG_SOURCE, "  Committed: " + f);
+                    });
+                    logBuilder.append("\n");
+                    commitOut.forEach(l -> logBuilder.append(l).append("\n"));
+                    logBuilder.append("\n");
+                    log.info(LOG_SOURCE, "Commit completed successfully");
+                } else {
+                    log.info(LOG_SOURCE, "No local changes to commit");
                 }
 
                 // 3. Pull (rebase pour conserver un historique propre)
                 try {
+                    log.info(LOG_SOURCE, "Pulling remote changes (rebase)...");
                     List<String> pullOut = runGitWithAuth("pull", "--rebase");
-                    pullOut.forEach(l -> log.append(l).append("\n"));
-                    if (!pullOut.isEmpty()) log.append("\n");
+                    pullOut.forEach(l -> {
+                        logBuilder.append(l).append("\n");
+                        log.debug(LOG_SOURCE, "  pull: " + l);
+                    });
+                    if (!pullOut.isEmpty()) logBuilder.append("\n");
+                    log.info(LOG_SOURCE, "Pull completed successfully");
                 } catch (GitException e) {
-                    log.append("Pull error:\n").append(e.getMessage()).append("\n\n");
+                    log.error(LOG_SOURCE, "Pull failed: " + e.getMessage());
+                    logBuilder.append("Pull error:\n").append(e.getMessage()).append("\n\n");
                 }
 
                 // 4. Push
+                log.info(LOG_SOURCE, "Pushing to remote...");
                 List<String> pushOut = runGitWithAuth("push");
-                pushOut.forEach(l -> log.append(l).append("\n"));
+                pushOut.forEach(l -> {
+                    logBuilder.append(l).append("\n");
+                    log.debug(LOG_SOURCE, "  push: " + l);
+                });
+                log.info(LOG_SOURCE, "Push completed successfully");
 
+                log.debug(LOG_SOURCE, "Refreshing git status after sync...");
                 refreshStatus();
-                String result = log.toString().strip();
+                String result = logBuilder.toString().strip();
+                log.endOperation(LOG_SOURCE, "Git Sync", "SUCCESS");
                 if (onStatusUpdated   != null) Platform.runLater(onStatusUpdated);
                 if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(result));
 
             } catch (GitException e) {
+                log.error(LOG_SOURCE, "Git sync failed: " + e.getMessage());
                 refreshStatus();
                 if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
-                String partial = log.toString().strip();
+                String partial = logBuilder.toString().strip();
                 String errMsg  = (partial.isBlank() ? "" : partial + "\n\n") + "Error:\n" + e.getMessage();
+                log.endOperation(LOG_SOURCE, "Git Sync", "FAILED");
                 if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(errMsg));
             }
         }, "git-sync");
@@ -254,6 +283,7 @@ public class GitService {
 
     /** Exécute git sans credentials supplémentaires. */
     private List<String> runGit(String... args) throws GitException {
+        log.debug(LOG_SOURCE, "Executing: git " + String.join(" ", args));
         return runGitWithEnv(Map.of(), args);
     }
 
@@ -265,6 +295,7 @@ public class GitService {
      * répond aux demandes de username/password sans interaction utilisateur.
      */
     private List<String> runGitWithAuth(String... args) throws GitException {
+        log.debug(LOG_SOURCE, "Executing with auth: git " + String.join(" ", args));
         Map<String, String> env = new HashMap<>();
 
         // SSH (passphrase-less) — V1

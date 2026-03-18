@@ -5,8 +5,12 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 
 import config.AppConfig;
+import config.LLMConfig;
 import config.ThemeManager;
 import ui.BasePanel;
+import ui.ConsolePanel;
+import ui.DockingManager;
+import ui.DockZone;
 import ui.DocumentTab;
 import ui.FrontMatterPanel;
 import ui.ImagePreviewTab;
@@ -14,6 +18,7 @@ import ui.DetachedPanelTab;
 import ui.OptionsDialog;
 import ui.PreviewPanel;
 import ui.ProjectExplorerPanel;
+import ui.PromptPanel;
 import ui.SearchBox;
 import ui.SplashScreen;
 import ui.StatusBar;
@@ -24,6 +29,7 @@ import ui.WelcomeTab;
 import utils.DocumentService;
 import utils.GitService;
 import utils.IndexService;
+import utils.LogService;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -70,13 +76,24 @@ public class MarkNote extends Application {
     private Menu recentMenu;
 
     // Panels et SplitPanes pour la gestion de l'affichage
-    private SplitPane mainSplit;
     private SplitPane editorSplit;
-    private SplitPane leftSplit;
+    private DockingManager dockingManager;
+
+    private ConsolePanel consolePanel;
+    private CheckMenuItem showConsoleMenuItem;
+    private boolean consoleDebugEnabled = false;
 
     private GitService gitService;
 
+    // LLM Chat Panel
+    private PromptPanel promptPanel;
+    private LLMConfig llmConfig;
+    private CheckMenuItem showLLMPanelMenuItem;
+
     public static void main(String[] args) {
+        // Prefer IPv6 when both IPv4/IPv6 exist for the same host.
+        // This avoids ConnectException on hosts where IPv4 resolves to a non-routable bridge address.
+        System.setProperty("java.net.preferIPv6Addresses", "true");
         launch(args);
     }
 
@@ -85,6 +102,17 @@ public class MarkNote extends Application {
         // Charger la configuration avant tout pour définir la locale
         config = new AppConfig();
         config.load();
+
+        // Vérifier l'argument --console-debug
+        for (String arg : getParameters().getRaw()) {
+            if ("--console-debug".equals(arg)) {
+                consoleDebugEnabled = true;
+                break;
+            }
+        }
+
+        // Initialiser le service de logging
+        LogService.getInstance().setConsoleDebugEnabled(consoleDebugEnabled);
 
         // Appliquer la langue configurée
         String language = config.getLanguage();
@@ -210,23 +238,47 @@ public class MarkNote extends Application {
             visualLinkPanel.updateDiagram(indexService.getEntries());
         });
 
-        // Conteneur gauche : explorateur + tag cloud + diagramme réseau
-        // (redimensionnable)
-        leftSplit = new SplitPane(projectExplorerPanel, tagCloudPanel, visualLinkPanel);
-        leftSplit.setOrientation(Orientation.VERTICAL);
-        leftSplit.setDividerPositions(0.55, 0.78);
-
-        // SplitPane éditeur | preview
+        // SplitPane éditeur | preview (zone centrale)
         editorSplit = new SplitPane(mainTabPane, previewPanel);
         editorSplit.setOrientation(Orientation.HORIZONTAL);
         editorSplit.setDividerPositions(0.5);
 
-        // SplitPane principal : explorateur | éditeur/preview
-        mainSplit = new SplitPane(leftSplit, editorSplit);
-        mainSplit.setOrientation(Orientation.HORIZONTAL);
-        mainSplit.setDividerPositions(0.2);
+        // Initialiser le DockingManager
+        dockingManager = new DockingManager(root);
+        dockingManager.setCenterContent(editorSplit);
 
-        root.setCenter(mainSplit);
+        // Dock des panels à gauche
+        dockingManager.dock(projectExplorerPanel, DockZone.LEFT);
+        dockingManager.dock(tagCloudPanel, DockZone.LEFT);
+        dockingManager.dock(visualLinkPanel, DockZone.LEFT);
+
+        // LLM Chat Panel (à droite)
+        llmConfig = new LLMConfig();
+        llmConfig.load();
+        if (llmConfig.isEnabled()) {
+            promptPanel = new PromptPanel(llmConfig);
+            promptPanel.setActiveDocumentSupplier(() -> {
+                var sel = mainTabPane.getSelectionModel().getSelectedItem();
+                return (sel instanceof DocumentTab dt) ? dt : null;
+            });
+            promptPanel.setOnClose(() -> {
+                if (showLLMPanelMenuItem != null) {
+                    showLLMPanelMenuItem.setSelected(false);
+                }
+            });
+            promptPanel.setOnDetach(() -> detachPanel(promptPanel));
+            dockingManager.dock(promptPanel, DockZone.RIGHT);
+        }
+
+        // Console panel (si --console-debug est passé)
+        if (consoleDebugEnabled) {
+            consolePanel = new ConsolePanel();
+            dockingManager.dock(consolePanel, DockZone.BOTTOM);
+            consolePanel.startCapture();
+        }
+
+        // Appliquer le layout
+        root.setCenter(dockingManager.getRootNode());
 
         // Status bar en bas
         root.setBottom(statusBar);
@@ -339,18 +391,10 @@ public class MarkNote extends Application {
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
         showProjectPanel.setSelected(true);
         showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            // The project explorer and tag cloud are in a vertical SplitPane (leftSplit).
-            // We need to find it — it's the parent of projectExplorerPanel.
-            javafx.scene.Parent leftPane = projectExplorerPanel.getParent();
-            if (leftPane == null)
-                leftPane = projectExplorerPanel; // fallback
             if (isSelected) {
-                if (!mainSplit.getItems().contains(leftPane)) {
-                    mainSplit.getItems().addFirst(leftPane);
-                    mainSplit.setDividerPositions(0.2);
-                }
+                dockingManager.showPanel(projectExplorerPanel, DockZone.LEFT);
             } else {
-                mainSplit.getItems().remove(leftPane);
+                dockingManager.hidePanel(projectExplorerPanel);
             }
         });
 
@@ -379,13 +423,9 @@ public class MarkNote extends Application {
         showTagCloud.setSelected(true);
         showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
             if (isSelected) {
-                if (!leftSplit.getItems().contains(tagCloudPanel)) {
-                    // Insérer après l'explorateur (index 1) ou en fin
-                    int idx = leftSplit.getItems().indexOf(projectExplorerPanel);
-                    leftSplit.getItems().add(idx + 1, tagCloudPanel);
-                }
+                dockingManager.showPanel(tagCloudPanel, DockZone.LEFT);
             } else {
-                leftSplit.getItems().remove(tagCloudPanel);
+                dockingManager.hidePanel(tagCloudPanel);
             }
         });
 
@@ -397,23 +437,64 @@ public class MarkNote extends Application {
         showNetworkDiagram.setSelected(true);
         showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
             if (isSelected) {
-                if (!leftSplit.getItems().contains(visualLinkPanel)) {
-                    leftSplit.getItems().add(visualLinkPanel);
-                }
+                dockingManager.showPanel(visualLinkPanel, DockZone.LEFT);
             } else {
-                leftSplit.getItems().remove(visualLinkPanel);
+                dockingManager.hidePanel(visualLinkPanel);
             }
         });
 
         // Bouton [x] du diagramme réseau décoche le menu
         visualLinkPanel.setOnClose(() -> showNetworkDiagram.setSelected(false));
 
+        // Option LLM Panel (si activé dans la config)
+        if (llmConfig.isEnabled() && promptPanel != null) {
+            showLLMPanelMenuItem = new CheckMenuItem(messages.getString("menu.view.llmPanel"));
+            showLLMPanelMenuItem.setAccelerator(KeyCombination.keyCombination("Ctrl+M"));
+            showLLMPanelMenuItem.setSelected(true);
+            showLLMPanelMenuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                if (isSelected) {
+                    dockingManager.showPanel(promptPanel, DockZone.LEFT);
+                } else {
+                    dockingManager.hidePanel(promptPanel);
+                }
+            });
+        }
+
         // Option Afficher Welcome
         MenuItem showWelcomeItem = new MenuItem(messages.getString("menu.view.showWelcome"));
         showWelcomeItem.setOnAction(e -> showWelcomeTab());
 
         viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, new SeparatorMenuItem(), showTagCloud,
-                showNetworkDiagram, new SeparatorMenuItem(), showWelcomeItem);
+                showNetworkDiagram);
+        
+        // Ajouter l'option LLM si disponible
+        if (showLLMPanelMenuItem != null) {
+            viewMenu.getItems().add(showLLMPanelMenuItem);
+        }
+        
+        viewMenu.getItems().addAll(new SeparatorMenuItem(), showWelcomeItem);
+
+        // Option Console (uniquement si --console-debug est actif)
+        if (consoleDebugEnabled) {
+            showConsoleMenuItem = new CheckMenuItem(messages.getString("menu.view.console"));
+            showConsoleMenuItem.setSelected(true);
+            showConsoleMenuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+                if (isSelected) {
+                    dockingManager.showPanel(consolePanel);
+                } else {
+                    dockingManager.hidePanel(consolePanel);
+                }
+            });
+
+            // Callback fermeture du panel -> décoche le menu
+            consolePanel.setOnClose(() -> showConsoleMenuItem.setSelected(false));
+
+            // Callback détachement du panel
+            consolePanel.setOnDetach(() -> detachPanel(consolePanel));
+
+            viewMenu.getItems().add(viewMenu.getItems().size() - 1, new SeparatorMenuItem());
+            viewMenu.getItems().add(viewMenu.getItems().size() - 1, showConsoleMenuItem);
+        }
 
         // == Menu Aide ==
         Menu helpMenu = new Menu(messages.getString("menu.help"));
@@ -527,16 +608,25 @@ public class MarkNote extends Application {
             }
         }
 
-        // Masquer le panel dans le SplitPane
-        leftSplit.getItems().remove(panel);
+        // Mémoriser la zone de dock actuelle
+        DockZone originalZone = dockingManager.getZone(panel);
+
+        // Masquer le panel via le DockingManager
+        dockingManager.undock(panel);
+
+        // Décocher le menu console si nécessaire
+        if (panel == consolePanel && showConsoleMenuItem != null) {
+            showConsoleMenuItem.setSelected(false);
+        }
 
         // Créer l'onglet
         DetachedPanelTab detachedTab = new DetachedPanelTab(panel);
         detachedTab.setOnCloseAction(() -> {
-            // Réafficher le panel si l'option est activée
-            if (config.isReattachDiagramOnTabClose() || !leftSplit.getItems().contains(panel)) {
-                if (!leftSplit.getItems().contains(panel)) {
-                    leftSplit.getItems().add(panel);
+            // Réafficher le panel dans sa zone d'origine
+            if (originalZone != null) {
+                dockingManager.dock(panel, originalZone);
+                if (panel == consolePanel && showConsoleMenuItem != null) {
+                    showConsoleMenuItem.setSelected(true);
                 }
             }
         });

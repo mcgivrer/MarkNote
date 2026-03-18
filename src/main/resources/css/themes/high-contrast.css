@@ -12,6 +12,25 @@
     -fx-focus-color: #ffff00;
     -fx-faint-focus-color: rgba(255, 255, 0, 0.5);
     -fx-dark: true;
+    -mn-chat-panel-bg: #000000;
+    -mn-chat-conversation-bg: #000000;
+    -mn-chat-user-bg: #000000;
+    -mn-chat-user-border: #00ffff;
+    -mn-chat-assistant-bg: #000000;
+    -mn-chat-assistant-border: #ffffff;
+    -mn-chat-role-text: #ffff00;
+    -mn-chat-time-text: #ffffff;
+    -mn-chat-message-text: #ffffff;
+    -mn-chat-button-text: #ffff00;
+    -mn-chat-button-hover: #00ffff;
+    -mn-chat-input-bg: #000000;
+    -mn-chat-input-border: #ffffff;
+    -mn-chat-input-field-bg: #000000;
+    -mn-chat-input-field-border: #ffffff;
+    -mn-chat-submit-bg: #ffff00;
+    -mn-chat-submit-hover-bg: #e5e500;
+    -mn-chat-cancel-bg: #ff3b30;
+    -mn-chat-cancel-hover-bg: #ff5f55;
 }
 
 /* === Menu Bar === */
@@ -479,3 +498,47 @@
     -fx-background-color: #00ffff;
     -fx-background-radius: 2px;
 }
+
+/* === Console Panel === */
+.console-area {
+    -fx-background-color: #000000;
+    -fx-control-inner-background: #000000;
+    -fx-text-fill: #00ff00;
+    -fx-highlight-fill: #00ffff;
+    -fx-highlight-text-fill: black;
+    -fx-font-family: 'Monospace', 'Courier New', monospace;
+    -fx-font-size: 12px;
+}
+
+.console-area .content {
+    -fx-background-color: #000000;
+}
+
+/* === Chat Panel === */
+.prompt-panel { -fx-background-color: #000000; }
+.conversation-view { -fx-background-color: #000000; }
+.conversation-scroll > .viewport { -fx-background-color: #000000; }
+.conversation-container { -fx-background-color: #000000; }
+.conversation-message.user {
+    -fx-background-color: #000000;
+    -fx-border-color: #00ffff;
+    -fx-border-width: 2;
+}
+.conversation-message.assistant {
+    -fx-background-color: #111111;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 2;
+}
+.message-role   { -fx-text-fill: #ffff00; -fx-font-weight: bold; }
+.message-time   { -fx-text-fill: #ffffff; }
+.message-content { -fx-text-fill: #ffffff; -fx-font-weight: bold; }
+.message-action-button       { -fx-text-fill: #ffff00; }
+.message-action-button:hover { -fx-text-fill: #00ffff; }
+.prompt-input-area  { -fx-background-color: #000000; -fx-border-color: #ffffff; }
+.prompt-textarea    { -fx-background-color: #000000; -fx-border-color: #ffffff; -fx-text-fill: #ffffff; }
+.submit-button      { -fx-background-color: #ffff00; -fx-text-fill: #000000; }
+.submit-button:hover { -fx-background-color: #e5e500; -fx-text-fill: #000000; }
+.cancel-button      { -fx-background-color: #ff3b30; }
+.cancel-button:hover { -fx-background-color: #ff5f55; }
+.panel-header-button       { -fx-text-fill: #ffff00; }
+.panel-header-button:hover { -fx-text-fill: #00ffff; }

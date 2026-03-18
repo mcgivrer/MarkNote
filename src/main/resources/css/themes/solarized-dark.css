@@ -12,6 +12,25 @@
     -fx-focus-color: #268bd2;
     -fx-faint-focus-color: rgba(38, 139, 210, 0.3);
     -fx-dark: true;
+    -mn-chat-panel-bg: #05313d;
+    -mn-chat-conversation-bg: #032b36;
+    -mn-chat-user-bg: #0c4763;
+    -mn-chat-user-border: #2a87b7;
+    -mn-chat-assistant-bg: #0a3947;
+    -mn-chat-assistant-border: #35606f;
+    -mn-chat-role-text: #b4c6c9;
+    -mn-chat-time-text: #6d8a8f;
+    -mn-chat-message-text: #93a1a1;
+    -mn-chat-button-text: #93a1a1;
+    -mn-chat-button-hover: #2aa198;
+    -mn-chat-input-bg: #05313d;
+    -mn-chat-input-border: #2a5964;
+    -mn-chat-input-field-bg: #073642;
+    -mn-chat-input-field-border: #4d6e76;
+    -mn-chat-submit-bg: #268bd2;
+    -mn-chat-submit-hover-bg: #1f73ae;
+    -mn-chat-cancel-bg: #dc322f;
+    -mn-chat-cancel-hover-bg: #b92b28;
 }
 
 /* === Menu Bar === */
@@ -410,3 +429,45 @@
     -fx-background-color: #268bd2;
     -fx-background-radius: 2px;
 }
+
+/* === Console Panel === */
+.console-area {
+    -fx-background-color: #002b36;
+    -fx-control-inner-background: #002b36;
+    -fx-text-fill: #859900;
+    -fx-highlight-fill: #268bd2;
+    -fx-highlight-text-fill: #fdf6e3;
+    -fx-font-family: 'Monospace', 'Courier New', monospace;
+    -fx-font-size: 12px;
+}
+
+.console-area .content {
+    -fx-background-color: #002b36;
+}
+
+/* === Chat Panel === */
+.prompt-panel { -fx-background-color: #05313d; }
+.conversation-view { -fx-background-color: #002b36; }
+.conversation-scroll > .viewport { -fx-background-color: #002b36; }
+.conversation-container { -fx-background-color: #002b36; }
+.conversation-message.user {
+    -fx-background-color: #0c4763;
+    -fx-border-color: #2a87b7;
+}
+.conversation-message.assistant {
+    -fx-background-color: #0a3947;
+    -fx-border-color: #35606f;
+}
+.message-role   { -fx-text-fill: #b4c6c9; }
+.message-time   { -fx-text-fill: #6d8a8f; }
+.message-content { -fx-text-fill: #93a1a1; }
+.message-action-button       { -fx-text-fill: #93a1a1; }
+.message-action-button:hover { -fx-text-fill: #2aa198; }
+.prompt-input-area  { -fx-background-color: #05313d; -fx-border-color: #2a5964; }
+.prompt-textarea    { -fx-background-color: #073642; -fx-border-color: #4d6e76; }
+.submit-button      { -fx-background-color: #268bd2; }
+.submit-button:hover { -fx-background-color: #1f73ae; }
+.cancel-button      { -fx-background-color: #dc322f; }
+.cancel-button:hover { -fx-background-color: #b92b28; }
+.panel-header-button       { -fx-text-fill: #93a1a1; }
+.panel-header-button:hover { -fx-text-fill: #2aa198; }

@@ -163,3 +163,149 @@
     -fx-background-color: #ff9800;
     -fx-fill: #fff;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LLM Chat Panel  (couleurs de base = thème light, surchargées par les thèmes)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.prompt-panel {
+    -fx-background-color: #f2f4f7;
+}
+
+.conversation-view {
+    -fx-background-color: #ffffff;
+}
+
+.conversation-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.conversation-scroll > .viewport {
+    -fx-background-color: #ffffff;
+}
+
+.conversation-container {
+    -fx-background-color: #ffffff;
+}
+
+/* Wrapper HBox qui sert à aligner la bulle gauche ou droite */
+.message-wrapper {
+    -fx-padding: 2 10 2 10;
+}
+
+/* Bulle commune */
+.conversation-message {
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-border-width: 1;
+    -fx-max-width: 680;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 4, 0, 0, 2);
+}
+
+/* Question utilisateur → fond bleu clair, alignée à gauche */
+.conversation-message.user {
+    -fx-background-color: #ddeeff;
+    -fx-border-color: #b0d0f8;
+}
+
+/* Réponse assistant → fond gris clair, alignée à droite */
+.conversation-message.assistant {
+    -fx-background-color: #f0f2f5;
+    -fx-border-color: #dde0e8;
+}
+
+.message-role {
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-text-fill: #3a4a60;
+}
+
+.message-time {
+    -fx-font-size: 10px;
+    -fx-text-fill: #8090a8;
+}
+
+.message-content {
+    -fx-font-size: 13px;
+    -fx-text-fill: #2c3440;
+    -fx-line-spacing: 1;
+}
+
+.message-action-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #a0aec0;
+    -fx-font-size: 12px;
+    -fx-padding: 2 4 2 4;
+    -fx-cursor: hand;
+}
+
+.message-action-button:hover {
+    -fx-text-fill: #2b7be5;
+}
+
+.prompt-input-area {
+    -fx-background-color: #f2f4f7;
+    -fx-border-color: #d2d8e2;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 12 10 12;
+}
+
+.prompt-button-bar {
+    -fx-alignment: bottom-right;
+    -fx-min-height: 36px;
+}
+
+.prompt-action-buttons {
+    -fx-alignment: bottom-right;
+}
+
+.prompt-textarea {
+    -fx-font-size: 13px;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-color: #c5cdd8;
+    -fx-border-radius: 8;
+    -fx-padding: 8;
+}
+
+.prompt-button {
+    -fx-background-radius: 8;
+    -fx-font-size: 15px;
+    -fx-cursor: hand;
+}
+
+.submit-button {
+    -fx-background-color: #1f6fd1;
+    -fx-text-fill: white;
+}
+
+.submit-button:hover {
+    -fx-background-color: #1758a8;
+}
+
+.cancel-button {
+    -fx-background-color: #d64545;
+    -fx-text-fill: white;
+}
+
+.cancel-button:hover {
+    -fx-background-color: #b73636;
+}
+
+.prompt-spinner {
+    -fx-accent: #1f6fd1;
+}
+
+.panel-header-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #6f8098;
+    -fx-font-size: 12px;
+    -fx-padding: 2 6 2 6;
+    -fx-cursor: hand;
+}
+
+.panel-header-button:hover {
+    -fx-text-fill: #1f6fd1;
+}

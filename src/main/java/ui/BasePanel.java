@@ -125,11 +125,12 @@ public abstract class BasePanel extends BorderPane implements Detachable {
     }
 
     /**
-     * Retourne le header HBox pour permettre l'ajout de boutons supplémentaires.
+     * Retourne le header HBox pour permettre l'ajout de boutons supplémentaires
+     * ou la configuration du drag & drop.
      *
      * @return Le header HBox
      */
-    protected HBox getHeader() {
+    public HBox getHeader() {
         return header;
     }
 
@@ -161,7 +162,16 @@ public abstract class BasePanel extends BorderPane implements Detachable {
         detachButton.setVisible(enabled);
         detachButton.setManaged(enabled);
     }
-
+    /**
+     * Active ou désactive le bouton de fermeture.
+     * Par défaut, la fermeture est activée.
+     *
+     * @param enabled true pour activer le bouton
+     */
+    public void setCloseEnabled(boolean enabled) {
+        closeButton.setVisible(enabled);
+        closeButton.setManaged(enabled);
+    }
     // ══════════════════════════════════════════════════════════════
     // Implémentation de l'interface Detachable
     // ══════════════════════════════════════════════════════════════
