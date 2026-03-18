@@ -3,6 +3,7 @@ package ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
@@ -36,6 +37,10 @@ public class PromptPanel extends BasePanel {
 
     private Button clearButton;
     private Button exportButton;
+    private Button insertAllButton;
+
+    /** Fournit le DocumentTab actif pour l'insertion de réponses. */
+    private Supplier<DocumentTab> activeDocumentSupplier;
 
     /**
      * Crée un nouveau panel de chat LLM.
@@ -44,6 +49,11 @@ public class PromptPanel extends BasePanel {
      */
     public PromptPanel(LLMConfig llmConfig) {
         super("llm.panel.title", "llm.panel.close.tooltip");
+
+        var chatCss = getClass().getResource("/css/markdown-editor.css");
+        if (chatCss != null) {
+            getStylesheets().add(chatCss.toExternalForm());
+        }
 
         this.llmConfig = llmConfig;
         this.llmService = new LLMService(llmConfig);
@@ -55,6 +65,16 @@ public class PromptPanel extends BasePanel {
 
         // Configurer les callbacks
         setupCallbacks();
+
+        // Câblage de l'insertion dans le document actif
+        conversationView.setOnInsertToDocument(content -> {
+            if (activeDocumentSupplier != null) {
+                DocumentTab tab = activeDocumentSupplier.get();
+                if (tab != null) {
+                    tab.insertAtNextLine(content);
+                }
+            }
+        });
 
         // Layout en SplitPane vertical (2/3 conversation, 1/3 input)
         SplitPane splitPane = new SplitPane();
@@ -87,13 +107,17 @@ public class PromptPanel extends BasePanel {
         promptInput.clear();
         promptInput.setProcessing(true);
 
-        // Créer le message assistant pour le streaming
+        // Snapshot de la session AVANT d'ajouter le message assistant vide
+        // (l'API ne doit pas recevoir de message assistant vide en dernier)
+        List<Message> messagesForApi = new ArrayList<>(currentSession);
+
+        // Créer le message assistant pour le streaming (affiché localement)
         Message assistantMessage = conversationView.createAssistantMessage();
         currentSession.add(assistantMessage);
 
-        // Envoyer au LLM
+        // Envoyer au LLM seulement les messages jusqu'au user message inclus
         llmService.sendPromptAsync(
-                currentSession,
+                messagesForApi,
                 chunk -> Platform.runLater(() -> conversationView.appendToLastMessage(chunk)),
                 () -> Platform.runLater(() -> {
                     promptInput.setProcessing(false);
@@ -103,9 +127,10 @@ public class PromptPanel extends BasePanel {
                 error -> Platform.runLater(() -> {
                     promptInput.setProcessing(false);
                     // Ajouter un message d'erreur
-                    String errorMsg = getMessages().getString("llm.error.connection") + ": " + error.getMessage();
-                    conversationView.appendToLastMessage("\n\n**Error:** " + errorMsg);
-                    log.error(LOG_SOURCE, "LLM error: " + error.getMessage());
+                    String detail = error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
+                    String errorMsg = getMessages().getString("llm.error.connection") + ": " + detail;
+                    conversationView.appendToLastMessage("\n\n**Erreur:** " + errorMsg);
+                    log.error(LOG_SOURCE, "LLM error: " + error);
                 })
         );
     }
@@ -117,6 +142,33 @@ public class PromptPanel extends BasePanel {
         llmService.cancelRequest();
         promptInput.setProcessing(false);
         log.info(LOG_SOURCE, "Request cancelled by user");
+    }
+
+    /**
+     * Définit le fournisseur du DocumentTab actif pour l'insertion de texte.
+     *
+     * @param supplier Le supplier retournant le tab actif (ou null)
+     */
+    public void setActiveDocumentSupplier(Supplier<DocumentTab> supplier) {
+        this.activeDocumentSupplier = supplier;
+    }
+
+    /**
+     * Insère l'intégralité de la session dans le document actif.
+     */
+    public void insertAllToDocument() {
+        if (activeDocumentSupplier == null) return;
+        DocumentTab tab = activeDocumentSupplier.get();
+        if (tab == null) return;
+        StringBuilder sb = new StringBuilder();
+        for (Message msg : currentSession) {
+            sb.append(msg.getRole() == MessageRole.USER ? "> " : "");
+            sb.append(msg.getContent());
+            sb.append("\n\n");
+        }
+        if (!sb.isEmpty()) {
+            tab.insertAtNextLine(sb.toString().stripTrailing());
+        }
     }
 
     /**
@@ -226,6 +278,12 @@ public class PromptPanel extends BasePanel {
         exportButton.setTooltip(new Tooltip(getMessages().getString("llm.export.session")));
         exportButton.setOnAction(e -> exportSession());
 
+        // Bouton insérer dans le document
+        insertAllButton = new Button("\u2937"); // ↷
+        insertAllButton.getStyleClass().add("panel-header-button");
+        insertAllButton.setTooltip(new Tooltip(getMessages().getString("llm.insert.all.document")));
+        insertAllButton.setOnAction(e -> insertAllToDocument());
+
         // Bouton clear
         clearButton = new Button("\u2717"); // ✗
         clearButton.getStyleClass().add("panel-header-button");
@@ -235,6 +293,7 @@ public class PromptPanel extends BasePanel {
         // Insérer avant le spacer (index 1)
         int insertIndex = Math.min(1, header.getChildren().size());
         header.getChildren().add(insertIndex, exportButton);
+        header.getChildren().add(insertIndex, insertAllButton);
         header.getChildren().add(insertIndex, clearButton);
     }
 }

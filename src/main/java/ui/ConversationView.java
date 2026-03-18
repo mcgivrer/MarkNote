@@ -42,6 +42,7 @@ public class ConversationView extends VBox {
     private final VBox messagesContainer;
     private final ScrollPane scrollPane;
     private Runnable onEditMessage;
+    private java.util.function.Consumer<String> onInsertToDocument;
     private int editingIndex = -1;
 
     /**
@@ -70,8 +71,8 @@ public class ConversationView extends VBox {
      */
     public void addMessage(Message message) {
         Platform.runLater(() -> {
-            MessageBlock block = createMessageBlock(message, messagesContainer.getChildren().size());
-            messagesContainer.getChildren().add(block);
+            HBox wrapper = createMessageWrapper(message, messagesContainer.getChildren().size());
+            messagesContainer.getChildren().add(wrapper);
             scrollToBottom();
         });
     }
@@ -84,9 +85,8 @@ public class ConversationView extends VBox {
     public Message createAssistantMessage() {
         Message message = new Message(MessageRole.ASSISTANT, "");
         Platform.runLater(() -> {
-            MessageBlock block = createMessageBlock(message, messagesContainer.getChildren().size());
-            block.setUserData(message);
-            messagesContainer.getChildren().add(block);
+            HBox wrapper = createMessageWrapper(message, messagesContainer.getChildren().size());
+            messagesContainer.getChildren().add(wrapper);
         });
         return message;
     }
@@ -99,8 +99,9 @@ public class ConversationView extends VBox {
     public void appendToLastMessage(String chunk) {
         Platform.runLater(() -> {
             if (!messagesContainer.getChildren().isEmpty()) {
-                var lastBlock = messagesContainer.getChildren().get(messagesContainer.getChildren().size() - 1);
-                if (lastBlock instanceof MessageBlock mb) {
+                var lastNode = messagesContainer.getChildren().get(messagesContainer.getChildren().size() - 1);
+                MessageBlock mb = findMessageBlock(lastNode);
+                if (mb != null) {
                     Object userData = mb.getUserData();
                     if (userData instanceof Message message) {
                         message.appendContent(chunk);
@@ -136,6 +137,15 @@ public class ConversationView extends VBox {
     }
 
     /**
+     * Définit le callback pour l'insertion d'un message dans le document actif.
+     *
+     * @param onInsert Le callback recevant le contenu du message
+     */
+    public void setOnInsertToDocument(java.util.function.Consumer<String> onInsert) {
+        this.onInsertToDocument = onInsert;
+    }
+
+    /**
      * Retourne l'index du message en cours d'édition.
      *
      * @return L'index ou -1
@@ -166,7 +176,8 @@ public class ConversationView extends VBox {
                 md.append("---\n\n");
 
                 for (var node : messagesContainer.getChildren()) {
-                    if (node instanceof MessageBlock mb) {
+                    MessageBlock mb = findMessageBlock(node);
+                    if (mb != null) {
                         Object userData = mb.getUserData();
                         if (userData instanceof Message message) {
                             String role = message.getRole() == MessageRole.USER ? "**User**" : "**Assistant**";
@@ -197,19 +208,39 @@ public class ConversationView extends VBox {
 
     // --- Private methods ---
 
-    private MessageBlock createMessageBlock(Message message, int index) {
+    private HBox createMessageWrapper(Message message, int index) {
         MessageBlock block = new MessageBlock(message);
-        
         block.setOnCopy(() -> copyToClipboard(message.getContent()));
         block.setOnExport(() -> exportMessage(message, getScene().getWindow()));
+        block.setOnInsert(() -> { if (onInsertToDocument != null) onInsertToDocument.accept(message.getContent()); });
         block.setOnEdit(() -> {
             editingIndex = index;
             if (onEditMessage != null) {
                 onEditMessage.run();
             }
         });
-        
-        return block;
+        HBox wrapper = new HBox();
+        wrapper.getStyleClass().add("message-wrapper");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        if (message.getRole() == MessageRole.USER) {
+            // Questions de l'utilisateur : alignées à gauche
+            wrapper.getChildren().addAll(block, spacer);
+        } else {
+            // Réponses de l'assistant : alignées à droite
+            wrapper.getChildren().addAll(spacer, block);
+        }
+        return wrapper;
+    }
+
+    private MessageBlock findMessageBlock(Object node) {
+        if (node instanceof MessageBlock mb) return mb;
+        if (node instanceof HBox hbox) {
+            for (var child : hbox.getChildren()) {
+                if (child instanceof MessageBlock mb) return mb;
+            }
+        }
+        return null;
     }
 
     private void copyToClipboard(String text) {
@@ -244,6 +275,7 @@ public class ConversationView extends VBox {
         private Runnable onCopy;
         private Runnable onExport;
         private Runnable onEdit;
+        private Runnable onInsert;
 
         public MessageBlock(Message message) {
             setSpacing(4);
@@ -276,7 +308,12 @@ public class ConversationView extends VBox {
             exportBtn.setTooltip(new Tooltip("Export"));
             exportBtn.setOnAction(e -> { if (onExport != null) onExport.run(); });
 
-            header.getChildren().addAll(roleLabel, timeLabel, spacer, copyBtn, exportBtn);
+            Button insertBtn = new Button("\u2937"); // ↷ insérer dans le document
+            insertBtn.getStyleClass().add("message-action-button");
+            insertBtn.setTooltip(new Tooltip(getMessages().getString("llm.insert.document")));
+            insertBtn.setOnAction(e -> { if (onInsert != null) onInsert.run(); });
+
+            header.getChildren().addAll(roleLabel, timeLabel, spacer, copyBtn, exportBtn, insertBtn);
 
             // Ajouter bouton édition seulement pour les messages user
             if (message.getRole() == MessageRole.USER) {
@@ -303,5 +340,6 @@ public class ConversationView extends VBox {
         public void setOnCopy(Runnable action) { this.onCopy = action; }
         public void setOnExport(Runnable action) { this.onExport = action; }
         public void setOnEdit(Runnable action) { this.onEdit = action; }
+        public void setOnInsert(Runnable action) { this.onInsert = action; }
     }
 }

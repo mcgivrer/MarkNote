@@ -12,6 +12,25 @@
     -fx-focus-color: #3584e4;
     -fx-faint-focus-color: rgba(53, 132, 228, 0.3);
     -fx-dark: true;
+    -mn-chat-panel-bg: #24272c;
+    -mn-chat-conversation-bg: #1d2024;
+    -mn-chat-user-bg: #1d3859;
+    -mn-chat-user-border: #35679e;
+    -mn-chat-assistant-bg: #2b3139;
+    -mn-chat-assistant-border: #3d4753;
+    -mn-chat-role-text: #d6e2f2;
+    -mn-chat-time-text: #8d9caf;
+    -mn-chat-message-text: #e2e8f0;
+    -mn-chat-button-text: #aeb9c8;
+    -mn-chat-button-hover: #74b2ff;
+    -mn-chat-input-bg: #24272c;
+    -mn-chat-input-border: #3a424d;
+    -mn-chat-input-field-bg: #1b1f24;
+    -mn-chat-input-field-border: #48515f;
+    -mn-chat-submit-bg: #2977d1;
+    -mn-chat-submit-hover-bg: #215fa8;
+    -mn-chat-cancel-bg: #d04a4a;
+    -mn-chat-cancel-hover-bg: #ad3a3a;
 }
 
 /* === Menu Bar === */
@@ -501,3 +520,30 @@
 .console-area .content {
     -fx-background-color: #1a1a1a;
 }
+
+/* === Chat Panel === */
+.prompt-panel { -fx-background-color: #24272c; }
+.conversation-view { -fx-background-color: #1d2024; }
+.conversation-scroll > .viewport { -fx-background-color: #1d2024; }
+.conversation-container { -fx-background-color: #1d2024; }
+.conversation-message.user {
+    -fx-background-color: #1d3859;
+    -fx-border-color: #35679e;
+}
+.conversation-message.assistant {
+    -fx-background-color: #2b3139;
+    -fx-border-color: #3d4753;
+}
+.message-role   { -fx-text-fill: #d6e2f2; }
+.message-time   { -fx-text-fill: #8d9caf; }
+.message-content { -fx-text-fill: #e2e8f0; }
+.message-action-button       { -fx-text-fill: #aeb9c8; }
+.message-action-button:hover { -fx-text-fill: #74b2ff; }
+.prompt-input-area  { -fx-background-color: #24272c; -fx-border-color: #3a424d; }
+.prompt-textarea    { -fx-background-color: #1b1f24; -fx-border-color: #48515f; }
+.submit-button      { -fx-background-color: #2977d1; }
+.submit-button:hover { -fx-background-color: #215fa8; }
+.cancel-button      { -fx-background-color: #d04a4a; }
+.cancel-button:hover { -fx-background-color: #ad3a3a; }
+.panel-header-button       { -fx-text-fill: #aeb9c8; }
+.panel-header-button:hover { -fx-text-fill: #74b2ff; }

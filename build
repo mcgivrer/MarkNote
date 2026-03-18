@@ -105,7 +105,7 @@ else
     FS=";"
 fi
 LAUNCH_EOF
-    echo "java --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar\${FS}\${SCRIPT_DIR}/libs/*\" $app \"\$@\"" >> ${BUILD}/${project_name}.sh
+    echo "java -Djava.net.preferIPv6Addresses=true --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar\${FS}\${SCRIPT_DIR}/libs/*\" $app \"\$@\"" >> ${BUILD}/${project_name}.sh
     chmod +x ${BUILD}/${project_name}.sh
 done
 echo "done."
@@ -139,7 +139,7 @@ if( [ "$1" == "run" ] ); then
         echo ">> run JAR ${project_name}-${project_version}.jar ..."
         shift 1
         #    java $RUN_OPT -jar ${TARGET}/build/${project_name}-$app-${project_version}.jar $@
-        java --module-path "${TARGET}/build/libs" --add-modules ${JFX_MODULES} -cp "${TARGET}/build/${project_name}-${project_version}.jar${FS}${TARGET}/build/libs/*" $app $@
+        java -Djava.net.preferIPv6Addresses=true --module-path "${TARGET}/build/libs" --add-modules ${JFX_MODULES} -cp "${TARGET}/build/${project_name}-${project_version}.jar${FS}${TARGET}/build/libs/*" $app $@
         echo "done."
     done
 fi
@@ -213,7 +213,7 @@ WINLAUNCHER_JRE
 @echo off
 setlocal
 set SCRIPT_DIR=%~dp0
-java --module-path "%SCRIPT_DIR%libs" --add-modules ${JFX_MODULES} -cp "%SCRIPT_DIR%${project_name}-${project_version}.jar;%SCRIPT_DIR%libs\\*" ${main_class} %*
+java -Djava.net.preferIPv6Addresses=true --module-path "%SCRIPT_DIR%libs" --add-modules ${JFX_MODULES} -cp "%SCRIPT_DIR%${project_name}-${project_version}.jar;%SCRIPT_DIR%libs\\*" ${main_class} %*
 endlocal
 WINLAUNCHER_NOJRE
         fi
@@ -230,7 +230,7 @@ UNIXLAUNCHER_JRE_START
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UNIXLAUNCHER_NOJRE_START
-            echo "java --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar:\${SCRIPT_DIR}/libs/*\" ${main_class} \"\$@\"" >> "${DIST_DIR}/${project_name}.sh"
+            echo "java -Djava.net.preferIPv6Addresses=true --module-path \"\${SCRIPT_DIR}/libs\" --add-modules ${JFX_MODULES} -cp \"\${SCRIPT_DIR}/${project_name}-${project_version}.jar:\${SCRIPT_DIR}/libs/*\" ${main_class} \"\$@\"" >> "${DIST_DIR}/${project_name}.sh"
         fi
         chmod +x "${DIST_DIR}/${project_name}.sh"
     fi

@@ -14,12 +14,16 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 /**
  * Zone de saisie de prompt LLM avec boutons d'action.
  */
 public class PromptInputArea extends VBox {
+
+    private static final double ACTION_BUTTON_WIDTH = 38;
+    private static final double ACTION_BUTTON_HEIGHT = 32;
 
     private static ResourceBundle getMessages() {
         return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
@@ -63,12 +67,21 @@ public class PromptInputArea extends VBox {
         });
 
         // Boutons d'action
-        HBox buttonBar = new HBox(8);
-        buttonBar.setAlignment(Pos.CENTER_RIGHT);
+        HBox buttonBar = new HBox(10);
+        buttonBar.setAlignment(Pos.BOTTOM_RIGHT);
+        buttonBar.getStyleClass().add("prompt-button-bar");
 
-        contextButton = new Button("\u2699"); // ⚙
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox actionButtons = new HBox(8);
+        actionButtons.setAlignment(Pos.BOTTOM_RIGHT);
+        actionButtons.getStyleClass().add("prompt-action-buttons");
+
+        contextButton = new Button("\u2699"); // ⚙ roue/contexte
         contextButton.getStyleClass().add("prompt-button");
         contextButton.setTooltip(new Tooltip(getMessages().getString("llm.context.button")));
+        applyActionButtonSize(contextButton);
         contextButton.setOnAction(e -> {
             if (onContextClick != null) onContextClick.run();
         });
@@ -78,19 +91,24 @@ public class PromptInputArea extends VBox {
         spinner.setVisible(false);
         spinner.getStyleClass().add("prompt-spinner");
 
-        submitButton = new Button(getMessages().getString("llm.submit"));
+        submitButton = new Button("\u25B6"); // ▶ envoyer
         submitButton.getStyleClass().addAll("prompt-button", "submit-button");
+        applyActionButtonSize(submitButton);
         submitButton.setDefaultButton(true);
         submitButton.setOnAction(e -> submit());
 
-        cancelButton = new Button(getMessages().getString("llm.cancel"));
+        cancelButton = new Button("\u2715"); // ✕ annuler
         cancelButton.getStyleClass().addAll("prompt-button", "cancel-button");
+        applyActionButtonSize(cancelButton);
+        cancelButton.setTooltip(new Tooltip(getMessages().getString("llm.cancel")));
         cancelButton.setVisible(false);
+        cancelButton.setManaged(false);
         cancelButton.setOnAction(e -> {
             if (onCancel != null) onCancel.run();
         });
 
-        buttonBar.getChildren().addAll(contextButton, spinner, cancelButton, submitButton);
+        actionButtons.getChildren().addAll(contextButton, cancelButton, submitButton);
+        buttonBar.getChildren().addAll(spacer, spinner, actionButtons);
 
         getChildren().addAll(textArea, buttonBar);
     }
@@ -128,8 +146,11 @@ public class PromptInputArea extends VBox {
     public void setProcessing(boolean processing) {
         this.isProcessing = processing;
         spinner.setVisible(processing);
+        spinner.setManaged(processing);
         submitButton.setVisible(!processing);
+        submitButton.setManaged(!processing);
         cancelButton.setVisible(processing);
+        cancelButton.setManaged(processing);
         textArea.setDisable(processing);
         contextButton.setDisable(processing);
     }
@@ -184,5 +205,13 @@ public class PromptInputArea extends VBox {
         if (text != null && !text.isBlank() && onSubmit != null) {
             onSubmit.accept(text);
         }
+    }
+
+    private void applyActionButtonSize(Button button) {
+        button.setMinWidth(ACTION_BUTTON_WIDTH);
+        button.setPrefWidth(ACTION_BUTTON_WIDTH);
+        button.setMaxWidth(ACTION_BUTTON_WIDTH);
+        button.setMinHeight(ACTION_BUTTON_HEIGHT);
+        button.setPrefHeight(ACTION_BUTTON_HEIGHT);
     }
 }

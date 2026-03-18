@@ -107,11 +107,11 @@ public class LLMService {
                 } catch (Exception e) {
                     retries++;
                     if (retries > config.getMaxRetries()) {
-                        log.error(LOG_SOURCE, "Request failed after " + retries + " attempts: " + e.getMessage());
+                        log.error(LOG_SOURCE, "Request failed after " + retries + " attempts: " + e);
                         onError.accept(e);
                         return;
                     }
-                    log.warn(LOG_SOURCE, "Retry " + retries + "/" + config.getMaxRetries() + " after error: " + e.getMessage());
+                    log.warn(LOG_SOURCE, "Retry " + retries + "/" + config.getMaxRetries() + " after error: " + e);
                     try {
                         Thread.sleep(1000 * retries);
                     } catch (InterruptedException ie) {

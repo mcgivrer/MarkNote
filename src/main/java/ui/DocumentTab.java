@@ -399,6 +399,32 @@ public class DocumentTab extends Tab {
     }
 
     /**
+     * Insère du texte à la ligne suivant la position courante du curseur.
+     * Si l'éditeur n'a pas de focus, le texte est ajouté à la fin du document.
+     *
+     * @param text Le texte à insérer
+     */
+    public void insertAtNextLine(String text) {
+        int caretPos = editor.getCaretPosition();
+        String content = editor.getText();
+        // Trouver la fin de la ligne courante
+        int lineEnd = content.indexOf('\n', caretPos);
+        int insertPos;
+        String toInsert;
+        if (lineEnd == -1) {
+            // Curseur sur la dernière ligne : ajouter après
+            insertPos = content.length();
+            toInsert = (content.isEmpty() || content.endsWith("\n")) ? text : "\n" + text;
+        } else {
+            insertPos = lineEnd + 1;
+            toInsert = text.endsWith("\n") ? text : text + "\n";
+        }
+        editor.insertText(insertPos, toInsert);
+        editor.moveTo(insertPos + toInsert.length());
+        editor.requestFocus();
+    }
+
+    /**
      * Retourne le panneau d'édition des métadonnées Front Matter.
      *
      * @return Le FrontMatterPanel

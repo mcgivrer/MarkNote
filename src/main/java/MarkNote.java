@@ -91,6 +91,9 @@ public class MarkNote extends Application {
     private CheckMenuItem showLLMPanelMenuItem;
 
     public static void main(String[] args) {
+        // Prefer IPv6 when both IPv4/IPv6 exist for the same host.
+        // This avoids ConnectException on hosts where IPv4 resolves to a non-routable bridge address.
+        System.setProperty("java.net.preferIPv6Addresses", "true");
         launch(args);
     }
 
@@ -249,18 +252,22 @@ public class MarkNote extends Application {
         dockingManager.dock(tagCloudPanel, DockZone.LEFT);
         dockingManager.dock(visualLinkPanel, DockZone.LEFT);
 
-        // LLM Chat Panel (à gauche)
+        // LLM Chat Panel (à droite)
         llmConfig = new LLMConfig();
         llmConfig.load();
         if (llmConfig.isEnabled()) {
             promptPanel = new PromptPanel(llmConfig);
+            promptPanel.setActiveDocumentSupplier(() -> {
+                var sel = mainTabPane.getSelectionModel().getSelectedItem();
+                return (sel instanceof DocumentTab dt) ? dt : null;
+            });
             promptPanel.setOnClose(() -> {
                 if (showLLMPanelMenuItem != null) {
                     showLLMPanelMenuItem.setSelected(false);
                 }
             });
             promptPanel.setOnDetach(() -> detachPanel(promptPanel));
-            dockingManager.dock(promptPanel, DockZone.LEFT);
+            dockingManager.dock(promptPanel, DockZone.RIGHT);
         }
 
         // Console panel (si --console-debug est passé)
