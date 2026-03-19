@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -361,7 +362,8 @@ public class ProjectExplorerPanel extends BasePanel {
     }
 
     /**
-     * Rafraîchit l'arborescence du projet.
+     * Rafraîchit l'arborescence du projet en préservant l'état d'expansion des
+     * répertoires et la sélection courante.
      */
     public void refresh() {
         if (projectDir == null || !projectDir.isDirectory()) {
@@ -370,10 +372,48 @@ public class ProjectExplorerPanel extends BasePanel {
             return;
         }
 
+        // Mémoriser les répertoires actuellement dépliés et le fichier sélectionné
+        Set<File> expandedDirs = TreeExpansionState.collectExpanded(asNode(treeView.getRoot()));
+        File selectedFile = null;
+        TreeItem<File> selectedItem = treeView.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            selectedFile = selectedItem.getValue();
+        }
+
         TreeItem<File> rootItem = buildTreeItem(projectDir);
         rootItem.setExpanded(true);
         treeView.setRoot(rootItem);
+
+        // Restaurer l'état d'expansion des répertoires
+        TreeExpansionState.restoreExpanded(asNode(treeView.getRoot()), expandedDirs);
+
         updateGitToolbar();
+
+        // Restaurer la sélection (révèle également tous les ancêtres)
+        if (selectedFile != null) {
+            revealFile(selectedFile);
+        }
+    }
+
+    /**
+     * Adapts a {@link TreeItem}{@code <File>} to {@link TreeExpansionState.Node}{@code <File>}.
+     * Returns {@code null} when {@code item} is {@code null}.
+     */
+    private static TreeExpansionState.Node<File> asNode(TreeItem<File> item) {
+        if (item == null) return null;
+        return new TreeExpansionState.Node<File>() {
+            @Override public File getValue() { return item.getValue(); }
+            @Override public boolean isExpanded() { return item.isExpanded(); }
+            @Override public void setExpanded(boolean expanded) { item.setExpanded(expanded); }
+            @Override public List<TreeExpansionState.Node<File>> getChildren() {
+                return item.getChildren().stream()
+                        .map(ProjectExplorerPanel::asNode)
+                        .collect(Collectors.toList());
+            }
+            @Override public boolean isCollectable() {
+                return item.getValue() != null && item.getValue().isDirectory();
+            }
+        };
     }
 
     /**

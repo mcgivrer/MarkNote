@@ -875,6 +875,7 @@ public class MarkNote extends Application {
                 // Rafraîchir l'arbre si le fichier est dans le projet
                 if (projectDir != null && docTab.getFile().toPath().startsWith(projectDir.toPath())) {
                     projectExplorerPanel.refresh();
+                    projectExplorerPanel.revealFile(docTab.getFile());
                     // Mettre à jour l'index pour ce fichier
                     indexService.updateFile(docTab.getFile());
                     tagCloudPanel.updateTags(indexService.getTagCounts());
