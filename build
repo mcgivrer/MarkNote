@@ -119,14 +119,12 @@ if( [ "$1" == "test" ] ); then
     mkdir -p ${TARGET}/test-classes
     echo "copy test resources"
     cp -r ./$RESOURCES/* $TEST_CLASSES
-    cp -r ./$TEST_RESOURCES/* $TEST_CLASSES
     echo "compile test classes"
-    #list test sources
-    find ${SRC}/main -name '*.java' >${TARGET}/sources.lst
+    #list test sources (compile test sources only, using already-compiled main classes)
     find ${SRC}/test -name '*.java' >${TARGET}/test-sources.lst
-    javac -source $SOURCE_VERSION -encoding $SOURCE_ENCODING $COMPILATION_OPTS -cp ".${FS}$LIB_TEST${FS}${EXTERNAL_JARS}" -d $TEST_CLASSES @${TARGET}/sources.lst @${TARGET}/test-sources.lst
+    javac -encoding $SOURCE_ENCODING $COMPILATION_OPTS -cp ".${FS}$LIB_TEST${FS}${CLASSES}" -d $TEST_CLASSES @${TARGET}/test-sources.lst
     echo "execute tests through JUnit"
-    java $JAR_OPTS -jar $LIB_TEST execute -cp "${EXTERNAL_JARS}${FS}${CLASSES}${FS}${TEST_CLASSES}${FS}." --scan-class-path
+    java $JAR_OPTS -cp "${LIB_TEST}${FS}${CLASSES}${FS}${TEST_CLASSES}${FS}." org.junit.platform.console.ConsoleLauncher execute --scan-class-path
     echo -e "   |_ ${GREEN}done$NC"
     echo "- execute tests through JUnit ${SRC}/test." >>${TARGET}/build.log
 fi
