@@ -1,6 +1,9 @@
 import java.io.File;
 import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
@@ -89,6 +92,10 @@ public class MarkNote extends Application {
     private PromptPanel promptPanel;
     private LLMConfig llmConfig;
     private CheckMenuItem showLLMPanelMenuItem;
+    private final Map<String, BasePanel> managedPanels = new LinkedHashMap<>();
+    private final Map<BasePanel, Boolean> lastDockedState = new HashMap<>();
+    private final Map<BasePanel, CheckMenuItem> panelMenuItems = new HashMap<>();
+    private boolean syncingPanelMenuState = false;
 
     public static void main(String[] args) {
         // Prefer IPv6 when both IPv4/IPv6 exist for the same host.
@@ -246,11 +253,9 @@ public class MarkNote extends Application {
         // Initialiser le DockingManager
         dockingManager = new DockingManager(root);
         dockingManager.setCenterContent(editorSplit);
-
-        // Dock des panels à gauche
-        dockingManager.dock(projectExplorerPanel, DockZone.LEFT);
-        dockingManager.dock(tagCloudPanel, DockZone.LEFT);
-        dockingManager.dock(visualLinkPanel, DockZone.LEFT);
+        registerManagedPanel(projectExplorerPanel);
+        registerManagedPanel(tagCloudPanel);
+        registerManagedPanel(visualLinkPanel);
 
         // LLM Chat Panel (à droite)
         llmConfig = new LLMConfig();
@@ -261,21 +266,18 @@ public class MarkNote extends Application {
                 var sel = mainTabPane.getSelectionModel().getSelectedItem();
                 return (sel instanceof DocumentTab dt) ? dt : null;
             });
-            promptPanel.setOnClose(() -> {
-                if (showLLMPanelMenuItem != null) {
-                    showLLMPanelMenuItem.setSelected(false);
-                }
-            });
             promptPanel.setOnDetach(() -> detachPanel(promptPanel));
-            dockingManager.dock(promptPanel, DockZone.RIGHT);
+            registerManagedPanel(promptPanel);
         }
 
         // Console panel (si --console-debug est passé)
         if (consoleDebugEnabled) {
             consolePanel = new ConsolePanel();
-            dockingManager.dock(consolePanel, DockZone.BOTTOM);
+            registerManagedPanel(consolePanel);
             consolePanel.startCapture();
         }
+
+        restoreManagedPanelStates();
 
         // Appliquer le layout
         root.setCenter(dockingManager.getRootNode());
@@ -299,6 +301,7 @@ public class MarkNote extends Application {
             stage.setTitle(messages.getString("app.title.editor"));
         }
         stage.setScene(scene);
+        stage.setOnCloseRequest(e -> saveManagedPanelStates());
 
         // Icônes de fenêtre / barre des tâches (du plus petit au plus grand)
         String[] iconSizes = { "16", "32", "64", "128" };
@@ -389,17 +392,7 @@ public class MarkNote extends Application {
 
         CheckMenuItem showProjectPanel = new CheckMenuItem(messages.getString("menu.view.projectExplorer"));
         showProjectPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
-        showProjectPanel.setSelected(true);
-        showProjectPanel.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            if (isSelected) {
-                dockingManager.showPanel(projectExplorerPanel, DockZone.LEFT);
-            } else {
-                dockingManager.hidePanel(projectExplorerPanel);
-            }
-        });
-
-        // Bouton [x] du project explorer décoche le menu
-        projectExplorerPanel.setOnClose(() -> showProjectPanel.setSelected(false));
+        bindManagedPanelMenuItem(projectExplorerPanel, showProjectPanel);
 
         CheckMenuItem showPreviewPanel = new CheckMenuItem(messages.getString("menu.view.previewPanel"));
         showPreviewPanel.setAccelerator(KeyCombination.keyCombination("Ctrl+P"));
@@ -420,44 +413,17 @@ public class MarkNote extends Application {
 
         CheckMenuItem showTagCloud = new CheckMenuItem(messages.getString("menu.view.tagCloud"));
         showTagCloud.setAccelerator(KeyCombination.keyCombination("Ctrl+T"));
-        showTagCloud.setSelected(true);
-        showTagCloud.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            if (isSelected) {
-                dockingManager.showPanel(tagCloudPanel, DockZone.LEFT);
-            } else {
-                dockingManager.hidePanel(tagCloudPanel);
-            }
-        });
-
-        // Bouton [x] du tag cloud décoche le menu
-        tagCloudPanel.setOnClose(() -> showTagCloud.setSelected(false));
+        bindManagedPanelMenuItem(tagCloudPanel, showTagCloud);
 
         CheckMenuItem showNetworkDiagram = new CheckMenuItem(messages.getString("menu.view.networkDiagram"));
         showNetworkDiagram.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
-        showNetworkDiagram.setSelected(true);
-        showNetworkDiagram.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-            if (isSelected) {
-                dockingManager.showPanel(visualLinkPanel, DockZone.LEFT);
-            } else {
-                dockingManager.hidePanel(visualLinkPanel);
-            }
-        });
-
-        // Bouton [x] du diagramme réseau décoche le menu
-        visualLinkPanel.setOnClose(() -> showNetworkDiagram.setSelected(false));
+        bindManagedPanelMenuItem(visualLinkPanel, showNetworkDiagram);
 
         // Option LLM Panel (si activé dans la config)
         if (llmConfig.isEnabled() && promptPanel != null) {
             showLLMPanelMenuItem = new CheckMenuItem(messages.getString("menu.view.llmPanel"));
             showLLMPanelMenuItem.setAccelerator(KeyCombination.keyCombination("Ctrl+M"));
-            showLLMPanelMenuItem.setSelected(true);
-            showLLMPanelMenuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-                if (isSelected) {
-                    dockingManager.showPanel(promptPanel, DockZone.LEFT);
-                } else {
-                    dockingManager.hidePanel(promptPanel);
-                }
-            });
+            bindManagedPanelMenuItem(promptPanel, showLLMPanelMenuItem);
         }
 
         // Option Afficher Welcome
@@ -477,20 +443,7 @@ public class MarkNote extends Application {
         // Option Console (uniquement si --console-debug est actif)
         if (consoleDebugEnabled) {
             showConsoleMenuItem = new CheckMenuItem(messages.getString("menu.view.console"));
-            showConsoleMenuItem.setSelected(true);
-            showConsoleMenuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-                if (isSelected) {
-                    dockingManager.showPanel(consolePanel);
-                } else {
-                    dockingManager.hidePanel(consolePanel);
-                }
-            });
-
-            // Callback fermeture du panel -> décoche le menu
-            consolePanel.setOnClose(() -> showConsoleMenuItem.setSelected(false));
-
-            // Callback détachement du panel
-            consolePanel.setOnDetach(() -> detachPanel(consolePanel));
+            bindManagedPanelMenuItem(consolePanel, showConsoleMenuItem);
 
             viewMenu.getItems().add(viewMenu.getItems().size() - 1, new SeparatorMenuItem());
             viewMenu.getItems().add(viewMenu.getItems().size() - 1, showConsoleMenuItem);
@@ -600,6 +553,10 @@ public class MarkNote extends Application {
      * @param panel le panel à détacher
      */
     private void detachPanel(BasePanel panel) {
+        detachPanel(panel, dockingManager.getLastKnownZone(panel));
+    }
+
+    private void detachPanel(BasePanel panel, DockZone fallbackZone) {
         // Éviter les doublons - chercher si un onglet existe déjà pour ce panel
         for (var tab : mainTabPane.getTabs()) {
             if (tab instanceof DetachedPanelTab dpt && dpt.getSourcePanel() == panel) {
@@ -609,30 +566,180 @@ public class MarkNote extends Application {
         }
 
         // Mémoriser la zone de dock actuelle
-        DockZone originalZone = dockingManager.getZone(panel);
+        DockZone originalZone = dockingManager.getLastKnownZone(panel);
+        if (originalZone == null) {
+            originalZone = fallbackZone != null ? fallbackZone : getDefaultPanelZone(panel);
+        }
+        final DockZone restoredZone = originalZone;
 
         // Masquer le panel via le DockingManager
-        dockingManager.undock(panel);
-
-        // Décocher le menu console si nécessaire
-        if (panel == consolePanel && showConsoleMenuItem != null) {
-            showConsoleMenuItem.setSelected(false);
+        if (dockingManager.isDocked(panel)) {
+            dockingManager.undock(panel);
         }
+        lastDockedState.put(panel, false);
 
         // Créer l'onglet
         DetachedPanelTab detachedTab = new DetachedPanelTab(panel);
         detachedTab.setOnCloseAction(() -> {
             // Réafficher le panel dans sa zone d'origine
-            if (originalZone != null) {
-                dockingManager.dock(panel, originalZone);
-                if (panel == consolePanel && showConsoleMenuItem != null) {
-                    showConsoleMenuItem.setSelected(true);
-                }
+            if (restoredZone != null) {
+                dockingManager.dock(panel, restoredZone);
+                lastDockedState.put(panel, true);
             }
         });
 
         mainTabPane.getTabs().add(detachedTab);
         mainTabPane.getSelectionModel().select(detachedTab);
+        syncManagedPanelMenuItem(panel, true);
+    }
+
+    private void registerManagedPanel(BasePanel panel) {
+        if (panel == null) {
+            return;
+        }
+        managedPanels.put(panel.getPanelStateId(), panel);
+        DockZone defaultZone = getDefaultPanelZone(panel);
+        dockingManager.rememberPanelZone(panel, defaultZone);
+        lastDockedState.put(panel, true);
+    }
+
+    private DockZone getDefaultPanelZone(BasePanel panel) {
+        return panel == promptPanel ? DockZone.RIGHT : DockZone.LEFT;
+    }
+
+    private DockZone getStoredOrDefaultZone(BasePanel panel) {
+        DockZone zone = dockingManager.getLastKnownZone(panel);
+        if (zone != null) {
+            return zone;
+        }
+        AppConfig.PanelState state = config.getPanelState(panel.getPanelStateId());
+        if (state != null) {
+            try {
+                return DockZone.valueOf(state.zone());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return getDefaultPanelZone(panel);
+    }
+
+    private AppConfig.PanelState getSavedOrDefaultPanelState(BasePanel panel) {
+        AppConfig.PanelState state = config.getPanelState(panel.getPanelStateId());
+        if (state != null) {
+            return state;
+        }
+        return new AppConfig.PanelState(true, true, getDefaultPanelZone(panel).name());
+    }
+
+    private void restoreManagedPanelStates() {
+        for (BasePanel panel : managedPanels.values()) {
+            AppConfig.PanelState state = getSavedOrDefaultPanelState(panel);
+            DockZone zone = getDefaultPanelZone(panel);
+            try {
+                if (state.zone() != null && !state.zone().isBlank()) {
+                    zone = DockZone.valueOf(state.zone());
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+
+            dockingManager.rememberPanelZone(panel, zone);
+            lastDockedState.put(panel, state.docked());
+
+            if (!state.visible()) {
+                continue;
+            }
+
+            dockingManager.dock(panel, zone);
+            if (!state.docked()) {
+                detachPanel(panel, zone);
+            }
+        }
+    }
+
+    private void bindManagedPanelMenuItem(BasePanel panel, CheckMenuItem menuItem) {
+        if (panel == null || menuItem == null) {
+            return;
+        }
+        panelMenuItems.put(panel, menuItem);
+        syncingPanelMenuState = true;
+        try {
+            menuItem.setSelected(isManagedPanelVisible(panel));
+        } finally {
+            syncingPanelMenuState = false;
+        }
+        menuItem.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            if (syncingPanelMenuState || wasSelected == isSelected) {
+                return;
+            }
+            if (isSelected) {
+                showManagedPanel(panel);
+            } else {
+                hideManagedPanel(panel);
+            }
+        });
+        panel.setOnClose(() -> syncManagedPanelMenuItem(panel, false));
+    }
+
+    private void syncManagedPanelMenuItem(BasePanel panel, boolean selected) {
+        CheckMenuItem menuItem = panelMenuItems.get(panel);
+        if (menuItem == null) {
+            return;
+        }
+        syncingPanelMenuState = true;
+        try {
+            menuItem.setSelected(selected);
+        } finally {
+            syncingPanelMenuState = false;
+        }
+        if (!selected) {
+            hideManagedPanel(panel);
+        }
+    }
+
+    private boolean isManagedPanelVisible(BasePanel panel) {
+        return dockingManager.isDocked(panel) || findDetachedPanel(panel) != null;
+    }
+
+    private DetachedPanelTab findDetachedPanel(BasePanel panel) {
+        for (var tab : mainTabPane.getTabs()) {
+            if (tab instanceof DetachedPanelTab detachedTab && detachedTab.getSourcePanel() == panel) {
+                return detachedTab;
+            }
+        }
+        return null;
+    }
+
+    private void showManagedPanel(BasePanel panel) {
+        if (isManagedPanelVisible(panel)) {
+            return;
+        }
+        DockZone zone = getStoredOrDefaultZone(panel);
+        boolean shouldDock = lastDockedState.getOrDefault(panel, true);
+        dockingManager.dock(panel, zone);
+        if (!shouldDock) {
+            detachPanel(panel, zone);
+        } else {
+            lastDockedState.put(panel, true);
+        }
+    }
+
+    private void hideManagedPanel(BasePanel panel) {
+        DetachedPanelTab detachedTab = findDetachedPanel(panel);
+        if (detachedTab != null) {
+            detachedTab.hideWithoutDocking();
+        } else if (dockingManager.isDocked(panel)) {
+            dockingManager.hidePanel(panel);
+        }
+    }
+
+    private void saveManagedPanelStates() {
+        for (BasePanel panel : managedPanels.values()) {
+            boolean detached = findDetachedPanel(panel) != null;
+            boolean visible = detached || dockingManager.isDocked(panel);
+            boolean docked = visible ? !detached : lastDockedState.getOrDefault(panel, true);
+            DockZone zone = getStoredOrDefaultZone(panel);
+            config.setPanelState(panel.getPanelStateId(), new AppConfig.PanelState(visible, docked, zone.name()));
+        }
+        config.save();
     }
 
     /**
@@ -1030,6 +1137,7 @@ public class MarkNote extends Application {
      * Redirige l'application pour appliquer un changement de langue.
      */
     private void restartApplication() {
+        saveManagedPanelStates();
         // Clear ResourceBundle cache
         ResourceBundle.clearCache();
 
@@ -1077,7 +1185,6 @@ public class MarkNote extends Application {
             ThemeTab themeTab = new ThemeTab(file, content.get());
             themeTab.setOnSaveCallback(v -> {
                 // Rafraîchir le thème si c'est le thème courant
-                ThemeManager themeManager = ThemeManager.getInstance();
                 String themeName = file.getName().replace(".css", "");
                 if (themeName.equals(config.getCurrentTheme())) {
                     applyTheme(primaryStage.getScene());
@@ -1115,6 +1222,11 @@ public class MarkNote extends Application {
         alert.setTitle(title);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    @Override
+    public void stop() {
+        saveManagedPanelStates();
     }
 
     // ── Status bar helpers ──────────────────────────────────────────

@@ -31,11 +31,12 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 11. [Network Diagram](#network-diagram)
 12. [Status Bar](#status-bar)
 13. [Live Preview](#live-preview)
-14. [Splash Screen & About](#splash-screen--about)
-15. [Themes](#themes)
-16. [Options & Settings](#options--settings)
-17. [Keyboard Shortcuts](#keyboard-shortcuts)
-18. [Troubleshooting](#troubleshooting)
+14. [LLM Chat](#llm-chat)
+15. [Splash Screen & About](#splash-screen--about)
+16. [Themes](#themes)
+17. [Options & Settings](#options--settings)
+18. [Keyboard Shortcuts](#keyboard-shortcuts)
+19. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -60,6 +61,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Project Indexing** - Automatic incremental indexing of Markdown files by front matter and filenames
 - **Search** - Instant full-text search across indexed documents with live results popup (up to 20 results)
 - **Search & Replace in Editor** - In-editor overlay bar (`Ctrl+F` / `Ctrl+H`) with Regex, Full Word, and Match Case toggles, occurrence navigation and bulk replace
+- **LLM Chat** - Optional dockable assistant panel with streaming responses, conversation history, system context, export, and insertion of generated content into the active document
 - **Tag Cloud** - Visual tag cloud showing tag frequency; click to search
 - **Network Diagram** - Interactive force-directed graph of document links and shared tags, with tooltips and current document highlighting
 - **Status Bar** - Document info, statistics, and indexing progress at the bottom of the window
@@ -155,6 +157,17 @@ Shows the rendered HTML output of your Markdown in real-time. Features:
 - Refresh button
 - Clickable links that navigate within your project
 
+### 4b. LLM Chat Panel (Right Dock)
+
+When enabled in **Help → Options... → LLM**, MarkNote adds an **LLM Chat** panel on the right side of the workspace.
+
+It provides:
+- A conversation view with your prompts and streamed assistant responses
+- A prompt input area with a **System Context** button, submit button, and cancel button while a request is running
+- Quick actions to copy, export, edit, or insert generated content into the active document
+
+See [LLM Chat](#llm-chat) for setup and usage details.
+
 ### 5. Status Bar (Bottom)
 
 A thin bar at the bottom of the window showing:
@@ -177,13 +190,14 @@ You can show or hide panels using the **View** menu or by clicking the **×** cl
 | **View → Preview panel** (`Ctrl+P`) | Toggle the right Preview pane |
 | **View → Tag Cloud** (`Ctrl+T`) | Toggle the Tag Cloud sub-panel |
 | **View → Network Diagram** (`Ctrl+L`) | Toggle the Network Diagram sub-panel |
+| **View → LLM Chat** (`Ctrl+M`) | Toggle the LLM Chat panel when the feature is enabled |
 | **View → Show Welcome** | Open the Welcome tab |
 
 Each panel can also be closed by clicking the **×** button in its header. Re-opening it from the View menu restores it to the layout.
 
 ### Detaching Panels to Tabs
 
-Left-side panels (**Project Explorer**, **Tag Cloud**, **Network Diagram**) and the **Preview** panel can be **detached** from their docked position and converted into independent tabs in the main editor area. This gives you more flexibility to organize your workspace.
+Left-side panels (**Project Explorer**, **Tag Cloud**, **Network Diagram**) plus the **Preview** and **LLM Chat** panels can be **detached** from their docked position and converted into independent tabs in the main editor area. This gives you more flexibility to organize your workspace.
 
 **To detach a panel:**
 
@@ -958,6 +972,112 @@ You can also specify only width or only height:
 
 ---
 
+## LLM Chat
+
+MarkNote can connect to a local or remote Large Language Model and provide an integrated chat workflow alongside your notes.
+
+![LLM Chat Panel](illustrations/llm-chat-panel.svg)
+
+### What the Panel Does
+
+The **LLM Chat** panel is designed for note drafting, reformulation, summarization, and content generation without leaving the editor.
+
+It supports:
+- **Streaming responses** while the model is generating text
+- **Conversation history** for the current session
+- **System context** to steer the assistant's behavior
+- **Message actions** to copy, export, edit, or insert content into the active document
+- **Session export** and **session insertion** into the active document
+- **Cancellation** of the current request
+
+### Supported Backends
+
+MarkNote currently supports:
+- **Ollama** endpoints such as `http://localhost:11434`
+- **OpenAI-compatible chat endpoints** using the `/v1/chat/completions` format
+
+The application automatically adapts the request format based on the configured endpoint URL.
+
+### Enabling the Feature
+
+1. Open **Help → Options...**
+2. Go to the **LLM** tab
+3. Check **Enable LLM panel**
+4. Configure your endpoint, model, and optional API key
+5. Click **OK**
+
+If the feature is enabled, the panel becomes available in the interface and in **View → LLM Chat**.
+
+### Configuring the Connection
+
+The LLM tab lets you define:
+
+| Option | Description |
+|--------|-------------|
+| **Enable LLM panel** | Shows or hides the LLM Chat panel in the main UI |
+| **API Endpoint URL** | Base URL of your LLM service |
+| **API Key** | Optional bearer token; usually not required for local Ollama |
+| **Model** | Model identifier sent with each chat request |
+| **Refresh Models** | Queries the server for available models (Ollama-compatible endpoint) |
+| **Timeout** | Maximum request duration in seconds |
+| **Default System Context** | Default instructions automatically prepended to each conversation |
+
+Use **Test Connection** to validate the current settings before saving them.
+
+### Sending a Prompt
+
+1. Open the panel from **View → LLM Chat** if it is not already visible
+2. Type your request in the prompt area
+3. Press the **Send** button or `Ctrl+Enter`
+4. Read the streamed answer as it appears in the conversation view
+
+While the request is running:
+- A spinner is displayed in the input area
+- The prompt field is temporarily disabled
+- The **Cancel** button replaces the Send button
+
+### System Context
+
+The **System Context** button in the input area opens a dialog where you can define instructions for the assistant, for example:
+- Tone and style rules
+- Output format constraints
+- Writing goals for the current project
+
+This context is saved in your LLM configuration and is automatically included in future requests.
+
+### Working with Messages
+
+Each conversation entry offers quick actions:
+
+| Action | Description |
+|--------|-------------|
+| **Copy** | Copy the message content to the clipboard |
+| **Export** | Save the message as a Markdown file |
+| **Insert into document** | Insert the message content into the active document |
+| **Edit** | Available on user prompts; reloads the prompt into the input area and removes later messages so you can regenerate from that point |
+
+### Session Actions
+
+The panel header also provides actions for the full conversation:
+
+| Action | Description |
+|--------|-------------|
+| **Export Session** | Save the full conversation as a Markdown file |
+| **Insert session into document** | Insert the entire conversation into the active document |
+| **Clear Session** | Remove all messages from the current chat |
+
+When a full session is inserted into a document, user prompts are prefixed with `>` so the exchange remains readable in Markdown.
+
+### Typical Workflow
+
+1. Open a Markdown note
+2. Ask the assistant to summarize, rewrite, or expand your content
+3. Review the streamed answer in the LLM Chat panel
+4. Insert the whole answer or selected messages into the document
+5. Continue editing directly in MarkNote
+
+---
+
 ## Splash Screen & About
 
 ### Splash Screen
@@ -1107,6 +1227,23 @@ Once enabled:
 
 > **Note:** Java must be on your system `PATH` since the jar is executed as `java -jar plantuml.jar`.
 
+### LLM Tab
+
+The **LLM** tab configures the integrated **LLM Chat** panel.
+
+| Option | Description |
+|--------|-------------|
+| **Enable LLM panel** | Enables the feature and adds the panel to the main layout and View menu |
+| **API Endpoint URL** | Base URL for your Ollama or OpenAI-compatible service |
+| **API Key** | Optional bearer token used for authenticated services |
+| **Model** | Model name sent with each request |
+| **Refresh Models** | Fetches available models from an Ollama-compatible server |
+| **Timeout (seconds)** | Request timeout used by the HTTP client |
+| **Default System Context** | Global assistant instructions automatically prepended to each request |
+| **Test Connection** | Sends a short test request to verify that the endpoint is reachable |
+
+> **Note:** If you disable the panel here, **View → LLM Chat** is no longer available until the feature is re-enabled.
+
 ### Git Tab
 
 The **Git** tab configures credentials used when the **Sync** operation communicates with a remote repository (push/pull).
@@ -1169,6 +1306,7 @@ To change the language:
 | `Ctrl+A` | Select all |
 | `Ctrl+F` | Open Search bar (search only) |
 | `Ctrl+H` | Open Search & Replace bar |
+| `Ctrl+Enter` | Send the current prompt from the LLM Chat input |
 
 ### Navigation
 
@@ -1186,6 +1324,7 @@ To change the language:
 | `Ctrl+P` | Toggle Preview panel |
 | `Ctrl+T` | Toggle Tag Cloud |
 | `Ctrl+L` | Toggle Network Diagram |
+| `Ctrl+M` | Toggle LLM Chat |
 
 > **Note:** On macOS, use `Cmd` instead of `Ctrl`.
 
@@ -1218,6 +1357,14 @@ To change the language:
 1. The application needs to restart after changing language
 2. Try closing and reopening MarkNote manually
 3. Check the language setting in Options → Misc.
+
+#### LLM Chat does not respond
+
+1. Open **Help → Options... → LLM** and verify the endpoint URL and model name
+2. Use **Test Connection** to confirm the service is reachable
+3. Check whether your backend requires an API key
+4. If you are using Ollama locally, make sure the Ollama service is running
+5. Increase the timeout if your model is slow to start or answer
 
 ### Getting Help
 

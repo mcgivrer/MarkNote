@@ -17,6 +17,7 @@ public class DetachedPanelTab extends Tab {
     private final BasePanel sourcePanel;
     private final Node detachedContent;
     private Runnable onCloseAction;
+    private boolean runCloseActionOnClose = true;
 
     /**
      * Crée un onglet détaché à partir d'un panel.
@@ -45,7 +46,7 @@ public class DetachedPanelTab extends Tab {
             // Actions post-rattachement après stabilisation du layout
             Platform.runLater(() -> sourcePanel.afterReattach());
             
-            if (onCloseAction != null) {
+            if (runCloseActionOnClose && onCloseAction != null) {
                 onCloseAction.run();
             }
         });
@@ -67,6 +68,13 @@ public class DetachedPanelTab extends Tab {
      */
     public void setOnCloseAction(Runnable action) {
         this.onCloseAction = action;
+    }
+
+    public void hideWithoutDocking() {
+        runCloseActionOnClose = false;
+        if (getTabPane() != null) {
+            getTabPane().getTabs().remove(this);
+        }
     }
 
     /**

@@ -38,7 +38,6 @@ public class DockingManager {
     public static final DataFormat PANEL_DATA_FORMAT = new DataFormat("application/x-marknote-panel");
 
     private final LogService log = LogService.getInstance();
-    private final BorderPane rootPane;
     private final StackPane contentStack;
 
     // Zones de docking (chaque zone peut contenir plusieurs panels dans un SplitPane)
@@ -75,8 +74,6 @@ public class DockingManager {
      * @param rootPane Le BorderPane racine de l'application
      */
     public DockingManager(BorderPane rootPane) {
-        this.rootPane = rootPane;
-
         // Initialiser les listes de panels pour chaque zone
         for (DockZone zone : DockZone.values()) {
             zonePanels.put(zone, new ArrayList<>());
@@ -600,6 +597,20 @@ public class DockingManager {
      */
     public boolean isDocked(BasePanel panel) {
         return getZone(panel) != null;
+    }
+
+    public DockZone getLastKnownZone(BasePanel panel) {
+        DockZone zone = getZone(panel);
+        if (zone != null) {
+            return zone;
+        }
+        return lastPanelZone.get(panel);
+    }
+
+    public void rememberPanelZone(BasePanel panel, DockZone zone) {
+        if (panel != null && zone != null && zone != DockZone.CENTER) {
+            lastPanelZone.put(panel, zone);
+        }
     }
 
     /**

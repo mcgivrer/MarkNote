@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 400" width="480" height="400">
+  <!-- Outer background -->
+  <rect width="480" height="400" rx="10" fill="#e8edf3"/>
+
+  <!-- Panel window -->
+  <rect x="20" y="20" width="440" height="360" rx="6" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Panel header bar -->
+  <rect x="20" y="20" width="440" height="36" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="20" y="44" width="440" height="12" fill="#f1f5f9"/>
+
+  <!-- Panel title -->
+  <text x="38" y="43" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#374151">LLM Chat</text>
+
+  <!-- Header action buttons (right side) -->
+  <!-- Context button -->
+  <rect x="338" y="28" width="22" height="20" rx="4" fill="#e5e7eb"/>
+  <text x="349" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">⚙</text>
+
+  <!-- Clear button -->
+  <rect x="364" y="28" width="22" height="20" rx="4" fill="#e5e7eb"/>
+  <text x="375" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">↺</text>
+
+  <!-- Detach button -->
+  <rect x="390" y="28" width="22" height="20" rx="4" fill="#e5e7eb"/>
+  <text x="401" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#6b7280" text-anchor="middle">⇱</text>
+
+  <!-- Model selector badge -->
+  <rect x="96" y="29" width="120" height="18" rx="9" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <circle cx="109" cy="38" r="4" fill="#22c55e"/>
+  <text x="117" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#2563eb">llama3.2:latest</text>
+
+  <!-- Conversation area -->
+  <rect x="20" y="56" width="440" height="256" fill="#fafafa" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- ── Assistant bubble 1 (left) ── -->
+  <rect x="34" y="70" width="298" height="56" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Robot icon circle -->
+  <circle cx="50" cy="84" r="9" fill="#e0e7ff"/>
+  <text x="50" y="88" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">AI</text>
+  <!-- Bubble text -->
+  <text x="68" y="86" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">Hello! I'm your AI writing assistant.</text>
+  <text x="68" y="101" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">How can I help you today?</text>
+  <!-- Timestamp -->
+  <text x="316" y="118" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">14:32</text>
+
+  <!-- ── User bubble (right) ── -->
+  <rect x="154" y="142" width="294" height="44" rx="8" fill="#dbeafe" stroke="#bfdbfe" stroke-width="1"/>
+  <!-- Text -->
+  <text x="164" y="158" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#1e3a8a">Summarize the front matter fields</text>
+  <text x="164" y="174" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#1e3a8a">for my README.md</text>
+  <!-- Timestamp -->
+  <text x="440" y="196" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#93c5fd" text-anchor="end">14:33</text>
+
+  <!-- ── Assistant bubble 2 (left, streaming) ── -->
+  <rect x="34" y="204" width="310" height="82" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Robot icon circle -->
+  <circle cx="50" cy="218" r="9" fill="#e0e7ff"/>
+  <text x="50" y="222" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">AI</text>
+  <!-- Bubble text: partial answer -->
+  <text x="68" y="220" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">Here's a summary of the front matter:</text>
+  <text x="68" y="237" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">• <tspan font-weight="600">title</tspan>: Document title (string)</text>
+  <text x="68" y="253" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">• <tspan font-weight="600">tags</tspan>: Keywords for indexing</text>
+  <!-- Streaming indicator dots -->
+  <circle cx="72" cy="272" r="4" fill="#c4b5fd">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" begin="0s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="84" cy="272" r="4" fill="#c4b5fd">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="96" cy="272" r="4" fill="#c4b5fd">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" begin="0.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Separator line between conversation and prompt area -->
+  <line x1="20" y1="312" x2="460" y2="312" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- ── Prompt input area ── -->
+  <rect x="20" y="312" width="440" height="68" rx="0" fill="#f8fafc"/>
+  <rect x="20" y="368" width="440" height="12" rx="6" fill="#f8fafc"/>
+
+  <!-- Context chip (attached document) -->
+  <rect x="34" y="318" width="108" height="16" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="40" y="330" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#2563eb">📄 README.md  ×</text>
+
+  <!-- Textarea -->
+  <rect x="34" y="338" width="330" height="34" rx="5" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="44" y="359" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#9ca3af">Ask about your document...</text>
+
+  <!-- Send button -->
+  <rect x="372" y="338" width="68" height="34" rx="5" fill="#2563eb"/>
+  <text x="406" y="359" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff" text-anchor="middle">Send</text>
+
+  <!-- Ctrl+Enter hint -->
+  <text x="406" y="378" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="middle">Ctrl+Enter</text>
+</svg>
