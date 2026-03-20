@@ -91,6 +91,9 @@ public class VisualLinkPanel extends BasePanel {
     private int stableFrames = 0;
     private boolean fitDone = false;
 
+    // ── Zoom ────────────────────────────────────────────────────
+    // Zoom constants are defined in ZoomCalculator (pure-Java, testable without JavaFX)
+
     // ── Interaction ─────────────────────────────────────────────
     private static final double EDGE_HIT_TOLERANCE = 6.0;
     private GraphNode draggedNode = null;
@@ -322,10 +325,22 @@ public class VisualLinkPanel extends BasePanel {
         canvas.addEventFilter(ScrollEvent.SCROLL, this::handleZoomScroll);
     }
 
+    /**
+     * Handles a scroll-wheel event on the canvas and adjusts the zoom level.
+     *
+     * <p>On Linux, {@link javafx.scene.input.ScrollEvent#getDeltaY()} may return
+     * {@code 0.0} for physical mouse-wheel rotations. In that case the method
+     * falls back to {@link javafx.scene.input.ScrollEvent#getTextDeltaY()}.
+     * If both deltas are zero the event is silently consumed and no zoom change
+     * occurs, preventing the erroneous zoom-out that used to block zoom-in on
+     * Linux.</p>
+     *
+     * @param e the scroll event delivered by JavaFX
+     */
     private void handleZoomScroll(ScrollEvent e) {
-        double factor = e.getDeltaY() > 0 ? 1.15 : 1.0 / 1.15;
-        double newZoom = zoom * factor;
-        newZoom = Math.max(0.1, Math.min(8.0, newZoom));
+        double newZoom = ZoomCalculator.computeNewZoom(
+                e.getDeltaY(), e.getTextDeltaY(), zoom,
+                ZoomCalculator.ZOOM_FACTOR, ZoomCalculator.ZOOM_MIN, ZoomCalculator.ZOOM_MAX);
         if (Math.abs(newZoom - zoom) < 1e-9) {
             e.consume();
             return;
@@ -1362,7 +1377,7 @@ public class VisualLinkPanel extends BasePanel {
         } else {
             zoom = Math.min(availW / graphW, availH / graphH);
         }
-        zoom = Math.max(0.1, Math.min(8.0, zoom));
+        zoom = Math.max(ZoomCalculator.ZOOM_MIN, Math.min(ZoomCalculator.ZOOM_MAX, zoom));
 
         // Centrer le graphe dans le canvas
         double centerX = (minX + maxX) / 2.0;
@@ -1392,7 +1407,7 @@ public class VisualLinkPanel extends BasePanel {
         if (availW < 1 || availH < 1) return;
 
         zoom = Math.min(availW / diameter, availH / diameter);
-        zoom = Math.max(0.1, Math.min(8.0, zoom));
+        zoom = Math.max(ZoomCalculator.ZOOM_MIN, Math.min(ZoomCalculator.ZOOM_MAX, zoom));
 
         // Centrer sur le cercle
         panX = cw / 2.0 - circle.centerX * zoom;

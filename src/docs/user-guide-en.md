@@ -644,7 +644,7 @@ This prevents visual clutter and improves performance with large projects.
 | **Click an edge** | Open the nearest connected document node |
 | **Drag a node** | Move a node to rearrange the layout (pins during drag, unpins on release) |
 | **Middle-click + drag** | Pan the view |
-| **Scroll wheel** | Zoom in/out (range: 0.1× – 8.0×, centered on cursor) |
+| **Scroll wheel** | Zoom in/out (range: 0.1× – 8.0×, factor 1.15× per step, centered on cursor; works on all platforms including Linux) |
 | **Ctrl + Click** | Reset zoom and recenter (zoom-to-fit) |
 
 ### Tooltips
