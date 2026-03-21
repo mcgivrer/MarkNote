@@ -1,17 +1,22 @@
 package ui;
 
+import java.util.LinkedHashMap;
+ import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -36,6 +41,11 @@ public class PromptInputArea extends VBox {
     private final ProgressIndicator spinner;
     private boolean isProcessing = false;
 
+    /** Barre de sélection des documents ouverts (au-dessus du TextArea). */
+    private final FlowPane docContextBar;
+    /** filename → bouton Toggle (true = sélectionné). */
+    private final Map<String, Button> docButtons = new LinkedHashMap<>();
+
     private Consumer<String> onSubmit;
     private Runnable onCancel;
     private Runnable onContextClick;
@@ -47,6 +57,15 @@ public class PromptInputArea extends VBox {
         setSpacing(8);
         setPadding(new Insets(10));
         getStyleClass().add("prompt-input-area");
+
+        // Barre de sélection des documents ouverts
+        docContextBar = new FlowPane();
+        docContextBar.setHgap(4);
+        docContextBar.setVgap(4);
+        docContextBar.setPadding(new Insets(0, 0, 2, 0));
+        docContextBar.getStyleClass().add("doc-context-bar");
+        docContextBar.setVisible(false);
+        docContextBar.setManaged(false);
 
         // Zone de texte
         textArea = new TextArea();
@@ -110,7 +129,45 @@ public class PromptInputArea extends VBox {
         actionButtons.getChildren().addAll(contextButton, cancelButton, submitButton);
         buttonBar.getChildren().addAll(spacer, spinner, actionButtons);
 
-        getChildren().addAll(textArea, buttonBar);
+        getChildren().addAll(docContextBar, textArea, buttonBar);
+    }
+
+    /**
+     * Met à jour la barre de documents ouverts.
+     * Crée un bouton compact par fichier.
+     *
+     * @param fileNames liste ordonnée des noms de fichiers ouverts
+     */
+    public void updateDocumentTabs(List<String> fileNames) {
+        // Conserver l'état de sélection des boutons existants
+        Map<String, Boolean> previousState = new LinkedHashMap<>();
+        docButtons.forEach((name, btn) -> previousState.put(name, isDocSelected(btn)));
+
+        docContextBar.getChildren().clear();
+        docButtons.clear();
+
+        for (String name : fileNames) {
+            boolean wasSelected = previousState.getOrDefault(name, false);
+            Button btn = buildDocButton(name, wasSelected);
+            docButtons.put(name, btn);
+            docContextBar.getChildren().add(btn);
+        }
+
+        boolean hasItems = !fileNames.isEmpty();
+        docContextBar.setVisible(hasItems);
+        docContextBar.setManaged(hasItems);
+    }
+
+    /**
+     * Retourne la liste des noms de documents dont le bouton est activé.
+     *
+     * @return liste des fichiers sélectionnés comme contexte
+     */
+    public List<String> getSelectedDocuments() {
+        return docButtons.entrySet().stream()
+                .filter(e -> isDocSelected(e.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
     /**
@@ -213,5 +270,41 @@ public class PromptInputArea extends VBox {
         button.setMaxWidth(ACTION_BUTTON_WIDTH);
         button.setMinHeight(ACTION_BUTTON_HEIGHT);
         button.setPrefHeight(ACTION_BUTTON_HEIGHT);
+    }
+
+    /**
+     * Construit un bouton de sélection de document.
+     * Style compact : 8pt, fond clair, tour pointillé (inactif) ou plein (actif).
+     */
+    private Button buildDocButton(String fileName, boolean selected) {
+        Button btn = new Button();
+        btn.getStyleClass().add("doc-context-btn");
+        btn.setUserData(selected);
+        updateDocButtonAppearance(btn, fileName, selected);
+        btn.setTooltip(new Tooltip(fileName));
+        btn.setOnAction(e -> {
+            boolean nowSelected = !isDocSelected(btn);
+            btn.setUserData(nowSelected);
+            updateDocButtonAppearance(btn, fileName, nowSelected);
+        });
+        return btn;
+    }
+
+    private void updateDocButtonAppearance(Button btn, String fileName, boolean selected) {
+        // Icône gauche + nom fichier
+        String icon = selected ? "\u2713" : "+"; // ✓ ou +
+        btn.setText("[" + icon + "] " + fileName);
+        if (selected) {
+            btn.getStyleClass().remove("doc-context-btn-off");
+            btn.getStyleClass().add("doc-context-btn-on");
+        } else {
+            btn.getStyleClass().remove("doc-context-btn-on");
+            btn.getStyleClass().add("doc-context-btn-off");
+        }
+    }
+
+    private boolean isDocSelected(Button btn) {
+        Object data = btn.getUserData();
+        return Boolean.TRUE.equals(data);
     }
 }

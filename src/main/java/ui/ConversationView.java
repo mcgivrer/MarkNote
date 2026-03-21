@@ -7,15 +7,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
+import java.util.List;
+
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -31,6 +35,14 @@ import utils.LogService;
  * Vue de la conversation LLM avec historique des messages.
  */
 public class ConversationView extends VBox {
+
+    /**
+     * Lien vers un document de contexte affiché dans un message utilisateur.
+     *
+     * @param name   Nom du document (affiché dans le lien)
+     * @param action Action exécutée au clic (ex: ouvrir l'onglet correspondant)
+     */
+    public record ContextLink(String name, Runnable action) {}
 
     private static final String LOG_SOURCE = "ConversationView";
     private final LogService log = LogService.getInstance();
@@ -70,8 +82,19 @@ public class ConversationView extends VBox {
      * @param message Le message à ajouter
      */
     public void addMessage(Message message) {
+        addMessage(message, List.of());
+    }
+
+    /**
+     * Ajoute un message à la conversation avec des liens de contexte.
+     * Les liens sont affichés sous forme de puces cliquables au-dessus du texte du message.
+     *
+     * @param message      Le message à ajouter
+     * @param contextLinks Les liens vers les documents de contexte
+     */
+    public void addMessage(Message message, List<ContextLink> contextLinks) {
         Platform.runLater(() -> {
-            HBox wrapper = createMessageWrapper(message, messagesContainer.getChildren().size());
+            HBox wrapper = createMessageWrapper(message, messagesContainer.getChildren().size(), contextLinks);
             messagesContainer.getChildren().add(wrapper);
             scrollToBottom();
         });
@@ -85,7 +108,7 @@ public class ConversationView extends VBox {
     public Message createAssistantMessage() {
         Message message = new Message(MessageRole.ASSISTANT, "");
         Platform.runLater(() -> {
-            HBox wrapper = createMessageWrapper(message, messagesContainer.getChildren().size());
+            HBox wrapper = createMessageWrapper(message, messagesContainer.getChildren().size(), List.of());
             messagesContainer.getChildren().add(wrapper);
         });
         return message;
@@ -121,10 +144,18 @@ public class ConversationView extends VBox {
     }
 
     /**
-     * Fait défiler jusqu'en bas.
+     * Fait défiler jusqu'en bas, seulement si l'ascenseur est déjà en position basse.
+     * Si l'utilisateur a fait défiler vers le haut, sa position est préservée.
      */
     public void scrollToBottom() {
-        Platform.runLater(() -> scrollPane.setVvalue(1.0));
+        Platform.runLater(() -> {
+            double vvalue = scrollPane.getVvalue();
+            double max    = scrollPane.getVmax();
+            // On auto-scroll uniquement si l'ascenseur est au bas (ou très proche)
+            if (max <= 0 || vvalue >= max - 0.01) {
+                scrollPane.setVvalue(max);
+            }
+        });
     }
 
     /**
@@ -208,8 +239,8 @@ public class ConversationView extends VBox {
 
     // --- Private methods ---
 
-    private HBox createMessageWrapper(Message message, int index) {
-        MessageBlock block = new MessageBlock(message);
+    private HBox createMessageWrapper(Message message, int index, List<ContextLink> contextLinks) {
+        MessageBlock block = new MessageBlock(message, contextLinks);
         block.setOnCopy(() -> copyToClipboard(message.getContent()));
         block.setOnExport(() -> exportMessage(message, getScene().getWindow()));
         block.setOnInsert(() -> { if (onInsertToDocument != null) onInsertToDocument.accept(message.getContent()); });
@@ -278,6 +309,10 @@ public class ConversationView extends VBox {
         private Runnable onInsert;
 
         public MessageBlock(Message message) {
+            this(message, List.of());
+        }
+
+        public MessageBlock(Message message, List<ContextLink> contextLinks) {
             setSpacing(4);
             setPadding(new Insets(8));
             getStyleClass().add("conversation-message");
@@ -324,12 +359,27 @@ public class ConversationView extends VBox {
                 header.getChildren().add(editBtn);
             }
 
+            getChildren().add(header);
+
+            // Barre de liens vers les documents de contexte (si présents)
+            if (!contextLinks.isEmpty()) {
+                FlowPane linksPane = new FlowPane(6, 4);
+                linksPane.getStyleClass().add("context-docs-bar");
+                for (ContextLink link : contextLinks) {
+                    Hyperlink hl = new Hyperlink("\uD83D\uDCC4 " + link.name());
+                    hl.getStyleClass().add("context-doc-link");
+                    hl.setOnAction(e -> { if (link.action() != null) link.action().run(); });
+                    linksPane.getChildren().add(hl);
+                }
+                getChildren().add(linksPane);
+            }
+
             // Contenu du message
             contentLabel = new Label(message.getContent());
             contentLabel.setWrapText(true);
             contentLabel.getStyleClass().add("message-content");
 
-            getChildren().addAll(header, contentLabel);
+            getChildren().add(contentLabel);
             setUserData(message);
         }
 

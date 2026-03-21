@@ -252,6 +252,73 @@
     -fx-padding: 10 12 10 12;
 }
 
+/* ── Barre de sélection des documents-contexte ─────────────────────────── */
+.doc-context-bar {
+    -fx-padding: 0 0 4 0;
+}
+
+/* Bouton document — état inactif : fond très clair, bordure pointillée */
+.doc-context-btn {
+    -fx-font-size: 9px;
+    -fx-padding: 2 6 2 6;
+    -fx-background-color: #f7f8fa;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-min-height: 18;
+    -fx-pref-height: 18;
+    -fx-max-height: 18;
+    -fx-text-fill: #5a6a80;
+}
+
+.doc-context-btn-off {
+    -fx-border-color: #aabcce;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-border-style: dashed;
+}
+
+.doc-context-btn-off:hover {
+    -fx-background-color: #eef1f6;
+}
+
+/* Bouton document — état actif : fond teinté bleu, bordure pleine */
+.doc-context-btn-on {
+    -fx-background-color: #e3ecfb;
+    -fx-border-color: #1f6fd1;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-border-style: solid;
+    -fx-text-fill: #1a4fa0;
+    -fx-font-weight: bold;
+}
+
+.doc-context-btn-on:hover {
+    -fx-background-color: #d3e3f8;
+}
+
+/* Barre de liens de contexte document dans les messages chat */
+.context-docs-bar {
+    -fx-padding: 4 0 2 0;
+}
+
+.context-doc-link {
+    -fx-font-size: 12px;
+    -fx-text-fill: #2a6496;
+    -fx-underline: true;
+    -fx-cursor: hand;
+    -fx-padding: 1 4 1 2;
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}
+
+.context-doc-link:hover {
+    -fx-text-fill: #1a4a76;
+    -fx-background-color: rgba(42,100,150,0.08);
+    -fx-background-radius: 3;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+
 .prompt-button-bar {
     -fx-alignment: bottom-right;
     -fx-min-height: 36px;

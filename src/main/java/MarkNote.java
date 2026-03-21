@@ -267,6 +267,21 @@ public class MarkNote extends Application {
                 var sel = mainTabPane.getSelectionModel().getSelectedItem();
                 return (sel instanceof DocumentTab dt) ? dt : null;
             });
+            // Fournit la liste de tous les DocumentTab ouverts pour la barre de contexte
+            promptPanel.setOpenTabsSupplier(() ->
+                mainTabPane.getTabs().stream()
+                    .filter(t -> t instanceof DocumentTab)
+                    .map(t -> (DocumentTab) t)
+                    .toList()
+            );
+            // Rafraîchir la barre de documents à chaque ajout/suppression d'onglet
+            mainTabPane.getTabs().addListener(
+                (javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
+                    if (promptPanel != null) promptPanel.refreshDocumentContext();
+                }
+            );
+            // Navigation vers un onglet depuis un lien de contexte dans le chat
+            promptPanel.setOnOpenTab(tab -> mainTabPane.getSelectionModel().select(tab));
             promptPanel.setOnDetach(() -> detachPanel(promptPanel));
             registerManagedPanel(promptPanel);
         }
