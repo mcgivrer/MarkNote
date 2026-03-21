@@ -79,6 +79,7 @@ public class DocumentTab extends Tab {
 
     private final StyleClassedTextArea editor;
     private final FrontMatterPanel frontMatterPanel;
+    private VirtualizedScrollPane<StyleClassedTextArea> scrollPane;
     private SearchReplaceBar searchReplaceBar;
     private File file;
     private String savedContent;
@@ -148,7 +149,7 @@ public class DocumentTab extends Tab {
             }
         });
 
-        VirtualizedScrollPane<StyleClassedTextArea> scrollPane = new VirtualizedScrollPane<>(editor);
+        scrollPane = new VirtualizedScrollPane<>(editor);
 
         // Barre de recherche/remplacement (overlay)
         searchReplaceBar = new SearchReplaceBar();
@@ -440,6 +441,23 @@ public class DocumentTab extends Tab {
      */
     public void setOnTextChanged(Consumer<String> action) {
         this.onTextChanged = action;
+    }
+
+    /**
+     * Enregistre un listener appelé à chaque changement de position de défilement
+     * vertical dans l'éditeur. La valeur transmise est une fraction normalisée
+     * dans [0.0, 1.0] (0 = haut, 1 = bas).
+     *
+     * @param listener Le callback recevant la fraction de défilement
+     */
+    public void setOnScrollFractionChanged(Consumer<Double> listener) {
+        scrollPane.estimatedScrollYProperty().addListener((obs, oldY, newY) -> {
+            double totalHeight = editor.totalHeightEstimateProperty().getValue();
+            double viewportHeight = scrollPane.getHeight();
+            double scrollable = Math.max(1.0, totalHeight - viewportHeight);
+            double fraction = Math.min(1.0, Math.max(0.0, newY.doubleValue() / scrollable));
+            listener.accept(fraction);
+        });
     }
 
     /**

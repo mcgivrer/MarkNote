@@ -793,6 +793,14 @@ public class MarkNote extends Application {
             }
         });
 
+        // Synchroniser le défilement éditeur → preview
+        tab.setOnScrollFractionChanged(fraction -> {
+            if (mainTabPane.getSelectionModel().getSelectedItem() == tab
+                    && editorSplit.getItems().contains(previewPanel)) {
+                previewPanel.scrollToFraction(fraction);
+            }
+        });
+
         // Initial preview
         previewPanel.updatePreview(tab.getFullContent());
         previewPanel.setCurrentFile(tab.getFile());

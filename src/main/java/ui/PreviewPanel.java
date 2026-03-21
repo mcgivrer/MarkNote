@@ -1113,6 +1113,20 @@ public class PreviewPanel extends BasePanel {
             updatePreview(currentMarkdown, false);
         }
     }
+
+    /**
+     * Fait défiler la prévisualisation jusqu'à la position correspondant à la
+     * fraction normalisée donnée (0.0 = haut, 1.0 = bas).
+     *
+     * @param fraction La fraction de défilement dans [0.0, 1.0]
+     */
+    public void scrollToFraction(double fraction) {
+        if (webView.getEngine().getLoadWorker().getState() == Worker.State.SUCCEEDED) {
+            webView.getEngine().executeScript(
+                "window.scrollTo(0, (document.body.scrollHeight - window.innerHeight) * " + fraction + ")"
+            );
+        }
+    }
     
     /**
      * Définit le fichier Markdown source actuellement affiché.
