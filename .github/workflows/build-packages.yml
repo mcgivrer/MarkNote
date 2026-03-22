@@ -1,0 +1,103 @@
+name: Build Native Packages
+
+# ─── Triggers ──────────────────────────────────────────────────────────────
+# • Automatic : every push of a version tag  (e.g. v0.1.3)
+# • Manual    : "Run workflow" button in the Actions tab
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# Allow the release job to create/update GitHub Releases
+permissions:
+  contents: write
+
+# ─── Jobs ──────────────────────────────────────────────────────────────────
+jobs:
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Build a native installer on each target OS
+  # ══════════════════════════════════════════════════════════════════════════
+  package:
+    name: Package – ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false         # let all three platforms build even if one fails
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux (DEB)
+          - os: macos-latest
+            label: macOS (DMG)
+          - os: windows-latest
+            label: Windows (EXE)
+
+    steps:
+
+      # ── 1. Checkout with full history ────────────────────────────────────
+      #    git-commit-id-maven-plugin needs the full git log to resolve
+      #    ${git.commit.id.abbrev} used in the fat-JAR name.
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. JDK 24 (Azul Zulu) ────────────────────────────────────────────
+      - name: Set up JDK 24 (Zulu)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'zulu'
+          cache: maven          # cache ~/.m2 between runs
+
+      # ── 3. Linux: ensure DEB packaging toolchain is present ──────────────
+      #    jpackage --type deb requires fakeroot + dpkg (pre-installed on
+      #    ubuntu-latest but explicit install guarantees availability).
+      - name: Install DEB packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y fakeroot
+
+      # ── 4. Build fat JAR + native installer ──────────────────────────────
+      #    The active OS profile (linux / mac / win) is detected automatically
+      #    by Maven via <os><family> activation in pom.xml.
+      #    --batch-mode suppresses interactive prompts and colorises output for CI.
+      - name: Build and package
+        run: mvn package -Ppackage --batch-mode
+
+      # ── 5. Upload installer as workflow artifact ──────────────────────────
+      #    Artifact is available in the Actions run page for 90 days.
+      #    The release job below will also attach it to the GitHub Release.
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ runner.os }}
+          path: target/dist/
+          if-no-files-found: error
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Publish a GitHub Release with all three installers (tag pushes only)
+  # ══════════════════════════════════════════════════════════════════════════
+  release:
+    name: Publish GitHub Release
+    needs: package                               # wait for all three builds
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')    # skip on workflow_dispatch
+
+    steps:
+
+      # ── Download every installer artifact into dist/ ─────────────────────
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true    # flatten sub-dirs into dist/
+
+      # ── Create (or update) the GitHub Release ────────────────────────────
+      #    Attach DEB + DMG + EXE to the release.
+      #    Release notes are auto-generated from merged PRs / commits.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**
+          generate_release_notes: true

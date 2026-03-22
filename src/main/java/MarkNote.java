@@ -153,7 +153,7 @@ public class MarkNote extends Application {
         projectExplorerPanel = new ProjectExplorerPanel();
         projectExplorerPanel.setOnFileDoubleClick(this::openFileInTab);
 
-        // Synchronise l'arbre de l'explorateur avec l'onglet actif
+        // Synchronise l'arbre de l'explorateur et le diagramme réseau avec l'onglet actif
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
                 File activeFile = docTab.getFile();
@@ -161,6 +161,7 @@ public class MarkNote extends Application {
                     projectExplorerPanel.revealFile(activeFile);
                 }
             }
+            syncVisualLinkToActiveTab();
         });
 
         // Git service
@@ -266,6 +267,21 @@ public class MarkNote extends Application {
                 var sel = mainTabPane.getSelectionModel().getSelectedItem();
                 return (sel instanceof DocumentTab dt) ? dt : null;
             });
+            // Fournit la liste de tous les DocumentTab ouverts pour la barre de contexte
+            promptPanel.setOpenTabsSupplier(() ->
+                mainTabPane.getTabs().stream()
+                    .filter(t -> t instanceof DocumentTab)
+                    .map(t -> (DocumentTab) t)
+                    .toList()
+            );
+            // Rafraîchir la barre de documents à chaque ajout/suppression d'onglet
+            mainTabPane.getTabs().addListener(
+                (javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
+                    if (promptPanel != null) promptPanel.refreshDocumentContext();
+                }
+            );
+            // Navigation vers un onglet depuis un lien de contexte dans le chat
+            promptPanel.setOnOpenTab(tab -> mainTabPane.getSelectionModel().select(tab));
             promptPanel.setOnDetach(() -> detachPanel(promptPanel));
             registerManagedPanel(promptPanel);
         }
@@ -720,6 +736,9 @@ public class MarkNote extends Application {
         } else {
             lastDockedState.put(panel, true);
         }
+        if (panel == visualLinkPanel) {
+            syncVisualLinkToActiveTab();
+        }
     }
 
     private void hideManagedPanel(BasePanel panel) {
@@ -740,6 +759,26 @@ public class MarkNote extends Application {
             config.setPanelState(panel.getPanelStateId(), new AppConfig.PanelState(visible, docked, zone.name()));
         }
         config.save();
+    }
+
+    /**
+     * Met en valeur le document actif dans le VisualLinkPanel.
+     * À appeler à chaque changement d'onglet actif ou quand le panel devient visible.
+     */
+    private void syncVisualLinkToActiveTab() {
+        var selected = mainTabPane.getSelectionModel().getSelectedItem();
+        if (selected instanceof DocumentTab docTab) {
+            File docFile = docTab.getFile();
+            File projectDir = projectExplorerPanel.getProjectDirectory();
+            if (docFile != null && projectDir != null) {
+                String relativePath = projectDir.toPath().relativize(docFile.toPath()).toString();
+                visualLinkPanel.setCurrentDocument(relativePath);
+            } else {
+                visualLinkPanel.setCurrentDocument(null);
+            }
+        } else {
+            visualLinkPanel.setCurrentDocument(null);
+        }
     }
 
     /**
@@ -777,19 +816,9 @@ public class MarkNote extends Application {
                 previewPanel.updatePreview(docTab.getFullContent());
                 previewPanel.setCurrentFile(docTab.getFile());
                 updateStatusBarForTab(docTab);
-                // Mettre en valeur le document dans le diagramme réseau
-                File docFile = docTab.getFile();
-                File projectDir = projectExplorerPanel.getProjectDirectory();
-                if (docFile != null && projectDir != null) {
-                    String relativePath = projectDir.toPath().relativize(docFile.toPath()).toString();
-                    visualLinkPanel.setCurrentDocument(relativePath);
-                } else {
-                    visualLinkPanel.setCurrentDocument(null);
-                }
             } else {
                 statusBar.clearDocumentInfo();
                 statusBar.updateStats(indexService.getEntries().size(), 0, 0);
-                visualLinkPanel.setCurrentDocument(null);
             }
         });
 

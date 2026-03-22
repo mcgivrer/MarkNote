@@ -431,3 +431,38 @@
 .console-area .content {
     -fx-background-color: #f8f8f8;
 }
+
+/* === Chat Panel === */
+.prompt-panel { -fx-background-color: #f2f4f7; }
+.conversation-view { -fx-background-color: #ffffff; }
+.conversation-scroll > .viewport { -fx-background-color: #ffffff; }
+.conversation-container { -fx-background-color: #ffffff; }
+.conversation-message.user {
+    -fx-background-color: #e8f0fe;
+    -fx-border-color: #a8c4f5;
+}
+.conversation-message.assistant {
+    -fx-background-color: #f5f5f5;
+    -fx-border-color: #d0d5dd;
+}
+.message-role   { -fx-text-fill: #1a3c6e; }
+.message-time   { -fx-text-fill: #8a94a6; }
+.message-content { -fx-text-fill: #1a1a2e; }
+.message-action-button       { -fx-text-fill: #8a94a6; }
+.message-action-button:hover { -fx-text-fill: #3584e4; }
+.prompt-input-area  { -fx-background-color: #f2f4f7; -fx-border-color: #d2d8e2; }
+.prompt-textarea    { -fx-background-color: #ffffff; -fx-border-color: #c5cdd8; }
+.submit-button      { -fx-background-color: #3584e4; }
+.submit-button:hover { -fx-background-color: #2870c8; }
+.cancel-button      { -fx-background-color: #e01b24; }
+.cancel-button:hover { -fx-background-color: #c01119; }
+.panel-header-button       { -fx-text-fill: #6f8098; }
+.panel-header-button:hover { -fx-text-fill: #3584e4; }
+/* doc-context buttons */
+.doc-context-btn     { -fx-background-color: #f0f2f5; -fx-text-fill: #5a6a80; }
+.doc-context-btn-off { -fx-border-color: #b0bcc9; -fx-border-style: dashed; -fx-border-width: 1; -fx-border-radius: 4; }
+.doc-context-btn-off:hover { -fx-background-color: #e8edf2; }
+.doc-context-btn-on  { -fx-background-color: #e3ecfb; -fx-border-color: #3584e4; -fx-border-style: solid; -fx-border-width: 1; -fx-border-radius: 4; -fx-text-fill: #1a4fa0; }
+.doc-context-btn-on:hover  { -fx-background-color: #d3e3f8; }
+.context-doc-link { -fx-text-fill: #2a6496; -fx-underline: true; -fx-background-color: transparent; -fx-border-color: transparent; }
+.context-doc-link:hover { -fx-text-fill: #1a4a76; -fx-background-color: rgba(42,100,150,0.08); -fx-background-radius: 3; }

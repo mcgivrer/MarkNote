@@ -471,6 +471,83 @@ WIN_INSTALL_EOF2
         echo -e "  ${GREEN}Windows installer created.${NC}"
 
     elif [[ "$TARGET_OS" == "mac" ]]; then
+        if [[ "$TARGET_OS" == "$HOST_OS" ]] && command -v jpackage &>/dev/null; then
+            # ── Native macOS DMG via jpackage ─────────────────────────────────
+            echo "Creating macOS DMG with jpackage..."
+
+            # Input directory: main JAR + non-JavaFX libs only.
+            # JavaFX modules are bundled into the app image via --module-path / --add-modules.
+            local JPACKAGE_INPUT="${TARGET}/jpackage-input"
+            rm -rf "${JPACKAGE_INPUT}"
+            mkdir -p "${JPACKAGE_INPUT}"
+            cp "${BUILD}/${project_name}-${project_version}-${GIT_COMMIT_ID:0:12}.jar" "${JPACKAGE_INPUT}/"
+            if [[ -d "libs/common" ]] && ls libs/common/*.jar &>/dev/null 2>&1; then
+                cp libs/common/*.jar "${JPACKAGE_INPUT}/" 2>/dev/null || true
+                echo "  Copied common libs into jpackage input."
+            fi
+
+            # Icon resolution: prefer .icns, convert from PNG with sips+iconutil if needed
+            local ICON_ICNS="${SRC}/main/resources/images/icons/marknote.icns"
+            local ICON_PNG="${SRC}/main/resources/images/icons/marknote-128.png"
+            local JPACKAGE_ICON_OPT=()
+            local ICON_TMPDIR=""
+            if [[ -f "${ICON_ICNS}" ]]; then
+                JPACKAGE_ICON_OPT=(--icon "${ICON_ICNS}")
+            elif [[ -f "${ICON_PNG}" ]] && command -v sips &>/dev/null && command -v iconutil &>/dev/null; then
+                echo "  Converting PNG icon to .icns..."
+                ICON_TMPDIR=$(mktemp -d)
+                local ICONSET_DIR="${ICON_TMPDIR}/marknote.iconset"
+                mkdir -p "${ICONSET_DIR}"
+                for sz in 16 32 64 128 256 512; do
+                    sips -z ${sz} ${sz} "${ICON_PNG}" --out "${ICONSET_DIR}/icon_${sz}x${sz}.png" 2>/dev/null || true
+                done
+                for sz in 16 32 128 256; do
+                    local dbl=$(( sz * 2 ))
+                    sips -z ${dbl} ${dbl} "${ICON_PNG}" --out "${ICONSET_DIR}/icon_${sz}x${sz}@2x.png" 2>/dev/null || true
+                done
+                local GENERATED_ICNS="${ICON_TMPDIR}/marknote.icns"
+                iconutil -c icns "${ICONSET_DIR}" -o "${GENERATED_ICNS}" 2>/dev/null || true
+                [[ -f "${GENERATED_ICNS}" ]] && JPACKAGE_ICON_OPT=(--icon "${GENERATED_ICNS}")
+            fi
+
+            mkdir -p "${TARGET}/dist"
+            jpackage \
+                --type dmg \
+                --name "${project_name}" \
+                --app-version "${project_version}" \
+                --vendor "${vendor_name}" \
+                --description "Markdown Note Editor" \
+                --input "${JPACKAGE_INPUT}" \
+                --main-jar "${project_name}-${project_version}-${GIT_COMMIT_ID:0:12}.jar" \
+                --main-class "${main_class}" \
+                --module-path "${TARGET}/jfx-libs" \
+                --add-modules "${JFX_MODULES}" \
+                --java-options "-Djava.net.preferIPv6Addresses=true" \
+                --dest "${TARGET}/dist" \
+                --mac-package-identifier "com.snapgames.marknote" \
+                --mac-package-name "${project_name}" \
+                "${JPACKAGE_ICON_OPT[@]}"
+
+            [[ -n "${ICON_TMPDIR}" ]] && rm -rf "${ICON_TMPDIR}"
+
+            local DMG_FILE
+            DMG_FILE=$(ls "${TARGET}/dist/${project_name}"*.dmg 2>/dev/null | head -1)
+            if [[ -f "${DMG_FILE}" ]]; then
+                echo -e "${GREEN}macOS DMG created: ${DMG_FILE}${NC}"
+                echo "Package size: $(du -sh "${DMG_FILE}" | cut -f1)"
+            else
+                echo -e "${YELLOW}Warning: DMG not found – check ${TARGET}/dist/${NC}"
+                ls -lh "${TARGET}/dist/" 2>/dev/null || true
+            fi
+            echo "done."
+            return 0
+        fi
+        # ── Fallback: .app bundle + install.sh ────────────────────────────────
+        if [[ "$HOST_OS" != "mac" ]]; then
+            echo -e "  ${YELLOW}Cross-platform build: jpackage DMG requires a macOS host – falling back to .app bundle + install.sh.${NC}"
+        else
+            echo -e "  ${YELLOW}jpackage not found in PATH – falling back to .app bundle + install.sh.${NC}"
+        fi
         #----- macOS installer: create .app bundle in ~/Applications -----
         cat > "${DIST_DIR}/install.sh" << 'MAC_INSTALL_EOF'
 #!/bin/bash

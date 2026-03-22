@@ -542,3 +542,11 @@
 .cancel-button:hover { -fx-background-color: #ff5f55; }
 .panel-header-button       { -fx-text-fill: #ffff00; }
 .panel-header-button:hover { -fx-text-fill: #00ffff; }
+/* doc-context buttons */
+.doc-context-btn     { -fx-background-color: #000000; -fx-text-fill: #ffffff; -fx-font-weight: bold; }
+.doc-context-btn-off { -fx-border-color: #ffffff; -fx-border-style: dashed; -fx-border-width: 2; -fx-border-radius: 4; }
+.doc-context-btn-off:hover { -fx-background-color: #1a1a1a; }
+.doc-context-btn-on  { -fx-background-color: #000000; -fx-border-color: #ffff00; -fx-border-style: solid; -fx-border-width: 2; -fx-border-radius: 4; -fx-text-fill: #ffff00; }
+.doc-context-btn-on:hover  { -fx-background-color: #1a1a00; }
+.context-doc-link { -fx-text-fill: #ffff00; -fx-underline: true; -fx-background-color: transparent; -fx-border-color: transparent; }
+.context-doc-link:hover { -fx-text-fill: #ffffff; -fx-background-color: rgba(255,255,0,0.18); -fx-background-radius: 3; }

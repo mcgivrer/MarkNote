@@ -3,24 +3,24 @@ package ui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import config.LLMConfig;
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
-
-import config.LLMConfig;
 import services.LLMService;
 import services.Message;
 import services.MessageRole;
 import utils.LogService;
 
 /**
- * Panel principal pour le chat LLM.
- * Étend BasePanel pour s'intégrer au système de docking.
+ * Panel principal pour le chat LLM. Étend BasePanel pour s'intégrer au système
+ * de docking.
  */
 public class PromptPanel extends BasePanel {
 
@@ -41,6 +41,14 @@ public class PromptPanel extends BasePanel {
 
     /** Fournit le DocumentTab actif pour l'insertion de réponses. */
     private Supplier<DocumentTab> activeDocumentSupplier;
+
+    /** Fournit la liste de tous les DocumentTab ouverts pour le contexte. */
+    private Supplier<List<DocumentTab>> openTabsSupplier;
+
+    /**
+     * Callback pour naviguer vers un DocumentTab (depuis les liens de contexte).
+     */
+    private Consumer<DocumentTab> onOpenTab;
 
     /**
      * Crée un nouveau panel de chat LLM.
@@ -99,11 +107,23 @@ public class PromptPanel extends BasePanel {
             return;
         }
 
-        // Ajouter le message user
-        Message userMessage = new Message(MessageRole.USER, promptText);
-        currentSession.add(userMessage);
-        conversationView.addMessage(userMessage);
-        
+        List<String> selectedNames = promptInput.getSelectedDocuments();
+
+        // Message envoyé à l'API : contenu complet des fichiers + question
+        String apiText = buildEnrichedPrompt(promptText, selectedNames);
+
+        // Message affiché dans le chat : texte brut uniquement
+        Message displayMessage = new Message(MessageRole.USER, promptText);
+        // Message pour l'API
+        Message apiMessage = new Message(MessageRole.USER, apiText);
+
+        currentSession.add(apiMessage);
+
+        // Construire les liens de contexte (icone + nom du fichier, avec navigation au
+        // clic)
+        List<ConversationView.ContextLink> contextLinks = buildContextLinks(selectedNames);
+        conversationView.addMessage(displayMessage, contextLinks);
+
         promptInput.clear();
         promptInput.setProcessing(true);
 
@@ -116,23 +136,20 @@ public class PromptPanel extends BasePanel {
         currentSession.add(assistantMessage);
 
         // Envoyer au LLM seulement les messages jusqu'au user message inclus
-        llmService.sendPromptAsync(
-                messagesForApi,
+        llmService.sendPromptAsync(messagesForApi,
                 chunk -> Platform.runLater(() -> conversationView.appendToLastMessage(chunk)),
                 () -> Platform.runLater(() -> {
                     promptInput.setProcessing(false);
                     conversationView.scrollToBottom();
                     log.info(LOG_SOURCE, "Response completed");
-                }),
-                error -> Platform.runLater(() -> {
+                }), error -> Platform.runLater(() -> {
                     promptInput.setProcessing(false);
                     // Ajouter un message d'erreur
                     String detail = error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
                     String errorMsg = getMessages().getString("llm.error.connection") + ": " + detail;
                     conversationView.appendToLastMessage("\n\n**Erreur:** " + errorMsg);
                     log.error(LOG_SOURCE, "LLM error: " + error);
-                })
-        );
+                }));
     }
 
     /**
@@ -154,12 +171,48 @@ public class PromptPanel extends BasePanel {
     }
 
     /**
+     * Définit le fournisseur de la liste de tous les onglets ouverts. Utilisé pour
+     * alimenter la barre de sélection des documents-contexte.
+     *
+     * @param supplier Le supplier retournant la liste des DocumentTab ouverts
+     */
+    public void setOpenTabsSupplier(Supplier<List<DocumentTab>> supplier) {
+        this.openTabsSupplier = supplier;
+    }
+
+    /**
+     * Définit le callback appelé lorsque l'utilisateur clique sur un lien de
+     * contexte. Typiquement : sélectionner l'onglet correspondant dans mainTabPane.
+     *
+     * @param onOpenTab Consumer recevant le DocumentTab à activer
+     */
+    public void setOnOpenTab(Consumer<DocumentTab> onOpenTab) {
+        this.onOpenTab = onOpenTab;
+    }
+
+    /**
+     * Rafraîchit la barre de sélection des documents dans {@link PromptInputArea}.
+     * À appeler depuis {@code MarkNote} lors de tout changement de la liste
+     * d'onglets.
+     */
+    public void refreshDocumentContext() {
+        List<String> names = List.of();
+        if (openTabsSupplier != null) {
+            names = openTabsSupplier.get().stream().map(t -> t.getFile() != null ? t.getFile().getName() : t.getText())
+                    .toList();
+        }
+        promptInput.updateDocumentTabs(names);
+    }
+
+    /**
      * Insère l'intégralité de la session dans le document actif.
      */
     public void insertAllToDocument() {
-        if (activeDocumentSupplier == null) return;
+        if (activeDocumentSupplier == null)
+            return;
         DocumentTab tab = activeDocumentSupplier.get();
-        if (tab == null) return;
+        if (tab == null)
+            return;
         StringBuilder sb = new StringBuilder();
         for (Message msg : currentSession) {
             sb.append(msg.getRole() == MessageRole.USER ? "> " : "");
@@ -268,9 +321,55 @@ public class PromptPanel extends BasePanel {
         });
     }
 
+    /**
+     * Construit la liste des liens de contexte à afficher dans le message chat.
+     * Chaque lien identifie un document et ouvre l'onglet correspondant au clic.
+     */
+    private List<ConversationView.ContextLink> buildContextLinks(List<String> selectedNames) {
+        if (selectedNames.isEmpty() || openTabsSupplier == null)
+            return List.of();
+        List<DocumentTab> openTabs = openTabsSupplier.get();
+        List<ConversationView.ContextLink> links = new ArrayList<>();
+        for (String name : selectedNames) {
+            openTabs.stream().filter(t -> name.equals(t.getFile() != null ? t.getFile().getName() : t.getText()))
+                    .findFirst().ifPresent(tab -> links.add(new ConversationView.ContextLink(name, () -> {
+                        if (onOpenTab != null)
+                            onOpenTab.accept(tab);
+                    })));
+        }
+        return links;
+    }
+
+    /**
+     * Construit le texte envoy\u00e9 \u00e0 l'API (contenu complet des fichiers +
+     * question). Si aucun document n'est s\u00e9lectionn\u00e9, retourne le prompt
+     * brut inchang\u00e9.
+     */
+    private String buildEnrichedPrompt(String userPrompt, List<String> selectedNames) {
+        if (selectedNames.isEmpty() || openTabsSupplier == null) {
+            return userPrompt;
+        }
+
+        List<DocumentTab> openTabs = openTabsSupplier.get();
+        StringBuilder sb = new StringBuilder();
+        for (String name : selectedNames) {
+            openTabs.stream().filter(t -> name.equals(t.getFile() != null ? t.getFile().getName() : t.getText()))
+                    .findFirst().ifPresent(tab -> {
+                        sb.append("### Document : ").append(name).append("\n\n");
+                        sb.append(tab.getFullContent().strip()).append("\n\n");
+                    });
+        }
+        if (!sb.isEmpty()) {
+            sb.append("---\n\n").append(userPrompt);
+            return sb.toString();
+        }
+        return userPrompt;
+    }
+
     private void setupHeaderButtons() {
         HBox header = getHeader();
-        if (header == null) return;
+        if (header == null)
+            return;
 
         // Bouton export
         exportButton = new Button("\u2913"); // ⤓
