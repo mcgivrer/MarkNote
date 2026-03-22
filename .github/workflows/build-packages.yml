@@ -28,10 +28,20 @@ jobs:
         include:
           - os: ubuntu-latest
             label: Linux (DEB)
+            artifact_name: installer-linux
+            maven_extra_args: ""
+          - os: macos-13
+            label: macOS Intel x86_64 (DMG)
+            artifact_name: installer-macos-x86_64
+            maven_extra_args: "-Djavafx.platform=mac"
           - os: macos-latest
-            label: macOS (DMG)
+            label: macOS Apple Silicon aarch64 (DMG)
+            artifact_name: installer-macos-aarch64
+            maven_extra_args: "-Djavafx.platform=mac-aarch64"
           - os: windows-latest
             label: Windows (EXE)
+            artifact_name: installer-windows
+            maven_extra_args: ""
 
     steps:
 
@@ -61,9 +71,10 @@ jobs:
       # ── 4. Build fat JAR + native installer ──────────────────────────────
       #    The active OS profile (linux / mac / win) is detected automatically
       #    by Maven via <os><family> activation in pom.xml.
-      #    --batch-mode suppresses interactive prompts and colorises output for CI.
+      #    maven_extra_args overrides javafx.platform for the two macOS arches.
+      #    --batch-mode suppresses interactive prompts and colourises output for CI.
       - name: Build and package
-        run: mvn package -Ppackage --batch-mode
+        run: mvn package -Ppackage ${{ matrix.maven_extra_args }} --batch-mode
 
       # ── 5. Upload installer as workflow artifact ──────────────────────────
       #    Artifact is available in the Actions run page for 90 days.
@@ -71,7 +82,7 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: installer-${{ runner.os }}
+          name: ${{ matrix.artifact_name }}
           path: target/dist/
           if-no-files-found: error
 

@@ -403,14 +403,26 @@
       </properties>
     </profile>
 
-    <!-- ── macOS ──────────────────────────────────────────────────────── -->
+    <!-- ── macOS Intel x86_64 ────────────────────────────────────────── -->
     <profile>
       <id>mac</id>
       <activation>
-        <os><family>mac</family></os>
+        <os><family>mac</family><arch>x86_64</arch></os>
       </activation>
       <properties>
         <javafx.platform>mac</javafx.platform>
+        <jpackage.type>DMG</jpackage.type>
+      </properties>
+    </profile>
+
+    <!-- ── macOS Apple Silicon aarch64 ──────────────────────────────── -->
+    <profile>
+      <id>mac-aarch64</id>
+      <activation>
+        <os><family>mac</family><arch>aarch64</arch></os>
+      </activation>
+      <properties>
+        <javafx.platform>mac-aarch64</javafx.platform>
         <jpackage.type>DMG</jpackage.type>
       </properties>
     </profile>
