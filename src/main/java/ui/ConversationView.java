@@ -2,14 +2,22 @@ package ui;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-import java.util.List;
+import com.vladsch.flexmark.ext.tables.TablesExtension;
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.data.MutableDataSet;
 
 import javafx.application.Platform;
+import javafx.concurrent.Worker;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -24,6 +32,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.web.WebView;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 
@@ -299,10 +308,24 @@ public class ConversationView extends VBox {
 
     /**
      * Bloc représentant un message dans la conversation.
+     * Le contenu est rendu en HTML via flexmark (Markdown) dans un WebView,
+     * ce qui permet la sélection de texte et la mise en forme complète.
      */
     public static class MessageBlock extends VBox {
 
-        private final Label contentLabel;
+        // Parseur/rendu Markdown partagé entre toutes les bulles
+        private static final Parser MD_PARSER;
+        private static final HtmlRenderer MD_RENDERER;
+
+        static {
+            MutableDataSet opts = new MutableDataSet();
+            opts.set(Parser.EXTENSIONS, Arrays.asList(TablesExtension.create()));
+            MD_PARSER = Parser.builder(opts).build();
+            MD_RENDERER = HtmlRenderer.builder(opts).build();
+        }
+
+        private final WebView contentView;
+        private final boolean isUser;
         private Runnable onCopy;
         private Runnable onExport;
         private Runnable onEdit;
@@ -316,19 +339,20 @@ public class ConversationView extends VBox {
             setSpacing(4);
             setPadding(new Insets(8));
             getStyleClass().add("conversation-message");
-            getStyleClass().add(message.getRole() == MessageRole.USER ? "user" : "assistant");
+            isUser = message.getRole() == MessageRole.USER;
+            getStyleClass().add(isUser ? "user" : "assistant");
 
             // Header avec rôle et timestamp
             HBox header = new HBox(5);
             header.setAlignment(Pos.CENTER_LEFT);
-            
-            Label roleLabel = new Label(message.getRole() == MessageRole.USER ? "You" : "Assistant");
+
+            Label roleLabel = new Label(isUser ? "You" : "Assistant");
             roleLabel.getStyleClass().add("message-role");
-            
+
             Label timeLabel = new Label(message.getTimestamp()
                     .format(DateTimeFormatter.ofPattern("HH:mm")));
             timeLabel.getStyleClass().add("message-time");
-            
+
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -351,7 +375,7 @@ public class ConversationView extends VBox {
             header.getChildren().addAll(roleLabel, timeLabel, spacer, copyBtn, exportBtn, insertBtn);
 
             // Ajouter bouton édition seulement pour les messages user
-            if (message.getRole() == MessageRole.USER) {
+            if (isUser) {
                 Button editBtn = new Button("\u270E"); // ✎
                 editBtn.getStyleClass().add("message-action-button");
                 editBtn.setTooltip(new Tooltip("Edit"));
@@ -374,22 +398,115 @@ public class ConversationView extends VBox {
                 getChildren().add(linksPane);
             }
 
-            // Contenu du message
-            contentLabel = new Label(message.getContent());
-            contentLabel.setWrapText(true);
-            contentLabel.getStyleClass().add("message-content");
+            // Contenu du message : WebView affichant le Markdown rendu en HTML.
+            // La sélection de texte est gérée nativement par le WebView.
+            contentView = new WebView();
+            contentView.setContextMenuEnabled(true);
+            contentView.setMaxWidth(Double.MAX_VALUE);
+            contentView.setMinHeight(20);
+            contentView.setPrefHeight(40); // ajusté dynamiquement après le chargement
 
-            getChildren().add(contentLabel);
+            // Ajuster la hauteur du WebView dès que le contenu est chargé.
+            // Platform.runLater garantit que le layout JavaFX a fixé la largeur réelle
+            // avant que l'on interroge scrollHeight dans le DOM.
+            contentView.getEngine().getLoadWorker().stateProperty().addListener(
+                (obs, oldState, newState) -> {
+                    if (newState == Worker.State.SUCCEEDED) {
+                        Platform.runLater(this::adjustHeight);
+                    }
+                }
+            );
+
+            // Recalculer la hauteur si la largeur du WebView change (redimensionnement du panel).
+            contentView.widthProperty().addListener((obs, ov, nv) -> {
+                if (contentView.getEngine().getLoadWorker().getState() == Worker.State.SUCCEEDED) {
+                    Platform.runLater(this::adjustHeight);
+                }
+            });
+
+            loadMarkdown(message.getContent());
+            getChildren().add(contentView);
             setUserData(message);
         }
 
+        /**
+         * Met à jour le contenu (appelé pendant le streaming).
+         * Injecte le nouveau HTML via JavaScript pour éviter un rechargement complet.
+         */
         public void updateContent(String content) {
-            contentLabel.setText(content);
+            String bodyHtml = MD_RENDERER.render(MD_PARSER.parse(content));
+            // Encodage base64 UTF-8 → injection JS sans risque d'échappement
+            String b64 = Base64.getEncoder().encodeToString(
+                    bodyHtml.getBytes(StandardCharsets.UTF_8));
+            try {
+                contentView.getEngine().executeScript(
+                    "(function(){" +
+                    "var a=Uint8Array.from(atob('" + b64 + "'),function(c){return c.charCodeAt(0);});" +
+                    "document.getElementById('md').innerHTML=new TextDecoder().decode(a);" +
+                    "})()"
+                );
+                // Différé pour laisser le DOM se recalculer avant de mesurer
+                Platform.runLater(this::adjustHeight);
+            } catch (Exception ex) {
+                // Repli sur chargement complet si la page n'est pas encore prête
+                loadMarkdown(content);
+            }
         }
 
         public void setOnCopy(Runnable action) { this.onCopy = action; }
         public void setOnExport(Runnable action) { this.onExport = action; }
         public void setOnEdit(Runnable action) { this.onEdit = action; }
         public void setOnInsert(Runnable action) { this.onInsert = action; }
+
+        // --- Private helpers ---
+
+        private void loadMarkdown(String markdown) {
+            contentView.getEngine().loadContent(buildPage(markdown), "text/html");
+        }
+
+        private void adjustHeight() {
+            try {
+                // #md.scrollHeight donne la hauteur réelle du contenu même si body
+                // a overflow:hidden. On ajoute une marge de sécurité de 16px.
+                Object result = contentView.getEngine().executeScript(
+                    "(function(){" +
+                    "var el=document.getElementById('md');" +
+                    "return el ? el.scrollHeight : document.body.scrollHeight;" +
+                    "})()"
+                );
+                if (result instanceof Number n && n.doubleValue() > 0) {
+                    contentView.setPrefHeight(n.doubleValue() + 16);
+                }
+            } catch (Exception ex) {
+                // Engine pas encore prêt – ignoré silencieusement
+            }
+        }
+
+        private String buildPage(String markdown) {
+            String bg = isUser ? "#ddeeff" : "#f0f2f5";
+            String body = MD_RENDERER.render(MD_PARSER.parse(markdown.isBlank() ? "&nbsp;" : markdown));
+            return "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>" +
+                "*{box-sizing:border-box;margin:0;padding:0}" +
+                "html,body{background:" + bg + ";" +
+                "font-family:system-ui,-apple-system,'Segoe UI',sans-serif;" +
+                "font-size:13px;color:#2c3440;line-height:1.55;overflow-x:hidden;overflow-y:visible;word-wrap:break-word}" +
+                "h1,h2,h3,h4,h5,h6{color:#1a3260;margin:8px 0 4px}" +
+                "h1{font-size:1.4em}h2{font-size:1.2em}h3{font-size:1.05em}" +
+                "strong{font-weight:bold}em{font-style:italic}" +
+                "a{color:#1565c0;text-decoration:underline}" +
+                "code{font-family:monospace;background:rgba(0,0,0,.08);padding:1px 4px;" +
+                "border-radius:3px;font-size:.9em;color:#c7254e}" +
+                "pre{background:rgba(0,0,0,.06);border-radius:6px;padding:8px;margin:6px 0;overflow-x:auto}" +
+                "pre code{background:transparent;padding:0;color:inherit}" +
+                "blockquote{border-left:3px solid #b0c8e8;margin:6px 0;padding:2px 10px;" +
+                "color:#5a6a80;font-style:italic}" +
+                "ul,ol{margin:4px 0 4px 18px}li{margin:2px 0}" +
+                "table{border-collapse:collapse;margin:6px 0;width:100%}" +
+                "th,td{border:1px solid #c0c8d8;padding:4px 8px;text-align:left}" +
+                "th{background:rgba(0,0,0,.06);font-weight:bold}" +
+                "hr{border:none;border-top:1px solid #c0c8d8;margin:8px 0}" +
+                "p{margin:4px 0}img{max-width:100%;height:auto}" +
+                "</style></head><body><div id='md'>" + body + "</div></body></html>";
+        }
     }
 }
