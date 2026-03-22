@@ -30,14 +30,12 @@ jobs:
             label: Linux (DEB)
             artifact_name: installer-linux
             maven_extra_args: ""
-          - os: macos-13
-            label: macOS Intel x86_64 (DMG)
-            artifact_name: installer-macos-x86_64
-            maven_extra_args: "-Djavafx.platform=mac"
           - os: macos-latest
             label: macOS Apple Silicon aarch64 (DMG)
             artifact_name: installer-macos-aarch64
             maven_extra_args: "-Djavafx.platform=mac-aarch64"
+            # Note: no Intel (x86_64) runner is available on GitHub Actions free tier.
+            # The aarch64 DMG runs natively on Apple Silicon and via Rosetta 2 on Intel.
           - os: windows-latest
             label: Windows (EXE)
             artifact_name: installer-windows
