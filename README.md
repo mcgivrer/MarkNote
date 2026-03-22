@@ -2,8 +2,10 @@
 ![MarkNote icon](src/main/resources/images/icons/marknote-64.png)
 
 [![Java build](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/java-build.yml)
-![Java](https://img.shields.io/badge/Java-25-orange)
+[![Build Native Packages](https://github.com/mcgivrer/MarkNote/actions/workflows/build-packages.yml/badge.svg)](https://github.com/mcgivrer/MarkNote/actions/workflows/build-packages.yml)
+![Java](https://img.shields.io/badge/Java-24-orange)
 ![JavaFX](https://img.shields.io/badge/JavaFX-24-blue)
+![Maven](https://img.shields.io/badge/Maven-3.9-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![i18n](https://img.shields.io/badge/i18n-EN_|_FR_|_ES_|_DE_|_IT-blueviolet)
 
@@ -67,10 +69,15 @@ The application automatically uses your system's locale.
 
 ## Requirements
 
-- **Java 25** or higher
+- **Java 24** (Azul Zulu recommended) or higher
 - **JavaFX 24** (included in libs folder)
+- **Maven 3.9+** (optional — for Maven-based builds)
 
 ## Building
+
+Two build systems are supported: the native **bash script** and **Maven**.
+
+### With the bash script
 
 Clone the repository and run the build script:
 
@@ -80,15 +87,28 @@ cd marknote
 ./build
 ```
 
-### Build Commands
+| Command               | Description                                                                    |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `./build`             | Compile the project and create the JAR                                         |
+| `./build run`         | Compile and run the application                                                |
+| `./build test`        | Run unit tests                                                                 |
+| `./build package`     | Create a distributable package for the **current platform** with embedded JRE  |
+| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win)          |
 
-| Command               | Description                                                                   |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `./build`             | Compile the project and create the JAR                                        |
-| `./build run`         | Compile and run the application                                               |
-| `./build test`        | Run unit tests                                                                |
-| `./build package`     | Create a distributable package for the **current platform** with embedded JRE |
-| `./build package-all` | Create distributable packages for **all platforms** (linux, mac, win)         |
+### With Maven
+
+Maven 3.9+ and Java 24 are required. The OS is detected automatically via Maven profile activation (`linux`, `mac`, `mac-aarch64`, `win`).
+
+```bash
+mvn compile          # compile only
+mvn test             # compile + run tests
+mvn package          # compile + test + fat JAR in target/build/
+mvn package -Ppackage  # + native installer (DEB / DMG / EXE) in target/dist/
+mvn exec:exec        # run the application
+```
+
+> **Note:** The full git history is required for the build to embed the correct git SHA in the JAR name.
+> Always clone with `git clone` (not a ZIP download) or use `git fetch --unshallow` after a shallow clone.
 
 ## Running
 
@@ -112,7 +132,9 @@ java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-
 
 ## Packaging
 
-### Single platform
+### With the bash script
+
+#### Single platform
 
 Create a distributable package for the current host platform with an embedded minimal JRE:
 
@@ -128,7 +150,7 @@ This creates a ZIP archive in `target/` containing:
 - Platform-specific launcher script (`MarkNote.sh` or `MarkNote.bat`)
 - Platform-specific installer script (`install.sh` or `install.bat`)
 
-### All platforms
+#### All platforms
 
 Create packages for **all three platforms** in one shot:
 
@@ -146,8 +168,41 @@ This produces three ZIP archives in `target/`:
 
 > **Note:** A minimal embedded JRE (via `jlink`) is bundled only for the current host platform.
 > Cross-platform packages include all required JARs but require a compatible Java runtime already
-> installed on the target system.  Cross-platform JRE bundling requires a JDK for each target OS
+> installed on the target system. Cross-platform JRE bundling requires a JDK for each target OS
 > to be available on the build host.
+
+### With Maven (native installers)
+
+The `package` Maven profile uses [jpackage](https://docs.oracle.com/en/java/javase/24/jpackage/) to produce a native installer for the current host platform:
+
+| Platform        | Installer | Command                    |
+| --------------- | --------- | -------------------------- |
+| Linux x86_64    | `.deb`    | `mvn package -Ppackage`    |
+| macOS x86_64    | `.dmg`    | `mvn package -Ppackage`    |
+| macOS aarch64   | `.dmg`    | `mvn package -Ppackage`    |
+| Windows x86_64  | `.exe`    | `mvn package -Ppackage`    |
+
+The native installer is written to `target/dist/`.
+
+#### macOS — version number constraint
+
+`jpackage --type dmg` requires that the **first digit of the version is ≥ 1**. A version like `0.1.3` is rejected.
+
+When building locally on macOS, pass a compatible version explicitly:
+
+```bash
+mvn package -Ppackage -Djpackage.app.version=1.1.3
+```
+
+The GitHub Actions workflow handles this automatically by transforming `0.x.y → 1.x.y` before calling Maven.
+
+### CI / GitHub Actions
+
+Every push of a version tag (`v*`) triggers the [Build Native Packages](https://github.com/mcgivrer/MarkNote/actions/workflows/build-packages.yml) workflow, which builds DEB, DMG (Apple Silicon), and EXE in parallel and publishes them as a GitHub Release.
+
+```bash
+git tag v0.1.3 && git push origin v0.1.3
+```
 
 ### Package contents
 
@@ -184,7 +239,8 @@ Where `{platform}` is:
 
 ```
 MarkNote/
-├── build                    # Build script
+├── build                    # Bash build script
+├── pom.xml                  # Maven build descriptor
 ├── libs/                    # External libraries
 │   ├── common/              # Platform-independent JARs
 │   ├── linux/               # Linux-specific JavaFX natives

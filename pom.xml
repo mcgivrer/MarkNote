@@ -416,31 +416,6 @@
         <javafx.platform>mac</javafx.platform>
         <jpackage.type>DMG</jpackage.type>
       </properties>
-      <build>
-        <plugins>
-          <!-- macOS jpackage requires first version component >= 1.
-               Transform 0.x.y -> 1.x.y automatically. -->
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>build-helper-maven-plugin</artifactId>
-            <version>3.6.0</version>
-            <executions>
-              <execution>
-                <id>mac-app-version</id>
-                <phase>validate</phase>
-                <goals><goal>regex-property</goal></goals>
-                <configuration>
-                  <name>jpackage.app.version</name>
-                  <value>${project.version}</value>
-                  <regex>^0\.</regex>
-                  <replacement>1.</replacement>
-                  <failIfNoMatch>false</failIfNoMatch>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
 
     <!-- ── macOS Apple Silicon aarch64 ──────────────────────────────── -->
@@ -453,29 +428,6 @@
         <javafx.platform>mac-aarch64</javafx.platform>
         <jpackage.type>DMG</jpackage.type>
       </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>build-helper-maven-plugin</artifactId>
-            <version>3.6.0</version>
-            <executions>
-              <execution>
-                <id>mac-app-version</id>
-                <phase>validate</phase>
-                <goals><goal>regex-property</goal></goals>
-                <configuration>
-                  <name>jpackage.app.version</name>
-                  <value>${project.version}</value>
-                  <regex>^0\.</regex>
-                  <replacement>1.</replacement>
-                  <failIfNoMatch>false</failIfNoMatch>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
 
     <!-- ── Windows ────────────────────────────────────────────────────── -->

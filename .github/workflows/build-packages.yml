@@ -71,8 +71,24 @@ jobs:
       #    by Maven via <os><family> activation in pom.xml.
       #    maven_extra_args overrides javafx.platform for the two macOS arches.
       #    --batch-mode suppresses interactive prompts and colourises output for CI.
+
+      # macOS: jpackage --type dmg requires the first version digit to be >= 1.
+      # Maven cannot override a <properties> entry via plugin execution, so we
+      # compute a compatible version here and inject it via -Djpackage.app.version.
+      # Example: 0.1.3 -> 1.1.3   (already-valid versions are left unchanged)
+      - name: Compute jpackage-compatible version (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          raw=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout --batch-mode)
+          echo "JPACKAGE_APP_VERSION=$(echo "$raw" | sed 's/^0\./1./')" >> "$GITHUB_ENV"
+
       - name: Build and package
-        run: mvn package -Ppackage ${{ matrix.maven_extra_args }} --batch-mode
+        shell: bash
+        run: |
+          ARGS="${{ matrix.maven_extra_args }}"
+          [[ -n "${JPACKAGE_APP_VERSION:-}" ]] && ARGS="$ARGS -Djpackage.app.version=$JPACKAGE_APP_VERSION"
+          mvn package -Ppackage $ARGS --batch-mode
 
       # ── 5. Upload installer as workflow artifact ──────────────────────────
       #    Artifact is available in the Actions run page for 90 days.
