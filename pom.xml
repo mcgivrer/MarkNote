@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Project identity
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <groupId>com.snapgames</groupId>
+  <artifactId>marknote</artifactId>
+  <version>0.1.3</version>
+  <packaging>jar</packaging>
+
+  <name>MarkNote</name>
+  <description>Markdown Note Editor</description>
+  <organization>
+    <name>SNAPGAMES</name>
+  </organization>
+  <developers>
+    <developer>
+      <name>Frédéric Delorme</name>
+      <email>contact.snapgames@gmail.com</email>
+    </developer>
+  </developers>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Global properties
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <properties>
+    <!-- Java / encoding -->
+    <maven.compiler.release>24</maven.compiler.release>
+    <maven.compiler.parameters>true</maven.compiler.parameters>
+    <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
+    <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Dependency versions -->
+    <javafx.version>24</javafx.version>
+    <flexmark.version>0.64.8</flexmark.version>
+    <richtextfx.version>0.11.4</richtextfx.version>
+    <flowless.version>0.7.3</flowless.version>
+    <reactfx.version>2.0-M5</reactfx.version>
+    <undofx.version>2.1.1</undofx.version>
+    <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
+    <junit.version>5.11.4</junit.version>
+
+    <!-- JVM launcher options -->
+    <app.main.class>Main</app.main.class>
+    <app.jvm.options>-Djava.net.preferIPv6Addresses=true -Xmx512m</app.jvm.options>
+    <javafx.modules>javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web</javafx.modules>
+
+    <!-- jpackage / installer metadata -->
+    <jpackage.vendor>SNAPGAMES</jpackage.vendor>
+    <jpackage.description>Markdown Note Editor</jpackage.description>
+    <jpackage.bundle.id>com.snapgames.marknote</jpackage.bundle.id>
+    <!-- OS-specific defaults (overridden by OS profiles) -->
+    <jpackage.type>DEB</jpackage.type>
+    <jpackage.linux.shortcut>false</jpackage.linux.shortcut>
+    <jpackage.win.dir.chooser>false</jpackage.win.dir.chooser>
+    <jpackage.win.menu>false</jpackage.win.menu>
+    <jpackage.win.shortcut>false</jpackage.win.shortcut>
+  </properties>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Source layout (non-standard – mirrors existing project structure)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <build>
+    <sourceDirectory>src/main/java</sourceDirectory>
+    <testSourceDirectory>src/test/java</testSourceDirectory>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+      </testResource>
+    </testResources>
+
+    <!-- ── Plugin management (versions pinned) ─────────────────────────── -->
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.4.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.4.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.panteleyev</groupId>
+          <artifactId>jpackage-maven-plugin</artifactId>
+          <version>1.6.5</version>
+        </plugin>
+        <plugin>
+          <groupId>io.github.git-commit-id</groupId>
+          <artifactId>git-commit-id-maven-plugin</artifactId>
+          <version>9.0.1</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+
+      <!-- ── 0. Git commit id → exposed as ${git.commit.id.abbrev} ──────── -->
+      <plugin>
+        <groupId>io.github.git-commit-id</groupId>
+        <artifactId>git-commit-id-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>git-info</id>
+            <goals><goal>revision</goal></goals>
+            <phase>initialize</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <generateGitPropertiesFile>false</generateGitPropertiesFile>
+          <abbrevLength>12</abbrevLength>
+        </configuration>
+      </plugin>
+
+      <!-- ── 1. Compiler ─────────────────────────────────────────────────── -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>${maven.compiler.release}</release>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <compilerArgs>
+            <arg>-Xlint:unchecked</arg>
+            <arg>-Xlint:deprecation</arg>
+            <arg>-parameters</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+
+      <!-- ── 2. Tests (JUnit 5 via Surefire) ─────────────────────────────── -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!--
+            Les classes de test ne sont pas dans un module nommé ; on garde
+            le mode classpath standard et on ajoute les modules JavaFX via
+            add-modules pour que les dépendances de compilation soient
+            disponibles sans passer par un module-path dédié.
+          -->
+          <useModulePath>false</useModulePath>
+          <argLine>
+            --module-path ${project.build.directory}/dependency
+            --add-modules ${javafx.modules}
+            -Djava.net.preferIPv6Addresses=true
+            -Xmx512m
+          </argLine>
+        </configuration>
+      </plugin>
+
+      <!-- ── 3. Thin JAR (MANIFEST only) ────────────────────────────────── -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${app.main.class}</mainClass>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Title>${project.name}</Implementation-Title>
+              <Implementation-Version>${project.version}-build_${git.commit.id.abbrev}</Implementation-Version>
+              <Implementation-Vendor>${jpackage.vendor}</Implementation-Vendor>
+            </manifestEntries>
+          </archive>
+          <finalName>${project.name}-${project.version}-${git.commit.id.abbrev}</finalName>
+        </configuration>
+      </plugin>
+
+      <!-- ── 3b. Copy runtime deps to target/dependency (module-path) ─────
+           Used by Surefire and by exec-maven-plugin.
+           Runs early so target/dependency is available during test phase.  -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.8.1</version>
+        <executions>
+          <execution>
+            <id>copy-deps-for-modulepath</id>
+            <phase>generate-test-resources</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+              <includeScope>runtime</includeScope>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- ── 4. Fat / uber JAR ────────────────────────────────────────────── -->
+      <!--
+           Équivalent de :
+             jar cvfe target/build/MarkNote-<ver>-<sha>.jar Main -C target/classes .
+           Le JAR ne contient PAS les classes JavaFX (qui doivent rester sur le
+           module-path), mais inclut toutes les autres dépendances (flexmark,
+           richtextfx, etc.) pour simplifier le lancement.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>fat-jar</id>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <finalName>${project.name}-${project.version}-${git.commit.id.abbrev}</finalName>
+              <outputDirectory>${project.build.directory}/build</outputDirectory>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>${app.main.class}</mainClass>
+                </transformer>
+                <!-- Merge service files (needed by flexmark) -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+              <!-- Exclude platform-specific JavaFX native JARs from the shade:
+                   they must stay on the module-path, not inside the uber-jar. -->
+              <artifactSet>
+                <excludes>
+                  <exclude>org.openjfx:*</exclude>
+                </excludes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- ── 5. Run the application (mvn exec:exec) ────────────────────── -->
+      <!--
+           Équivalent de : build run
+           Usage : mvn exec:exec
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>${app.jvm.options}</argument>
+            <argument>--module-path</argument>
+            <argument>${project.build.directory}/dependency</argument>
+            <argument>--add-modules</argument>
+            <argument>${javafx.modules}</argument>
+            <argument>-cp</argument>
+            <argument>${project.build.directory}/build/${project.name}-${project.version}-${git.commit.id.abbrev}.jar</argument>
+            <argument>${app.main.class}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       Dependencies
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <dependencies>
+
+    <!-- ── JavaFX (classifier injected by the active OS profile below) ── -->
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-base</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-graphics</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-fxml</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-media</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-web</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>${javafx.platform}</classifier>
+    </dependency>
+
+    <!-- ── Flexmark (Markdown parser) ───────────────────────────────────── -->
+    <dependency>
+      <groupId>com.vladsch.flexmark</groupId>
+      <artifactId>flexmark</artifactId>
+      <version>${flexmark.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.vladsch.flexmark</groupId>
+      <artifactId>flexmark-ext-tables</artifactId>
+      <version>${flexmark.version}</version>
+    </dependency>
+
+    <!-- ── RichTextFX family (editor component) ─────────────────────────── -->
+    <dependency>
+      <groupId>org.fxmisc.richtext</groupId>
+      <artifactId>richtextfx</artifactId>
+      <version>${richtextfx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.fxmisc.flowless</groupId>
+      <artifactId>flowless</artifactId>
+      <version>${flowless.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.reactfx</groupId>
+      <artifactId>reactfx</artifactId>
+      <version>${reactfx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.fxmisc.undo</groupId>
+      <artifactId>undofx</artifactId>
+      <version>${undofx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.fxmisc.wellbehaved</groupId>
+      <artifactId>wellbehavedfx</artifactId>
+      <version>${wellbehavedfx.version}</version>
+    </dependency>
+
+    <!-- ── Test ─────────────────────────────────────────────────────────── -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       OS profiles – set ${javafx.platform} classifier and jpackage type
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <profiles>
+
+    <!-- ── Linux ──────────────────────────────────────────────────────── -->
+    <profile>
+      <id>linux</id>
+      <activation>
+        <os><family>unix</family><name>linux</name></os>
+      </activation>
+      <properties>
+        <javafx.platform>linux</javafx.platform>
+        <jpackage.type>DEB</jpackage.type>
+        <jpackage.linux.shortcut>true</jpackage.linux.shortcut>
+      </properties>
+    </profile>
+
+    <!-- ── macOS ──────────────────────────────────────────────────────── -->
+    <profile>
+      <id>mac</id>
+      <activation>
+        <os><family>mac</family></os>
+      </activation>
+      <properties>
+        <javafx.platform>mac</javafx.platform>
+        <jpackage.type>DMG</jpackage.type>
+      </properties>
+    </profile>
+
+    <!-- ── Windows ────────────────────────────────────────────────────── -->
+    <profile>
+      <id>win</id>
+      <activation>
+        <os><family>windows</family></os>
+      </activation>
+      <properties>
+        <javafx.platform>win</javafx.platform>
+        <jpackage.type>EXE</jpackage.type>
+        <jpackage.win.dir.chooser>true</jpackage.win.dir.chooser>
+        <jpackage.win.menu>true</jpackage.win.menu>
+        <jpackage.win.shortcut>true</jpackage.win.shortcut>
+      </properties>
+    </profile>
+
+    <!-- ── package : native installer via jpackage ───────────────────────
+         Activation : mvn package -Ppackage
+         Équivalent de : build package  /  build package-all
+         ──────────────────────────────────────────────────────────────── -->
+    <profile>
+      <id>package</id>
+      <build>
+        <plugins>
+
+          <!-- Copy runtime deps to target/dependency so jpackage can see them -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.8.1</version>
+            <executions>
+              <execution>
+                <id>copy-deps</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-dependencies</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+                  <includeScope>runtime</includeScope>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- jpackage native installer -->
+          <plugin>
+            <groupId>org.panteleyev</groupId>
+            <artifactId>jpackage-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>native-installer</id>
+                <!-- Run after the fat JAR is built -->
+                <phase>package</phase>
+                <goals><goal>jpackage</goal></goals>
+                <configuration>
+                  <!-- Application info -->
+                  <name>${project.name}</name>
+                  <appVersion>${project.version}</appVersion>
+                  <vendor>${jpackage.vendor}</vendor>
+                  <description>${jpackage.description}</description>
+                  <copyright>Copyright 2024 ${jpackage.vendor}</copyright>
+
+                  <!-- Input: the fat JAR (minus JavaFX) produced by shade -->
+                  <input>${project.build.directory}/build</input>
+                  <mainJar>${project.name}-${project.version}-${git.commit.id.abbrev}.jar</mainJar>
+                  <mainClass>${app.main.class}</mainClass>
+
+                  <!-- JavaFX module-path (platform-native JARs from dependency copy) -->
+                  <modulePaths>
+                    <modulePath>${project.build.directory}/dependency</modulePath>
+                  </modulePaths>
+                  <addModules>${javafx.modules}</addModules>
+
+                  <!-- JVM flags passed to the launched app -->
+                  <javaOptions>
+                    <javaOption>-Djava.net.preferIPv6Addresses=true</javaOption>
+                    <javaOption>-Xmx512m</javaOption>
+                  </javaOptions>
+
+                  <!-- Output directory -->
+                  <destination>${project.build.directory}/dist</destination>
+
+                  <!-- Installer type comes from the active OS profile -->
+                  <type>${jpackage.type}</type>
+
+                  <!-- File-type associations: paths to .properties files -->
+                  <fileAssociations>
+                    <fileAssociation>${project.basedir}/src/packaging/file-association-md.properties</fileAssociation>
+                    <fileAssociation>${project.basedir}/src/packaging/file-association-markdown.properties</fileAssociation>
+                  </fileAssociations>
+
+                  <!-- ── Linux-specific ──────────────────────────────── -->
+                  <linuxShortcut>${jpackage.linux.shortcut}</linuxShortcut>
+                  <linuxMenuGroup>Utility</linuxMenuGroup>
+                  <linuxAppCategory>Utility</linuxAppCategory>
+                  <linuxPackageName>marknote</linuxPackageName>
+
+                  <!-- ── macOS-specific ──────────────────────────────── -->
+                  <macPackageIdentifier>${jpackage.bundle.id}</macPackageIdentifier>
+                  <macPackageName>${project.name}</macPackageName>
+
+                  <!-- ── Windows-specific ───────────────────────────── -->
+                  <winDirChooser>${jpackage.win.dir.chooser}</winDirChooser>
+                  <winMenu>${jpackage.win.menu}</winMenu>
+                  <winShortcut>${jpackage.win.shortcut}</winShortcut>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+  </profiles>
+
+</project>
