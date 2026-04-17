@@ -26,9 +26,9 @@ class LLMServiceTest {
     @BeforeEach
     void setUp() {
         config = new LLMConfig();
-        config.setEndpointUrl("http://localhost:11434");
+        config.setEndpointUrl("http://localhost:19999"); // Port volontairement indisponible
         config.setModel("llama3.2");
-        config.setTimeout(10);
+        config.setTimeout(5);
         config.setMaxRetries(0); // Pas de retry pour les tests
         service = new LLMService(config);
     }

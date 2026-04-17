@@ -11,6 +11,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import config.LLMConfig;
 import utils.LogService;
 
@@ -208,32 +212,14 @@ public class LLMService {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                // Parse simple de la réponse JSON
-                String body = response.body();
-                int modelsStart = body.indexOf("\"models\":");
-                if (modelsStart != -1) {
-                    int arrayStart = body.indexOf("[", modelsStart);
-                    // Trouver le ] correspondant en comptant la profondeur des crochets
-                    int arrayEnd = -1;
-                    if (arrayStart != -1) {
-                        int depth = 0;
-                        for (int i = arrayStart; i < body.length(); i++) {
-                            char c = body.charAt(i);
-                            if (c == '[') depth++;
-                            else if (c == ']') { depth--; if (depth == 0) { arrayEnd = i; break; } }
-                        }
-                    }
-                    if (arrayStart != -1 && arrayEnd != -1) {
-                        String modelsArray = body.substring(arrayStart, arrayEnd + 1);
-                        // Extraire les noms de modèles
-                        int namePos = 0;
-                        while ((namePos = modelsArray.indexOf("\"name\":", namePos)) != -1) {
-                            int valueStart = modelsArray.indexOf("\"", namePos + 7) + 1;
-                            int valueEnd = modelsArray.indexOf("\"", valueStart);
-                            if (valueStart > 0 && valueEnd > valueStart) {
-                                models.add(modelsArray.substring(valueStart, valueEnd));
-                            }
-                            namePos = valueEnd;
+                JSONObject json = (JSONObject) new JSONParser().parse(response.body());
+                JSONArray modelsArray = (JSONArray) json.get("models");
+                if (modelsArray != null) {
+                    for (Object obj : modelsArray) {
+                        JSONObject model = (JSONObject) obj;
+                        String name = (String) model.get("name");
+                        if (name != null) {
+                            models.add(name);
                         }
                     }
                 }
@@ -255,10 +241,10 @@ public class LLMService {
 
     // --- Private methods ---
 
+    @SuppressWarnings("unchecked")
     private String buildRequestBody(List<Message> messages, boolean stream) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
-        sb.append("\"model\":\"").append(escapeJson(config.getModel())).append("\",");
+        JSONObject body = new JSONObject();
+        body.put("model", config.getModel());
 
         // Ajouter le contexte système si présent
         List<Message> allMessages = new ArrayList<>();
@@ -267,18 +253,17 @@ public class LLMService {
         }
         allMessages.addAll(messages);
 
-        sb.append("\"messages\":[");
-        for (int i = 0; i < allMessages.size(); i++) {
-            sb.append(allMessages.get(i).toApiJson());
-            if (i < allMessages.size() - 1) {
-                sb.append(",");
-            }
+        JSONArray messagesArray = new JSONArray();
+        for (Message msg : allMessages) {
+            JSONObject msgObj = new JSONObject();
+            msgObj.put("role", msg.getRole().name().toLowerCase());
+            msgObj.put("content", msg.getContent());
+            messagesArray.add(msgObj);
         }
-        sb.append("],");
-        sb.append("\"stream\":").append(stream);
-        sb.append("}");
+        body.put("messages", messagesArray);
+        body.put("stream", stream);
 
-        return sb.toString();
+        return body.toJSONString();
     }
 
     private void processStreamLine(String line, Consumer<String> onChunk) {
@@ -297,15 +282,17 @@ public class LLMService {
         }
 
         try {
+            JSONObject json = (JSONObject) new JSONParser().parse(line);
+
             // Format Ollama: {"response": "chunk"}
-            String response = extractJsonField(line, "response");
+            String response = (String) json.get("response");
             if (response != null && !response.isEmpty()) {
                 onChunk.accept(response);
                 return;
             }
 
             // Format OpenAI: {"choices": [{"delta": {"content": "chunk"}}]}
-            String content = extractNestedContent(line);
+            String content = extractChoicesContent(json, "delta");
             if (content != null && !content.isEmpty()) {
                 onChunk.accept(content);
             }
@@ -315,101 +302,36 @@ public class LLMService {
     }
 
     private String extractResponse(String jsonBody) {
-        // Format Ollama: {"message": {"content": "..."}}
-        String messageContent = extractNestedMessageContent(jsonBody);
-        if (messageContent != null) {
-            return messageContent;
-        }
+        try {
+            JSONObject json = (JSONObject) new JSONParser().parse(jsonBody);
 
-        // Format OpenAI: {"choices": [{"message": {"content": "..."}}]}
-        return extractNestedContent(jsonBody);
+            // Format Ollama: {"message": {"content": "..."}}
+            JSONObject message = (JSONObject) json.get("message");
+            if (message != null) {
+                String content = (String) message.get("content");
+                if (content != null) return content;
+            }
+
+            // Format OpenAI: {"choices": [{"message": {"content": "..."}}]}
+            return extractChoicesContent(json, "message");
+        } catch (Exception e) {
+            log.warn(LOG_SOURCE, "Failed to parse response: " + jsonBody);
+            return null;
+        }
     }
 
-    private String extractJsonField(String json, String field) {
-        String pattern = "\"" + field + "\":\"";
-        int start = json.indexOf(pattern);
-        if (start == -1)
-            return null;
-        start += pattern.length();
-
-        StringBuilder sb = new StringBuilder();
-        boolean escaped = false;
-        for (int i = start; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                switch (c) {
-                case 'n' -> sb.append('\n');
-                case 'r' -> sb.append('\r');
-                case 't' -> sb.append('\t');
-                case '"' -> sb.append('"');
-                case '\\' -> sb.append('\\');
-                default -> sb.append(c);
-                }
-                escaped = false;
-            } else if (c == '\\') {
-                escaped = true;
-            } else if (c == '"') {
-                break;
-            } else {
-                sb.append(c);
+    /**
+     * Extrait le contenu depuis la structure OpenAI choices[0].{key}.content.
+     */
+    private String extractChoicesContent(JSONObject json, String innerKey) {
+        JSONArray choices = (JSONArray) json.get("choices");
+        if (choices != null && !choices.isEmpty()) {
+            JSONObject choice = (JSONObject) choices.get(0);
+            JSONObject inner = (JSONObject) choice.get(innerKey);
+            if (inner != null) {
+                return (String) inner.get("content");
             }
         }
-        return sb.toString();
-    }
-
-    private String extractNestedContent(String json) {
-        // Chercher content dans la structure OpenAI
-        int contentPos = json.indexOf("\"content\":");
-        if (contentPos == -1)
-            return null;
-
-        int valueStart = json.indexOf("\"", contentPos + 10);
-        if (valueStart == -1)
-            return null;
-        valueStart++;
-
-        StringBuilder sb = new StringBuilder();
-        boolean escaped = false;
-        for (int i = valueStart; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                switch (c) {
-                case 'n' -> sb.append('\n');
-                case 'r' -> sb.append('\r');
-                case 't' -> sb.append('\t');
-                case '"' -> sb.append('"');
-                case '\\' -> sb.append('\\');
-                default -> sb.append(c);
-                }
-                escaped = false;
-            } else if (c == '\\') {
-                escaped = true;
-            } else if (c == '"') {
-                break;
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
-    private String extractNestedMessageContent(String json) {
-        // Format Ollama: {"message": {"role": "...", "content": "..."}}
-        int messagePos = json.indexOf("\"message\":");
-        if (messagePos == -1)
-            return null;
-
-        int contentPos = json.indexOf("\"content\":", messagePos);
-        if (contentPos == -1)
-            return null;
-
-        return extractJsonField(json.substring(contentPos), "content");
-    }
-
-    private String escapeJson(String text) {
-        if (text == null)
-            return "";
-        return text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t",
-                "\\t");
+        return null;
     }
 }

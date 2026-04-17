@@ -3,6 +3,9 @@ package services;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 /**
  * Représente un message dans une conversation LLM.
  */
@@ -67,15 +70,12 @@ public class Message {
      *
      * @return Le message au format JSON
      */
+    @SuppressWarnings("unchecked")
     public String toApiJson() {
-        String escapedContent = content
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-        return String.format("{\"role\":\"%s\",\"content\":\"%s\"}",
-                role.name().toLowerCase(), escapedContent);
+        JSONObject obj = new JSONObject();
+        obj.put("role", role.name().toLowerCase());
+        obj.put("content", content);
+        return obj.toJSONString();
     }
 
     /**
@@ -83,17 +83,13 @@ public class Message {
      *
      * @return Le message au format JSON avec timestamp
      */
+    @SuppressWarnings("unchecked")
     public String toJson() {
-        String escapedContent = content
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-        return String.format("{\"role\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                role.name().toLowerCase(),
-                escapedContent,
-                timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        JSONObject obj = new JSONObject();
+        obj.put("role", role.name().toLowerCase());
+        obj.put("content", content);
+        obj.put("timestamp", timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        return obj.toJSONString();
     }
 
     /**
@@ -104,49 +100,21 @@ public class Message {
      */
     public static Message fromJson(String json) {
         try {
-            // Simple parsing sans bibliothèque JSON externe
-            String roleStr = extractJsonValue(json, "role");
-            String content = extractJsonValue(json, "content");
-            String timestampStr = extractJsonValue(json, "timestamp");
+            JSONObject obj = (JSONObject) new JSONParser().parse(json);
+
+            String roleStr = (String) obj.get("role");
+            String content = (String) obj.get("content");
+            String timestampStr = (String) obj.get("timestamp");
 
             MessageRole role = MessageRole.valueOf(roleStr.toUpperCase());
             LocalDateTime timestamp = timestampStr != null
                     ? LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     : LocalDateTime.now();
 
-            // Dé-échapper le contenu
-            content = content
-                    .replace("\\n", "\n")
-                    .replace("\\r", "\r")
-                    .replace("\\t", "\t")
-                    .replace("\\\"", "\"")
-                    .replace("\\\\", "\\");
-
             return new Message(role, content, timestamp);
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private static String extractJsonValue(String json, String key) {
-        String pattern = "\"" + key + "\":\"";
-        int start = json.indexOf(pattern);
-        if (start == -1) return null;
-        start += pattern.length();
-        int end = start;
-        boolean escaped = false;
-        while (end < json.length()) {
-            char c = json.charAt(end);
-            if (escaped) {
-                escaped = false;
-            } else if (c == '\\') {
-                escaped = true;
-            } else if (c == '"') {
-                break;
-            }
-            end++;
-        }
-        return json.substring(start, end);
     }
 
     @Override
