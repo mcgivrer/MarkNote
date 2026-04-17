@@ -43,9 +43,7 @@ function initializeMermaid(theme) {
  */
 function renderKaTeX() {
   function decodeHtmlEntities(text) {
-    var textarea = document.createElement('textarea');
-    textarea.innerHTML = text;
-    return textarea.value;
+    return text.replace(/&amp;/g, '&');
   }
 
   function renderMath(el) {
