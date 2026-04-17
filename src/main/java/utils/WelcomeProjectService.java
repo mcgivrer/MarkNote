@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Installe un projet de bienvenue dans le dossier Documents de l'utilisateur.
+ * Installs a welcome project in the user's Documents folder.
  */
 public class WelcomeProjectService {
 
