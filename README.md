@@ -12,7 +12,7 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
-![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.4-screenshot-003.png "The Main interface for MarkNote")
+![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.3-screenshot-003.png "The Main interface for MarkNote")
 
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
