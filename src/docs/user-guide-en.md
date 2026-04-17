@@ -71,6 +71,8 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Splash Screen** - Themed splash screen at startup (configurable)
 - **Image Preview** - Quick preview for images with zoom/pan and format/size info overlay
 - **Recent Projects** - Quick access to your recent work (files and projects, with Clear History)
+- **Project Session Restore** - Open documents are automatically saved when you close a project and restored when you reopen it; the session is stored in a `.marknote` file at the project root
+- **Scroll Synchronization** - The editor and preview panels scroll in sync so that the rendered output always reflects the text at the cursor position
 - **Drag & Drop** - Drop files into the editor to insert Markdown links or images
 - **Multi-language Support** - Available in 5 languages
 
@@ -259,6 +261,18 @@ If a recent file or directory no longer exists on disk, an error dialog is shown
 - **File → Save as...** (`Ctrl+Shift+S`) - Save with a new name
 
 When you try to close a modified document without saving, MarkNote will prompt you to save your changes.
+
+### Project Session Restore
+
+MarkNote automatically remembers which documents you had open when you close a project and reopens them the next time you open the same project.
+
+- **How it works:** When you close the app or switch projects, the list of open files is saved to a `.marknote` file at the root of yourproject directory (one relative path per line, under a `[open_files]` section).
+- **On next open:** Files listed in `.marknote` are restored in the same order; files that no longer exist on disk are silently skipped.
+- **Transparent:** The `.marknote` file is hidden in the Project Explorer, just like `.marknote-index.json`.
+
+> **Note:** Session restore is independent from the **Reopen last project on startup** option, which controls whether the project folder itself is reopened, not which documents were open inside it.
+
+---
 
 ### Working with Tabs
 
@@ -734,6 +748,12 @@ The Preview panel shows your Markdown rendered as HTML in real-time.
 | **↻** | Refresh the preview |
 | **×** | Close the preview panel |
 
+### Scroll Synchronization
+
+The editor and the preview panel scroll in sync automatically. As you scroll through the editor text, the preview adjusts so that the visible rendered output matches the text around the cursor. This makes it easy to keep your focus in the same place while checking how the Markdown renders.
+
+> **Tip:** If the previews gets out of sync (e.g., after a large paste), click the **↻ Refresh** button to reset the layout.
+
 ### Clicking Links
 
 When you click a Markdown link in the preview:
@@ -989,6 +1009,9 @@ It supports:
 - **Message actions** to copy, export, edit, or insert content into the active document
 - **Session export** and **session insertion** into the active document
 - **Cancellation** of the current request
+- **Welcome message** — the panel displays a configuration summary as the first message each time a new session starts (endpoint, model, timeout, API type, system context status)
+- **Markdown rendering** — assistant responses are displayed as rendered Markdown (headings, code blocks, bold/italic, tables…), making structured answers easy to read
+- **Document context selection** — a bar above the prompt field lists all open documents as toggle buttons; selected documents are included as context when you send a prompt
 
 ### Supported Backends
 
@@ -1035,6 +1058,20 @@ While the request is running:
 - A spinner is displayed in the input area
 - The prompt field is temporarily disabled
 - The **Cancel** button replaces the Send button
+
+### Document Context Selection
+
+Above the prompt text area, a **document context bar** shows a compact toggle button for each open document tab. You can include one or more open documents as additional context for the model.
+
+**How to use it:**
+
+1. The bar appears automatically when at least one document tab is open
+2. Click a document button to **toggle it on** (selected) — the button appears highlighted
+3. Selected documents' full text is appended to your prompt before it is sent to the model
+4. Click again to **deselect** a document and exclude it from the context
+5. The selection is preserved across prompts in the same session and updated when tabs are opened or closed
+
+> **Tip:** Use this feature to ask the LLM to summarize, compare, or cross-reference multiple notes without having to copy and paste their content manually.
 
 ### System Context
 
@@ -1185,6 +1222,7 @@ Access settings via **Help → Options...** or by pressing the shortcut shown in
 | **Number of recent files/projects** | How many items to show in Recent menus (1-50) |
 | **Create document on startup** | Automatically create a new document when starting |
 | **Reopen last project on startup** | Remember and reopen your last project (shows a confirmation dialog with the project name) |
+| **Restore open documents on startup** | When reopening a project, reopen the documents that were open in the previous session (session stored in `.marknote` at the project root) |
 | **Show Welcome page on startup** | Display the Welcome tab when starting |
 | **Show splash screen on startup** | Display the splash screen when starting (enabled by default) |
 | **Front matter expanded by default** | Whether the Front Matter panel is expanded when opening documents (default: true) |
@@ -1386,4 +1424,4 @@ If you encounter issues not covered here:
 
 ---
 
-*This documentation is part of the MarkNote project. Last updated: March 2026.*
+*This documentation is part of the MarkNote project. Last updated: April 2026.*
