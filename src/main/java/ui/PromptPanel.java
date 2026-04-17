@@ -96,6 +96,9 @@ public class PromptPanel extends BasePanel {
 
         setContent(splitPane);
         getStyleClass().add("prompt-panel");
+
+        // Afficher le message de bienvenue lors de la première ouverture
+        showWelcomeMessage();
     }
 
     /**
@@ -293,7 +296,23 @@ public class PromptPanel extends BasePanel {
         return getMessages().getString("llm.panel.title");
     }
 
-    // --- Private methods ---
+    private void showWelcomeMessage() {
+        var msgs = getMessages();
+        String apiType = llmConfig.isOpenAIFormat() ? "OpenAI" : "Ollama";
+        String contextStatus = llmConfig.getSystemContext().isBlank()
+                ? msgs.getString("llm.welcome.context.none")
+                : msgs.getString("llm.welcome.context.defined");
+
+        String content = "## " + msgs.getString("llm.welcome.title") + "\n\n"
+                + "**" + msgs.getString("llm.welcome.config") + "**\n\n"
+                + "- **" + msgs.getString("llm.welcome.endpoint") + "** : `" + llmConfig.getEndpointUrl() + "`\n"
+                + "- **" + msgs.getString("llm.welcome.model") + "** : `" + llmConfig.getModel() + "`\n"
+                + "- **" + msgs.getString("llm.welcome.timeout") + "** : " + llmConfig.getTimeout() + " " + msgs.getString("llm.welcome.timeout.unit") + "\n"
+                + "- **" + msgs.getString("llm.welcome.type") + "** : " + apiType + "\n"
+                + "- **" + msgs.getString("llm.welcome.context.label") + "** : " + contextStatus + "\n";
+
+        conversationView.addMessage(new Message(MessageRole.ASSISTANT, content));
+    }
 
     private void setupCallbacks() {
         promptInput.setOnSubmit(text -> submitPrompt());
