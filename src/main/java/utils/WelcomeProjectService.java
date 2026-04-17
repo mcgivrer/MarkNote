@@ -51,7 +51,7 @@ public class WelcomeProjectService {
 
     public void installIfMissing(String appVersion) {
         try {
-            Path documentsDir = userHome.resolve("Documents");
+            Path documentsDir = resolveDocumentsDirectory();
             Path welcomeDir = documentsDir.resolve(WELCOME_DIR_NAME);
             if (Files.exists(welcomeDir)) {
                 return;
@@ -68,6 +68,16 @@ public class WelcomeProjectService {
             log.info(LOG_SOURCE, "Welcome project installed in " + welcomeDir);
         } catch (IOException e) {
             log.warn(LOG_SOURCE, "Unable to install welcome project: " + e.getMessage());
+        }
+    }
+
+    private Path resolveDocumentsDirectory() {
+        Path documentsDir = userHome.resolve("Documents");
+        try {
+            Files.createDirectories(documentsDir);
+            return documentsDir;
+        } catch (IOException e) {
+            return userHome;
         }
     }
 
