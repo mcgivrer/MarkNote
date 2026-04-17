@@ -222,6 +222,39 @@
         </executions>
       </plugin>
 
+      <!-- ── 3c. Bundle welcome project documentation resources ───────────── -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>copy-welcome-project</id>
+            <phase>process-resources</phase>
+            <goals><goal>copy-resources</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/welcome-project</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/src/docs</directory>
+                  <includes>
+                    <include>user-guide-en.md</include>
+                    <include>tips-and-tricks-en.md</include>
+                  </includes>
+                </resource>
+                <resource>
+                  <directory>${project.basedir}/src/docs/illustrations</directory>
+                  <targetPath>illustrations</targetPath>
+                  <includes>
+                    <include>**/*</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- ── 4. Fat / uber JAR ────────────────────────────────────────────── -->
       <!--
            Équivalent de :

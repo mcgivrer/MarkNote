@@ -35,6 +35,7 @@ import utils.GitService;
 import utils.IndexService;
 import utils.LogService;
 import utils.ProjectSessionService;
+import utils.WelcomeProjectService;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -132,6 +133,8 @@ public class MarkNote extends Application {
 
         // Charger les messages avec la locale configurée
         messages = ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+
+        new WelcomeProjectService().installIfMissing(messages.getString("app.version"));
     }
 
     @Override
