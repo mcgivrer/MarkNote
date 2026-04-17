@@ -92,7 +92,7 @@ Après décompression du ZIP, le répertoire contient :
 | `MarkNote.sh` ou `.bat`      | Script de lancement                              |
 | `icons/`                      | Icônes de l'application (SVG + PNG multi-tailles) |
 | `install.sh` ou `install.bat`| Installeur spécifique à l'OS                     |
-| `welcome-project/`            | Ressources intégrées pour créer `~/Documents/MarkNote Welcome` au premier lancement |
+| `welcome-project/`            | Ressources intégrées pour que l'installeur provisionne `~/Documents/MarkNote Welcome` |
 
 ---
 
