@@ -77,6 +77,7 @@ public class WelcomeProjectService {
             Files.createDirectories(documentsDir);
             return documentsDir;
         } catch (IOException e) {
+            log.warn(LOG_SOURCE, "Documents directory unavailable, fallback to user home: " + e.getMessage());
             return userHome;
         }
     }
