@@ -62,6 +62,7 @@
     <jpackage.bundle.id>com.snapgames.marknote</jpackage.bundle.id>
     <!-- OS-specific defaults (overridden by OS profiles) -->
     <jpackage.type>DEB</jpackage.type>
+    <jpackage.icon>${project.basedir}/src/main/resources/images/icons/marknote-128.png</jpackage.icon>
     <jpackage.linux.shortcut>false</jpackage.linux.shortcut>
     <jpackage.win.dir.chooser>false</jpackage.win.dir.chooser>
     <jpackage.win.menu>false</jpackage.win.menu>
@@ -447,6 +448,7 @@
       <properties>
         <javafx.platform>win</javafx.platform>
         <jpackage.type>EXE</jpackage.type>
+        <jpackage.icon>${project.basedir}/src/main/resources/images/icons/marknote.ico</jpackage.icon>
         <jpackage.win.dir.chooser>true</jpackage.win.dir.chooser>
         <jpackage.win.menu>true</jpackage.win.menu>
         <jpackage.win.shortcut>true</jpackage.win.shortcut>
@@ -518,8 +520,9 @@
                   <!-- Output directory -->
                   <destination>${project.build.directory}/dist</destination>
 
-                  <!-- Installer type comes from the active OS profile -->
+                  <!-- Installer type and icon come from the active OS profile -->
                   <type>${jpackage.type}</type>
+                  <icon>${jpackage.icon}</icon>
 
                   <!-- File-type associations: paths to .properties files -->
                   <fileAssociations>
