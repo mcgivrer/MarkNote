@@ -1,7 +1,7 @@
 name: Build Native Packages
 
 # ─── Triggers ──────────────────────────────────────────────────────────────
-# • Automatic : every push of a version tag  (e.g. v0.1.3)
+# • Automatic : every push of a version tag  (e.g. v0.1.4)
 # • Manual    : "Run workflow" button in the Actions tab
 on:
   push:
@@ -75,7 +75,7 @@ jobs:
       # macOS: jpackage --type dmg requires the first version digit to be >= 1.
       # Maven cannot override a <properties> entry via plugin execution, so we
       # compute a compatible version here and inject it via -Djpackage.app.version.
-      # Example: 0.1.3 -> 1.1.3   (already-valid versions are left unchanged)
+      # Example: 0.1.4 -> 1.1.3   (already-valid versions are left unchanged)
       - name: Compute jpackage-compatible version (macOS)
         if: runner.os == 'macOS'
         shell: bash
