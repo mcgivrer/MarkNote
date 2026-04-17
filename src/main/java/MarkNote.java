@@ -29,10 +29,12 @@ import ui.TagCloudPanel;
 import ui.ThemeTab;
 import ui.VisualLinkPanel;
 import ui.WelcomeTab;
+import java.util.List;
 import utils.DocumentService;
 import utils.GitService;
 import utils.IndexService;
 import utils.LogService;
+import utils.ProjectSessionService;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -87,6 +89,7 @@ public class MarkNote extends Application {
     private boolean consoleDebugEnabled = false;
 
     private GitService gitService;
+    private ProjectSessionService projectSessionService;
 
     // LLM Chat Panel
     private PromptPanel promptPanel;
@@ -169,6 +172,15 @@ public class MarkNote extends Application {
         gitService.setOnStatusUpdated(() -> projectExplorerPanel.refresh());
         gitService.setOnOperationResult(this::showGitOperationResult);
         projectExplorerPanel.setGitService(gitService);
+
+        // Project session service
+        projectSessionService = new ProjectSessionService();
+        // Sauvegarder la session à chaque ajout ou suppression d'onglet de document
+        mainTabPane.getTabs().addListener(
+            (javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
+                saveProjectSession();
+            }
+        );
 
         // Index service
         indexService = new IndexService();
@@ -973,6 +985,12 @@ public class MarkNote extends Application {
         config.addRecentDir(dir);
         refreshRecentMenu();
         loadOrBuildIndex(dir);
+
+        // Rouvrir les documents de la session précédente
+        List<File> sessionFiles = projectSessionService.loadSession(dir);
+        for (File f : sessionFiles) {
+            openFileInTab(f);
+        }
     }
 
     /**
@@ -1023,6 +1041,8 @@ public class MarkNote extends Application {
                     // Mettre à jour l'index pour ce fichier
                     indexService.updateFile(docTab.getFile());
                     tagCloudPanel.updateTags(indexService.getTagCounts());
+                    // Mettre à jour la session (nouveau fichier potentiellement)
+                    saveProjectSession();
                 }
             }
         }
@@ -1261,9 +1281,25 @@ public class MarkNote extends Application {
         alert.showAndWait();
     }
 
+    /**
+     * Sauvegarde la liste des documents ouverts dans le fichier {@code .marknote}
+     * du projet courant.
+     */
+    private void saveProjectSession() {
+        File projectDir = projectExplorerPanel.getProjectDirectory();
+        if (projectDir == null) return;
+        List<File> openFiles = mainTabPane.getTabs().stream()
+                .filter(t -> t instanceof DocumentTab dt && dt.getFile() != null)
+                .map(t -> ((DocumentTab) t).getFile())
+                .filter(f -> f.toPath().startsWith(projectDir.toPath()))
+                .toList();
+        projectSessionService.saveSession(projectDir, openFiles);
+    }
+
     @Override
     public void stop() {
         saveManagedPanelStates();
+        saveProjectSession();
     }
 
     // ── Status bar helpers ──────────────────────────────────────────

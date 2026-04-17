@@ -468,6 +468,26 @@ public class FrontMatterPanel extends TitledPane {
     }
 
     /**
+     * Définit le titre dans le champ correspondant.
+     *
+     * @param title Le titre à afficher
+     */
+    public void setTitle(String title) {
+        titleField.setText(title != null ? title : "");
+    }
+
+    /**
+     * Place le focus dans le champ titre.
+     * Doit être appelé après que le panneau est affiché dans la scène.
+     */
+    public void focusTitle() {
+        javafx.application.Platform.runLater(() -> {
+            titleField.requestFocus();
+            titleField.selectAll();
+        });
+    }
+
+    /**
      * Retourne l'UUID courant du document.
      */
     public String getUuid() {

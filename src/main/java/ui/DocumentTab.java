@@ -97,7 +97,6 @@ public class DocumentTab extends Tab {
         setTooltip(new Tooltip(title));
 
         this.file = file;
-        this.savedContent = content;
 
         // Parser le front matter s'il existe
         FrontMatter fm = FrontMatter.parse(content);
@@ -113,15 +112,28 @@ public class DocumentTab extends Tab {
             frontMatterPanel.setFrontMatter(fm);
             frontMatterPanel.setExpanded(true);
         } else {
-            // Nouveau document : générer un UUID par défaut
+            // Nouveau document sans front matter : déplier le panneau,
+            // pré-remplir le titre depuis le nom de fichier si disponible
             frontMatterPanel.initDefaults();
-            frontMatterPanel.setExpanded(false);
+            if (file != null) {
+                String baseName = file.getName();
+                int dotIdx = baseName.lastIndexOf('.');
+                String nameWithoutExt = dotIdx > 0 ? baseName.substring(0, dotIdx) : baseName;
+                frontMatterPanel.setTitle(nameWithoutExt.replace('-', ' ').replace('_', ' '));
+            }
+            frontMatterPanel.setExpanded(true);
+            frontMatterPanel.focusTitle();
         }
 
         editor = new StyleClassedTextArea();
         editor.setWrapText(true);
         editor.replaceText(bodyContent);
+        editor.moveTo(0);
+        javafx.application.Platform.runLater(editor::requestFollowCaret);
         editor.getStyleClass().add("markdown-editor");
+        // Aligner savedContent sur la forme canonique produite par getFullContent()
+        // (front matter re-sérialisé + corps) pour éviter les faux positifs de isModified().
+        this.savedContent = getFullContent();
         
         // Charger le CSS pour la coloration syntaxique
         String cssPath = getClass().getResource("/css/markdown-editor.css").toExternalForm();
@@ -514,7 +526,6 @@ public class DocumentTab extends Tab {
         Optional<String> content = DocumentService.readFile(file);
         if (content.isPresent()) {
             this.file = file;
-            this.savedContent = content.get();
 
             // Parser le front matter
             FrontMatter fm = FrontMatter.parse(content.get());
@@ -526,13 +537,25 @@ public class DocumentTab extends Tab {
                 frontMatterPanel.setFrontMatter(fm);
                 frontMatterPanel.setExpanded(true);
                 editor.replaceText(FrontMatter.stripFrontMatter(content.get()));
+                editor.moveTo(0);
+                javafx.application.Platform.runLater(editor::requestFollowCaret);
             } else {
                 frontMatterPanel.clear();
                 frontMatterPanel.initDefaults();
-                frontMatterPanel.setExpanded(false);
+                // Pré-remplir le titre depuis le nom de fichier
+                String baseName = file.getName();
+                int dotIdx = baseName.lastIndexOf('.');
+                String nameWithoutExt = dotIdx > 0 ? baseName.substring(0, dotIdx) : baseName;
+                frontMatterPanel.setTitle(nameWithoutExt.replace('-', ' ').replace('_', ' '));
+                frontMatterPanel.setExpanded(true);
+                frontMatterPanel.focusTitle();
                 editor.replaceText(content.get());
+                editor.moveTo(0);
+                javafx.application.Platform.runLater(editor::requestFollowCaret);
             }
 
+            // Aligner savedContent sur la forme canonique pour éviter les faux positifs
+            this.savedContent = getFullContent();
             setText(truncateTabName(file.getName()));
             setTooltip(new Tooltip(file.getName()));
             return true;
