@@ -42,18 +42,24 @@ function initializeMermaid(theme) {
  * Supports block ($$...$$) and inline ($...$) math.
  */
 function renderKaTeX() {
+  function decodeHtmlEntities(text) {
+    var textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+
   function renderMath(el) {
     var html = el.innerHTML;
     // Block math: $$...$$
     html = html.replace(/\$\$([\s\S]+?)\$\$/g, function(m, tex) {
       try {
-        return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false });
+        return katex.renderToString(decodeHtmlEntities(tex).trim(), { displayMode: true, throwOnError: false });
       } catch(e) { return m; }
     });
     // Inline math: $...$ (not preceded by \, not followed by digit)
     html = html.replace(/(?<!\\)\$([^\$\n]+?)\$/g, function(m, tex) {
       try {
-        return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false });
+        return katex.renderToString(decodeHtmlEntities(tex).trim(), { displayMode: false, throwOnError: false });
       } catch(e) { return m; }
     });
     el.innerHTML = html;
