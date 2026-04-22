@@ -10,7 +10,7 @@
        ═══════════════════════════════════════════════════════════════════════ -->
   <groupId>com.snapgames</groupId>
   <artifactId>marknote</artifactId>
-  <version>0.1.4</version>
+  <version>0.1.5</version>
   <packaging>jar</packaging>
 
   <name>MarkNote</name>
@@ -55,7 +55,7 @@
 
     <!-- jpackage / installer metadata -->
     <!-- Version used by jpackage: overridden in mac profiles because macOS
-         requires the first component to be >= 1 (e.g. 0.1.4 is invalid). -->
+         requires the first component to be >= 1 (e.g. 0.1.5 is invalid). -->
     <jpackage.app.version>${project.version}</jpackage.app.version>
     <jpackage.vendor>SNAPGAMES</jpackage.vendor>
     <jpackage.description>Markdown Note Editor</jpackage.description>
