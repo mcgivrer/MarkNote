@@ -1,7 +1,7 @@
 ---
 title: "MarkNote User Guide"
 date: 2026-03-10
-version: "0.1.4"
+version: "0.1.5"
 author: "Frédéric Delorme"
 description: "Official user guide for MarkNote, a lightweight Markdown editor built with JavaFX."
 summary: "Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features."
@@ -12,7 +12,7 @@ status: draft
 
 # MarkNote User Guide
 
-Version 0.1.4
+Version 0.1.5
 
 Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX. This guide will help you get started and make the most of MarkNote's features.
 
@@ -480,9 +480,14 @@ Each **file** (not folder) in the Project Explorer tree shows a small colored do
 
 The dots are refreshed automatically after every file operation (create, rename, delete, move, copy). They are also refreshed after each Sync operation.
 
-### Git Toolbar — Sync
+### Explorer Toolbar
 
-When a project is a Git repository, a **⇅ Sync** button appears at the top of the Project Explorer panel. It is hidden for non-git projects.
+When a project is open, a toolbar appears at the top of the Project Explorer panel. It contains up to two buttons:
+
+- **↻ Index** — Always visible when a project is loaded. Refreshes the file tree (picking up files added outside of MarkNote) and rebuilds the search index from scratch.
+- **⇅ Sync** — Only visible when the project is a Git repository (hidden otherwise).
+
+#### Sync
 
 Clicking **Sync** performs three sequential operations in a background thread:
 
@@ -579,13 +584,18 @@ The index is stored as a `.marknote-index.json` file at the project root. It is 
 
 ### Rebuilding the Index
 
-If the index becomes out of sync, you can rebuild it:
+If the index becomes out of sync (e.g. files added or removed outside of MarkNote), you can rebuild it in two ways:
+
+**Using the toolbar button (recommended):**
+Click the **↻ Index** button at the top of the Project Explorer. This refreshes the file tree and regenerates the index from scratch.
+
+**Using the context menu:**
 
 1. Right-click on the **root folder** in the Project Explorer
 2. Select **Rebuild index**
 3. The index will be regenerated from scratch
 
-> **Note:** The "Rebuild index" option only appears on the root project folder.
+> **Note:** The context menu "Rebuild index" option only appears on the root project folder.
 
 ---
 
@@ -1416,7 +1426,7 @@ If you encounter issues not covered here:
 
 ## About MarkNote
 
-**Version:** 0.1.4
+**Version:** 0.1.5
 **Author:** Frédéric Delorme  
 **Copyright:** © SnapGames 2026  
 **License:** MIT  

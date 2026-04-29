@@ -63,6 +63,7 @@ public class ProjectExplorerPanel extends BasePanel {
     // Git toolbar
     private HBox gitToolbar;
     private Button syncButton;
+    private Button indexButton;
 
     public ProjectExplorerPanel() {
         super("project.title", "project.close.tooltip");
@@ -92,7 +93,12 @@ public class ProjectExplorerPanel extends BasePanel {
         syncButton.getStyleClass().add("git-toolbar-button");
         syncButton.setOnAction(e -> { if (gitService != null) gitService.syncAsync(); });
 
-        gitToolbar = new HBox(6, syncButton);
+        indexButton = new Button("\u21BB " + bundle.getString("toolbar.index"));
+        indexButton.setTooltip(new Tooltip(bundle.getString("toolbar.index.tooltip")));
+        indexButton.getStyleClass().add("git-toolbar-button");
+        indexButton.setOnAction(e -> handleResetIndex());
+
+        gitToolbar = new HBox(6, syncButton, indexButton);
         gitToolbar.setPadding(new Insets(4, 6, 4, 6));
         gitToolbar.setAlignment(Pos.CENTER_LEFT);
         gitToolbar.getStyleClass().add("git-toolbar");
@@ -455,8 +461,11 @@ public class ProjectExplorerPanel extends BasePanel {
     /** Met à jour la visibilité de la barre d'outils git. */
     private void updateGitToolbar() {
         boolean isGit = gitService != null && gitService.isGitRepo();
-        gitToolbar.setVisible(isGit);
-        gitToolbar.setManaged(isGit);
+        boolean hasProject = projectDir != null && projectDir.isDirectory();
+        gitToolbar.setVisible(isGit || hasProject);
+        gitToolbar.setManaged(isGit || hasProject);
+        syncButton.setVisible(isGit);
+        syncButton.setManaged(isGit);
     }
 
     /**
