@@ -30,6 +30,7 @@ import ui.ThemeTab;
 import ui.VisualLinkPanel;
 import ui.WelcomeTab;
 import java.util.List;
+import utils.Debouncer;
 import utils.DocumentService;
 import utils.GitService;
 import utils.IndexService;
@@ -90,6 +91,7 @@ public class MarkNote extends Application {
 
     private GitService gitService;
     private ProjectSessionService projectSessionService;
+    private Debouncer previewDebouncer;
 
     // LLM Chat Panel
     private PromptPanel promptPanel;
@@ -151,6 +153,9 @@ public class MarkNote extends Application {
         previewPanel.setAppConfig(config);
         previewPanel.setOnPlantUmlRenderingChanged(
                 rendering -> Platform.runLater(() -> statusBar.setPlantUmlRendering(rendering)));
+
+        // Debouncer pour la preview (300ms)
+        previewDebouncer = new Debouncer(300);
 
         // Panel d'exploration de projet
         projectExplorerPanel = new ProjectExplorerPanel();
@@ -807,11 +812,19 @@ public class MarkNote extends Application {
         // Appliquer la préférence d'expansion du panneau Front Matter
         fmPanel.setExpanded(config.isFrontMatterExpandedByDefault());
 
-        // Mettre à jour la preview quand le texte change
+        // Mettre à jour la preview quand le texte change (avec debounce de 300ms)
         tab.setOnTextChanged(text -> {
             if (mainTabPane.getSelectionModel().getSelectedItem() == tab) {
-                previewPanel.updatePreview(text);
-                updateStatusBarForTab(tab);
+                previewDebouncer.debounce(() -> {
+                    Platform.runLater(() -> {
+                        previewPanel.updatePreview(text);
+                        // Realigner la preview avec la position actuelle de l'éditeur
+                        if (editorSplit.getItems().contains(previewPanel)) {
+                            previewPanel.scrollToFraction(tab.getScrollFraction());
+                        }
+                        updateStatusBarForTab(tab);
+                    });
+                });
             }
         });
 
@@ -1300,6 +1313,9 @@ public class MarkNote extends Application {
     public void stop() {
         saveManagedPanelStates();
         saveProjectSession();
+        if (previewDebouncer != null) {
+            previewDebouncer.shutdown();
+        }
     }
 
     // ── Status bar helpers ──────────────────────────────────────────
