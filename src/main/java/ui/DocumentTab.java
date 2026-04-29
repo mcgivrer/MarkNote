@@ -473,6 +473,20 @@ public class DocumentTab extends Tab {
     }
 
     /**
+     * Retourne la position de défilement verticale actuelle de l'éditeur
+     * sous forme de fraction normalisée dans [0.0, 1.0] (0 = haut, 1 = bas).
+     *
+     * @return La fraction de défilement actuelle
+     */
+    public double getScrollFraction() {
+        double scrollY = scrollPane.getEstimatedScrollY();
+        double totalHeight = editor.totalHeightEstimateProperty().getValue();
+        double viewportHeight = scrollPane.getHeight();
+        double scrollable = Math.max(1.0, totalHeight - viewportHeight);
+        return Math.min(1.0, Math.max(0.0, scrollY / scrollable));
+    }
+
+    /**
      * Sauvegarde le document.
      *
      * @param stage       Le stage parent (pour le FileChooser)

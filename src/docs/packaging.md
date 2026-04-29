@@ -31,6 +31,7 @@ Le script `build` fournit une action `package` qui génère une archive ZIP auto
 - Un script de lancement adapté à l'OS (`MarkNote.sh` ou `MarkNote.bat`)
 - Les icônes de l'application en plusieurs formats (`icons/`)
 - Un **installeur spécifique à l'OS** (`install.sh` ou `install.bat`)
+- Les ressources du projet **MarkNote Welcome** (guide + illustrations)
 
 L'archive est nommée selon le pattern : `MarkNote-<version>-<os>.zip` (ex : `MarkNote-0.0.6-linux.zip`).
 
@@ -91,6 +92,7 @@ Après décompression du ZIP, le répertoire contient :
 | `MarkNote.sh` ou `.bat`      | Script de lancement                              |
 | `icons/`                      | Icônes de l'application (SVG + PNG multi-tailles) |
 | `install.sh` ou `install.bat`| Installeur spécifique à l'OS                     |
+| `welcome-project/`            | Ressources intégrées pour que l'installeur provisionne `~/Documents/MarkNote Welcome` |
 
 ---
 
