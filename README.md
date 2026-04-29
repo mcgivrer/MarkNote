@@ -12,7 +12,7 @@
 
 A lightweight and modern Markdown editor built with JavaFX.
 
-![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.4-screenshot-003.png "The Main interface for MarkNote")
+![An illustration of the Main interface of MarkNote](src/docs/illustrations/marknote-0.1.5-screenshot-003.png "The Main interface for MarkNote")
 
 **Author:** Frédéric Delorme (McG) - [contact.snapgames@gmail.com](mailto:contact.snapgames@gmail.com)
 
@@ -127,7 +127,7 @@ Or use the build script:
 ### Running with a specific language
 
 ```bash
-java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.4.jar:target/build/libs/*" Main
+java -Duser.language=en -Duser.country=US --module-path target/build/libs --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web -cp "target/build/MarkNote-0.1.5.jar:target/build/libs/*" Main
 ```
 
 ## Packaging
@@ -186,7 +186,7 @@ The native installer is written to `target/dist/`.
 
 #### macOS — version number constraint
 
-`jpackage --type dmg` requires that the **first digit of the version is ≥ 1**. A version like `0.1.4` is rejected.
+`jpackage --type dmg` requires that the **first digit of the version is ≥ 1**. A version like `0.1.5` is rejected.
 
 When building locally on macOS, pass a compatible version explicitly:
 
@@ -201,7 +201,7 @@ The GitHub Actions workflow handles this automatically by transforming `0.x.y �
 Every push of a version tag (`v*`) triggers the [Build Native Packages](https://github.com/mcgivrer/MarkNote/actions/workflows/build-packages.yml) workflow, which builds DEB, DMG (Apple Silicon), and EXE in parallel and publishes them as a GitHub Release.
 
 ```bash
-git tag v0.1.4 && git push origin v0.1.4
+git tag v0.1.5 && git push origin v0.1.5
 ```
 
 ### Package contents
@@ -220,8 +220,8 @@ Where `{platform}` is:
 1. Download or build the package for your platform
 2. Extract the ZIP archive:
    ```bash
-   unzip MarkNote-0.1.4-linux.zip
-   cd MarkNote-0.1.4-linux
+   unzip MarkNote-0.1.5-linux.zip
+   cd MarkNote-0.1.5-linux
    ```
 3. Run the application:
    - **Linux/macOS:** `./MarkNote.sh`
