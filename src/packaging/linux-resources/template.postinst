@@ -1,0 +1,58 @@
+#!/bin/sh
+# postinst script for APPLICATION_PACKAGE
+#
+# see: dh_installdeb(1)
+
+set -e
+
+# summary of how this script can be called:
+#        * <postinst> `configure' <most-recently-configured-version>
+#        * <old-postinst> `abort-upgrade' <new version>
+#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#          <new-version>
+#        * <postinst> `abort-remove'
+#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#          <failed-install-package> <version> `removing'
+#          <conflicting-package> <version>
+# for details, see https://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+package_type=deb
+LAUNCHER_AS_SERVICE_SCRIPTS
+
+case "$1" in
+    configure)
+DESKTOP_COMMANDS_INSTALL
+LAUNCHER_AS_SERVICE_COMMANDS_INSTALL
+
+        # ── Copier les fichiers de bienvenue ──────────────────────────
+        INSTALL_DIR=/opt/marknote
+        JAR_FILE="$INSTALL_DIR/lib/MarkNote.jar"
+        # Copie dans le dossier Documents de tous les utilisateurs existants
+        for USER_HOME in /home/*/; do
+            TARGET_DIR="$USER_HOME/Documents/MarkNote Welcome"
+            if [ -f "$JAR_FILE" ]; then
+                mkdir -p "$TARGET_DIR"
+                unzip -q -o "$JAR_FILE" "welcome-project/*" -d /tmp/marknote-welcome-extract 2>/dev/null || true
+                if [ -d /tmp/marknote-welcome-extract/welcome-project ]; then
+                    cp -r /tmp/marknote-welcome-extract/welcome-project/. "$TARGET_DIR/"
+                    rm -rf /tmp/marknote-welcome-extract
+                fi
+                # Donner les droits au propriétaire du dossier home
+                USER_NAME=$(basename "$USER_HOME")
+                chown -R "$USER_NAME:$USER_NAME" "$TARGET_DIR" 2>/dev/null || true
+            fi
+        done
+        # ─────────────────────────────────────────────────────────────
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0

@@ -314,6 +314,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
+          <mainClass>${app.main.class}</mainClass>
           <executable>java</executable>
           <arguments>
             <argument>${app.jvm.options}</argument>
@@ -531,7 +532,7 @@
                   <appVersion>${jpackage.app.version}</appVersion>
                   <vendor>${jpackage.vendor}</vendor>
                   <description>${jpackage.description}</description>
-                  <copyright>Copyright 2024 ${jpackage.vendor}</copyright>
+                  <copyright>Copyright 2026 ${jpackage.vendor}</copyright>
 
                   <!-- Input: the fat JAR (minus JavaFX) produced by shade -->
                   <input>${project.build.directory}/build</input>
@@ -546,7 +547,7 @@
 
                   <!-- JVM flags passed to the launched app -->
                   <javaOptions>
-                    <javaOption>-Djava.net.preferIPv6Addresses=true</javaOption>
+                    <!--javaOption>-Djava.net.preferIPv6Addresses=true</javaOption-->
                     <javaOption>-Xmx512m</javaOption>
                   </javaOptions>
 
@@ -568,15 +569,34 @@
                   <linuxMenuGroup>Utility</linuxMenuGroup>
                   <linuxAppCategory>Utility</linuxAppCategory>
                   <linuxPackageName>marknote</linuxPackageName>
+                  <!--
+                    Script post-install pour DEB : jpackage cherche dans resourceDir
+                    un fichier nommé "template.postinst" pour remplacer son template
+                    interne. Notre template conserve les placeholders jpackage
+                    (DESKTOP_COMMANDS_INSTALL, etc.) et ajoute la copie des fichiers
+                    de bienvenue.
+                  -->
+                  <resourceDir>${project.basedir}/src/packaging/linux-resources</resourceDir>
 
                   <!-- ── macOS-specific ──────────────────────────────── -->
                   <macPackageIdentifier>${jpackage.bundle.id}</macPackageIdentifier>
                   <macPackageName>${project.name}</macPackageName>
+                  <!--
+                    NOTE: jpackage ne supporte pas de script post-install pour le
+                    type DMG. Le script post-install-mac.sh doit être distribué
+                    séparément ou le type de package changé en PKG (qui supporte
+                    les scripts via le resource-dir).
+                  -->
 
                   <!-- ── Windows-specific ───────────────────────────── -->
                   <winDirChooser>${jpackage.win.dir.chooser}</winDirChooser>
                   <winMenu>${jpackage.win.menu}</winMenu>
                   <winShortcut>${jpackage.win.shortcut}</winShortcut>
+                  <!--
+                    NOTE: jpackage ne supporte pas de script post-install pour le
+                    type EXE. Pour MSI, un script peut être intégré via le
+                    resource-dir avec un fichier WiX customisé.
+                  -->
                 </configuration>
               </execution>
             </executions>
