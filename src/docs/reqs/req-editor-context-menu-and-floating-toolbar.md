@@ -151,12 +151,12 @@ editor.menu.insertImage=Insert image
 
 Extract the formatting logic into private helper methods **before** building the menu, so they can later be reused by the floating toolbar.
 
-| Method | Signature | Notes |
-|---|---|---|
-| `applyHeading` | `void applyHeading(int level)` | Toggle heading on current paragraph |
-| `toggleWrap` | `void toggleWrap(String marker)` | Toggle `**`, `*`, etc. on selection |
-| `insertLinkSyntax` | `void insertLinkSyntax()` | Insert `[](url)` with caret placement |
-| `insertImageSyntax` | `void insertImageSyntax()` | Insert `![](url)` with caret placement |
+| Method              | Signature                        | Notes                                  |
+|---------------------|----------------------------------|----------------------------------------|
+| `applyHeading`      | `void applyHeading(int level)`   | Toggle heading on current paragraph    |
+| `toggleWrap`        | `void toggleWrap(String marker)` | Toggle `**`, `*`, etc. on selection    |
+| `insertLinkSyntax`  | `void insertLinkSyntax()`        | Insert `[](url)` with caret placement  |
+| `insertImageSyntax` | `void insertImageSyntax()`       | Insert `![](url)` with caret placement |
 
 #### Step 2 — `createEditorContextMenu()` method
 
@@ -251,14 +251,14 @@ Add the 8 keys listed in the [Internationalisation](#internationalisation) secti
 
 Add tests to `test/java/ui/DocumentTabContextMenuTest.java` (new file):
 
-| Test | Scenario |
-|---|---|
-| `testApplyHeading_noExisting` | Caret on plain line → `# line` |
-| `testApplyHeading_toggle` | Caret on `# line` → `line` |
-| `testToggleWrap_bold` | Selection `foo` → `**foo**` |
-| `testToggleWrap_bold_untoggle` | Selection `**foo**` → `foo` |
-| `testInsertLinkSyntax` | Selection `https://x` → `[](https://x)`, caret at pos 1 |
-| `testInsertImageSyntax` | Selection `img.png` → `![](img.png)`, caret at pos 2 |
+| Test                           | Scenario                                                |
+|--------------------------------|---------------------------------------------------------|
+| `testApplyHeading_noExisting`  | Caret on plain line → `# line`                          |
+| `testApplyHeading_toggle`      | Caret on `# line` → `line`                              |
+| `testToggleWrap_bold`          | Selection `foo` → `**foo**`                             |
+| `testToggleWrap_bold_untoggle` | Selection `**foo**` → `foo`                             |
+| `testInsertLinkSyntax`         | Selection `https://x` → `[](https://x)`, caret at pos 1 |
+| `testInsertImageSyntax`        | Selection `img.png` → `![](img.png)`, caret at pos 2    |
 
 ---
 
@@ -348,9 +348,9 @@ Add `.editor-floating-toolbar` rule to `src/main/resources/css/markdown-editor.c
 
 Add tests to `test/java/ui/EditorFloatingToolbarTest.java` (new file):
 
-| Test | Scenario |
-|---|---|
-| `testToolbarShownOnSelection` | Non-empty selection → toolbar `isShowing() == true` |
-| `testToolbarHiddenOnClearSelection` | Selection cleared → toolbar `isShowing() == false` |
-| `testToolbarHiddenOnFocusLost` | Editor loses focus → toolbar hidden |
-| `testBoldButtonFiresAction` | Click Bold button → action Runnable called |
+| Test                                | Scenario                                            |
+|-------------------------------------|-----------------------------------------------------|
+| `testToolbarShownOnSelection`       | Non-empty selection → toolbar `isShowing() == true` |
+| `testToolbarHiddenOnClearSelection` | Selection cleared → toolbar `isShowing() == false`  |
+| `testToolbarHiddenOnFocusLost`      | Editor loses focus → toolbar hidden                 |
+| `testBoldButtonFiresAction`         | Click Bold button → action Runnable called          |

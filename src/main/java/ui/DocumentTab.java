@@ -24,6 +24,10 @@ import utils.FrontMatter;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.IndexRange;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.Tooltip;
@@ -150,14 +154,26 @@ public class DocumentTab extends Tab {
         // Drag & drop : insertion de liens markdown depuis l'explorateur
         setupEditorDragAndDrop();
 
-        // Ctrl+F → Recherche  |  Ctrl+H → Recherche & Remplacement
+        // Menu contextuel de l'éditeur
+        editor.setContextMenu(createEditorContextMenu());
+
+        // Raccourcis clavier de l'éditeur
         editor.setOnKeyPressed(e -> {
-            if (e.isControlDown() && e.getCode() == KeyCode.F) {
-                searchReplaceBar.showSearchOnly();
-                e.consume();
-            } else if (e.isControlDown() && e.getCode() == KeyCode.H) {
-                searchReplaceBar.showSearchAndReplace();
-                e.consume();
+            if (!e.isControlDown()) return;
+            switch (e.getCode()) {
+                case F -> { searchReplaceBar.showSearchOnly();      e.consume(); }
+                case H -> { searchReplaceBar.showSearchAndReplace(); e.consume(); }
+                case B -> { toggleWrap("**");      e.consume(); }
+                case I -> { toggleWrap("*");       e.consume(); }
+                case K -> { insertLinkSyntax();    e.consume(); }
+                case J -> { insertImageSyntax();   e.consume(); }
+                case DIGIT1 -> { applyHeading(1); e.consume(); }
+                case DIGIT2 -> { applyHeading(2); e.consume(); }
+                case DIGIT3 -> { applyHeading(3); e.consume(); }
+                case DIGIT4 -> { applyHeading(4); e.consume(); }
+                case DIGIT5 -> { applyHeading(5); e.consume(); }
+                case DIGIT6 -> { applyHeading(6); e.consume(); }
+                default -> {}
             }
         });
 
@@ -216,6 +232,126 @@ public class DocumentTab extends Tab {
     public void applyHighlighting() {
         editor.setStyleSpans(0, computeHighlighting(editor.getText()));
     }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Markdown formatting helpers
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Applique ou bascule un niveau de titre Markdown sur la ligne courante.
+     *
+     * @param level niveau 1–6
+     */
+    void applyHeading(int level) {
+        int paraIdx = editor.getCurrentParagraph();
+        String line = editor.getParagraph(paraIdx).getText();
+        String newLine = MarkdownFormatter.applyHeading(line, level);
+        int start = editor.getAbsolutePosition(paraIdx, 0);
+        int end = start + line.length();
+        editor.replaceText(start, end, newLine);
+    }
+
+    /**
+     * Entoure ou retire le marqueur Markdown inline sur le texte sélectionné.
+     *
+     * @param marker le délimiteur ({@code "**"}, {@code "*"}, etc.)
+     */
+    void toggleWrap(String marker) {
+        IndexRange sel = editor.getSelection();
+        if (sel.getLength() == 0) return;
+        String selected = editor.getSelectedText();
+        String result = MarkdownFormatter.toggleWrap(selected, marker);
+        int start = sel.getStart();
+        editor.replaceText(start, sel.getEnd(), result);
+        editor.selectRange(start, start + result.length());
+    }
+
+    /**
+     * Insère la syntaxe d'un lien Markdown en utilisant le texte sélectionné
+     * comme URL. Le curseur est positionné entre les crochets {@code []}.
+     */
+    void insertLinkSyntax() {
+        IndexRange sel = editor.getSelection();
+        if (sel.getLength() == 0) return;
+        String url = editor.getSelectedText();
+        int start = sel.getStart();
+        String inserted = MarkdownFormatter.buildLink(url);
+        editor.replaceText(start, sel.getEnd(), inserted);
+        editor.moveTo(start + MarkdownFormatter.linkCaretOffset());
+    }
+
+    /**
+     * Insère la syntaxe d'une image Markdown en utilisant le texte sélectionné
+     * comme chemin. Le curseur est positionné entre les crochets {@code []}.
+     */
+    void insertImageSyntax() {
+        IndexRange sel = editor.getSelection();
+        if (sel.getLength() == 0) return;
+        String url = editor.getSelectedText();
+        int start = sel.getStart();
+        String inserted = MarkdownFormatter.buildImage(url);
+        editor.replaceText(start, sel.getEnd(), inserted);
+        editor.moveTo(start + MarkdownFormatter.imageCaretOffset());
+    }
+
+    /**
+     * Crée le menu contextuel de l'éditeur Markdown.
+     */
+    private ContextMenu createEditorContextMenu() {
+        ResourceBundle msg = getMessages();
+
+        MenuItem copyItem    = new MenuItem(msg.getString("editor.menu.copy"));
+        MenuItem cutItem     = new MenuItem(msg.getString("editor.menu.cut"));
+        MenuItem pasteItem   = new MenuItem(msg.getString("editor.menu.paste"));
+        copyItem.setOnAction(e  -> editor.copy());
+        cutItem.setOnAction(e   -> editor.cut());
+        pasteItem.setOnAction(e -> editor.paste());
+
+        MenuItem[] headingItems = new MenuItem[6];
+        for (int i = 1; i <= 6; i++) {
+            final int level = i;
+            headingItems[i - 1] = new MenuItem(
+                    MessageFormat.format(msg.getString("editor.menu.heading"), level));
+            headingItems[i - 1].setOnAction(e -> applyHeading(level));
+        }
+
+        MenuItem boldItem        = new MenuItem(msg.getString("editor.menu.bold"));
+        MenuItem italicItem      = new MenuItem(msg.getString("editor.menu.italic"));
+        MenuItem insertLinkItem  = new MenuItem(msg.getString("editor.menu.insertLink"));
+        MenuItem insertImageItem = new MenuItem(msg.getString("editor.menu.insertImage"));
+        boldItem.setOnAction(e        -> toggleWrap("**"));
+        italicItem.setOnAction(e      -> toggleWrap("*"));
+        insertLinkItem.setOnAction(e  -> insertLinkSyntax());
+        insertImageItem.setOnAction(e -> insertImageSyntax());
+
+        ContextMenu menu = new ContextMenu();
+        menu.getItems().addAll(
+                copyItem, cutItem, pasteItem,
+                new SeparatorMenuItem(),
+                headingItems[0], headingItems[1], headingItems[2],
+                headingItems[3], headingItems[4], headingItems[5],
+                new SeparatorMenuItem(),
+                boldItem, italicItem,
+                new SeparatorMenuItem(),
+                insertLinkItem, insertImageItem
+        );
+
+        menu.setOnShowing(e -> {
+            boolean hasSel = editor.getSelection().getLength() > 0;
+            copyItem.setDisable(!hasSel);
+            cutItem.setDisable(!hasSel);
+            boldItem.setDisable(!hasSel);
+            italicItem.setDisable(!hasSel);
+            insertLinkItem.setDisable(!hasSel);
+            insertImageItem.setDisable(!hasSel);
+        });
+
+        return menu;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Drag & drop
+    // ──────────────────────────────────────────────────────────────────────
 
     /**
      * Configure le drag & drop depuis l'explorateur vers l'éditeur.
