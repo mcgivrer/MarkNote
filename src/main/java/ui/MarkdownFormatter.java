@@ -96,4 +96,33 @@ public final class MarkdownFormatter {
     public static int imageCaretOffset() {
         return 2;
     }
+
+    /**
+     * Builds a fenced Markdown code block wrapping the given text.
+     *
+     * <p>The result has the form:
+     * <pre>
+     * ```
+     * text
+     * ```
+     * </pre>
+     * When {@code text} is empty, an empty code block is produced and the
+     * caret should be placed at {@link #codeBlockCaretOffset()} to land on
+     * the blank line between the fences.</p>
+     *
+     * @param text the content to wrap (may be empty)
+     * @return the fenced code block snippet
+     */
+    public static String buildCodeBlock(String text) {
+        return "```\n" + text + "\n```";
+    }
+
+    /**
+     * Returns the caret offset inside an empty code block built by
+     * {@link #buildCodeBlock}: position 4 ({@code ```\n}) places the cursor
+     * on the blank line between the fences.
+     */
+    public static int codeBlockCaretOffset() {
+        return 4;
+    }
 }

@@ -101,4 +101,22 @@ class MarkdownFormatterTest {
     void imageCaretOffset_isTwo() {
         assertEquals(2, MarkdownFormatter.imageCaretOffset());
     }
+
+    // ── buildCodeBlock ──────────────────────────────────────────────────
+
+    @Test
+    void buildCodeBlock_withContent() {
+        assertEquals("```\nfoo\n```", MarkdownFormatter.buildCodeBlock("foo"));
+    }
+
+    @Test
+    void buildCodeBlock_empty() {
+        assertEquals("```\n\n```", MarkdownFormatter.buildCodeBlock(""));
+    }
+
+    @Test
+    void codeBlockCaretOffset_isFour() {
+        // "```\n" is 4 characters
+        assertEquals(4, MarkdownFormatter.codeBlockCaretOffset());
+    }
 }

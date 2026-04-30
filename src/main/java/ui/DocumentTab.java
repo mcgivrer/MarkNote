@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -157,6 +158,38 @@ public class DocumentTab extends Tab {
         // Menu contextuel de l'éditeur
         editor.setContextMenu(createEditorContextMenu());
 
+        // Barre d'outils flottante sur sélection
+        Map<String, Runnable> toolbarActions = Map.ofEntries(
+                Map.entry("bold",   () -> toggleWrap("**")),
+                Map.entry("italic", () -> toggleWrap("*")),
+                Map.entry("link",   this::insertLinkSyntax),
+                Map.entry("image",  this::insertImageSyntax),
+                Map.entry("code",   this::insertCodeBlock),
+                Map.entry("h1", () -> applyHeading(1)),
+                Map.entry("h2", () -> applyHeading(2)),
+                Map.entry("h3", () -> applyHeading(3)),
+                Map.entry("h4", () -> applyHeading(4)),
+                Map.entry("h5", () -> applyHeading(5)),
+                Map.entry("h6", () -> applyHeading(6))
+        );
+        EditorFloatingToolbar floatingToolbar = new EditorFloatingToolbar(editor, toolbarActions);
+
+        editor.selectionProperty().addListener((obs, oldSel, newSel) -> {
+            if (newSel.getLength() > 0) {
+                editor.getCharacterBoundsOnScreen(newSel.getStart(), newSel.getEnd())
+                      .ifPresent(bounds -> floatingToolbar.show(
+                              bounds.getMinX() + bounds.getWidth() / 2.0,
+                              bounds.getMinY() - 8
+                      ));
+            } else {
+                floatingToolbar.hide();
+            }
+        });
+
+        editor.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+            if (!isFocused) floatingToolbar.hide();
+        });
+
         // Raccourcis clavier de l'éditeur
         editor.setOnKeyPressed(e -> {
             if (!e.isControlDown()) return;
@@ -167,6 +200,7 @@ public class DocumentTab extends Tab {
                 case I -> { toggleWrap("*");       e.consume(); }
                 case K -> { insertLinkSyntax();    e.consume(); }
                 case J -> { insertImageSyntax();   e.consume(); }
+                case E -> { insertCodeBlock();     e.consume(); }
                 case DIGIT1 -> { applyHeading(1); e.consume(); }
                 case DIGIT2 -> { applyHeading(2); e.consume(); }
                 case DIGIT3 -> { applyHeading(3); e.consume(); }
@@ -295,6 +329,29 @@ public class DocumentTab extends Tab {
     }
 
     /**
+     * Insère un bloc de code Markdown fencé ({@code ```}).
+     *
+     * <p>Si du texte est sélectionné, il est encadré par les marqueurs.
+     * Sinon, un bloc vide est inséré et le curseur se positionne
+     * entre les deux clôtures pour saisie immédiate.</p>
+     */
+    void insertCodeBlock() {
+        IndexRange sel = editor.getSelection();
+        if (sel.getLength() > 0) {
+            String selected = editor.getSelectedText();
+            int start = sel.getStart();
+            String block = MarkdownFormatter.buildCodeBlock(selected);
+            editor.replaceText(start, sel.getEnd(), block);
+            editor.moveTo(start + block.length());
+        } else {
+            int pos = editor.getCaretPosition();
+            String block = MarkdownFormatter.buildCodeBlock("");
+            editor.replaceText(pos, pos, block);
+            editor.moveTo(pos + MarkdownFormatter.codeBlockCaretOffset());
+        }
+    }
+
+    /**
      * Crée le menu contextuel de l'éditeur Markdown.
      */
     private ContextMenu createEditorContextMenu() {
@@ -315,14 +372,16 @@ public class DocumentTab extends Tab {
             headingItems[i - 1].setOnAction(e -> applyHeading(level));
         }
 
-        MenuItem boldItem        = new MenuItem(msg.getString("editor.menu.bold"));
-        MenuItem italicItem      = new MenuItem(msg.getString("editor.menu.italic"));
-        MenuItem insertLinkItem  = new MenuItem(msg.getString("editor.menu.insertLink"));
-        MenuItem insertImageItem = new MenuItem(msg.getString("editor.menu.insertImage"));
-        boldItem.setOnAction(e        -> toggleWrap("**"));
-        italicItem.setOnAction(e      -> toggleWrap("*"));
-        insertLinkItem.setOnAction(e  -> insertLinkSyntax());
-        insertImageItem.setOnAction(e -> insertImageSyntax());
+        MenuItem boldItem         = new MenuItem(msg.getString("editor.menu.bold"));
+        MenuItem italicItem       = new MenuItem(msg.getString("editor.menu.italic"));
+        MenuItem insertLinkItem   = new MenuItem(msg.getString("editor.menu.insertLink"));
+        MenuItem insertImageItem  = new MenuItem(msg.getString("editor.menu.insertImage"));
+        MenuItem insertCodeItem   = new MenuItem(msg.getString("editor.menu.insertCode"));
+        boldItem.setOnAction(e         -> toggleWrap("**"));
+        italicItem.setOnAction(e       -> toggleWrap("*"));
+        insertLinkItem.setOnAction(e   -> insertLinkSyntax());
+        insertImageItem.setOnAction(e  -> insertImageSyntax());
+        insertCodeItem.setOnAction(e   -> insertCodeBlock());
 
         ContextMenu menu = new ContextMenu();
         menu.getItems().addAll(
@@ -333,7 +392,7 @@ public class DocumentTab extends Tab {
                 new SeparatorMenuItem(),
                 boldItem, italicItem,
                 new SeparatorMenuItem(),
-                insertLinkItem, insertImageItem
+                insertLinkItem, insertImageItem, insertCodeItem
         );
 
         menu.setOnShowing(e -> {

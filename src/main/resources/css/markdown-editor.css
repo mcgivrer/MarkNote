@@ -376,3 +376,27 @@
 .panel-header-button:hover {
     -fx-text-fill: #1f6fd1;
 }
+
+
+/* ── Floating toolbar ────────────────────────────────────────────────── */
+
+.editor-floating-toolbar {
+    -fx-background-color: #1e293b;
+    -fx-background-radius: 17px;
+    -fx-padding: 4px 8px;
+    -fx-spacing: 4px;
+}
+
+.editor-floating-toolbar .button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cbd5e1;
+    -fx-font-size: 11px;
+    -fx-background-radius: 12px;
+    -fx-padding: 3px 7px;
+    -fx-cursor: hand;
+}
+
+.editor-floating-toolbar .button:hover {
+    -fx-background-color: #3b82f6;
+    -fx-text-fill: #ffffff;
+}
