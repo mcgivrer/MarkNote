@@ -100,7 +100,7 @@ A checkbox willl be used to activate or not usarge of internal plantuml jar to g
 
 ## Add git support
 
-- [ ] The project is contrainerd in a folder. if the folder contains .git/ subfolder, then  the git support for the project is activated. 
+- [x] The project is contrainerd in a folder. if the folder contains .git/ subfolder, then  the git support for the project is activated. 
 Each file :
   -  with the git repo will be added with a green bullet on left of the item icon( folder of file). 
   -  if filthe item is not managed by git, a red bullet is displayed,
@@ -112,6 +112,32 @@ A new tab "Git" in the Options dialog will allow to define credentials for remot
   - Username / password (basic HTTP(S) authentication)
   - Personal access token (GitHub / GitLab — used as password with a `token` or `oauth2` username)
   Credentials are passed to the git subprocess via environment variables (`GIT_SSH_COMMAND`, `GIT_ASKPASS` wrapper, or `GIT_TERMINAL_PROMPT=0`).
+
+>2026-05-01
+
+## Add Editor Context Menu
+
+- [x] Add a right-click context menu on the `StyleClassedTextArea` in `DocumentTab` with the following items:
+  - Copy (`Ctrl+C`), Cut (`Ctrl+X`), Paste (`Ctrl+V`) — Copy and Cut disabled when no selection
+  - Separator
+  - Title H1–H6 (`Ctrl+1`–`Ctrl+6`) — acts on the current line; toggles off if already at same level
+  - Separator
+  - Bold (`Ctrl+B`), Italic (`Ctrl+I`) — toggle wrapping; disabled when no selection
+  - Separator
+  - Insert link (`Ctrl+K`), Insert image (`Ctrl+J`), Insert code block (`Ctrl+E`) — disabled when no selection
+
+## Add Editor Floating Toolbar
+
+- [x] Add a floating `Popup` toolbar (`EditorFloatingToolbar`) that appears just above the text selection whenever the user selects text in the editor; exposes Bold, Italic, Link, Image, Code, H1–H3 buttons and an H4▾ dropdown for H4/H5/H6; auto-hides when selection is cleared or editor loses focus.
+
+## Fix Linux DEB Installer icon
+
+- [x] Fix the DEB installer so that:
+  - The SVG icon (`marknote.svg`) is included in the package and installed to `/usr/share/icons/hicolor/scalable/apps/`
+  - The PNG-128 icon is installed to `/usr/share/icons/hicolor/128x128/apps/`
+  - `gtk-update-icon-cache` is called to register the icons
+  - The generated `.desktop` entry is patched to use `Icon=marknote` (symbolic) and `StartupWMClass=MarkNote` so GNOME Shell correctly associates the running JavaFX window with the Ubuntu dock icon
+  - Root cause: jpackage only reads `postinst` (not `template.postinst`); custom code must be placed **before** `LAUNCHER_AS_SERVICE_COMMANDS_INSTALL` which expands to a `;;` closing the `configure)` case block
 
 ## Optional
 

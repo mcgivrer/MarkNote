@@ -23,20 +23,21 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 3. [Main Interface](#main-interface)
 4. [Working with Documents](#working-with-documents)
 5. [Search & Replace in Editor](#search--replace-in-editor)
-6. [Front Matter Panel](#front-matter-panel)
-7. [Project Explorer](#project-explorer)
-8. [Git Support](#git-support)
-9. [Search & Indexing](#search--indexing)
-10. [Tag Cloud](#tag-cloud)
-11. [Network Diagram](#network-diagram)
-12. [Status Bar](#status-bar)
-13. [Live Preview](#live-preview)
-14. [LLM Chat](#llm-chat)
-15. [Splash Screen & About](#splash-screen--about)
-16. [Themes](#themes)
-17. [Options & Settings](#options--settings)
-18. [Keyboard Shortcuts](#keyboard-shortcuts)
-19. [Troubleshooting](#troubleshooting)
+6. [Editor Context Menu & Floating Toolbar](#editor-context-menu--floating-toolbar)
+7. [Front Matter Panel](#front-matter-panel)
+8. [Project Explorer](#project-explorer)
+9. [Git Support](#git-support)
+10. [Search & Indexing](#search--indexing)
+11. [Tag Cloud](#tag-cloud)
+12. [Network Diagram](#network-diagram)
+13. [Status Bar](#status-bar)
+14. [Live Preview](#live-preview)
+15. [LLM Chat](#llm-chat)
+16. [Splash Screen & About](#splash-screen--about)
+17. [Themes](#themes)
+18. [Options & Settings](#options--settings)
+19. [Keyboard Shortcuts](#keyboard-shortcuts)
+20. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -345,6 +346,70 @@ When the `.*` toggle is active:
 - The query is interpreted as a Java regular expression
 - If the pattern is invalid, the search field turns **red** and a `⚠` warning is shown
 - Capture groups can be used in the Replace field (e.g., `$1`)
+
+---
+
+## Editor Context Menu & Floating Toolbar
+
+MarkNote provides two complementary ways to apply Markdown formatting without manually typing syntax: a **right-click context menu** and a **floating toolbar** that appears above any text selection.
+
+### Editor Context Menu
+
+Right-click anywhere in the editor to open the context menu:
+
+| Item | Shortcut | Condition |
+|------|----------|-----------|
+| **Copy** | `Ctrl+C` | Requires selection |
+| **Cut** | `Ctrl+X` | Requires selection |
+| **Paste** | `Ctrl+V` | Always available |
+| *(separator)* | | |
+| **Title H1** | `Ctrl+1` | Acts on current line |
+| **Title H2** | `Ctrl+2` | Acts on current line |
+| **Title H3** | `Ctrl+3` | Acts on current line |
+| **Title H4** | `Ctrl+4` | Acts on current line |
+| **Title H5** | `Ctrl+5` | Acts on current line |
+| **Title H6** | `Ctrl+6` | Acts on current line |
+| *(separator)* | | |
+| **Bold** | `Ctrl+B` | Requires selection |
+| **Italic** | `Ctrl+I` | Requires selection |
+| *(separator)* | | |
+| **Insert link** | `Ctrl+K` | Requires selection (becomes the URL) |
+| **Insert image** | `Ctrl+J` | Requires selection (becomes the path) |
+| **Insert code block** | `Ctrl+E` | Requires selection |
+
+#### Heading toggle
+
+Applying a heading level (`Ctrl+1`…`Ctrl+6`) acts on the **current line** (no selection needed). If the line already has the same heading level, the prefix is removed (toggle off).
+
+#### Bold / Italic toggle
+
+Bold (`Ctrl+B`) and Italic (`Ctrl+I`) **wrap** the selected text with `**` or `*`. If the selection is already wrapped, the markers are removed instead.
+
+#### Insert link / image
+
+- **Insert link** (`Ctrl+K`): wraps the selection as the URL → `[](selection)`, caret lands inside `[`.
+- **Insert image** (`Ctrl+J`): same but with image syntax → `![](selection)`, caret lands inside `![`.
+- **Insert code block** (`Ctrl+E`): wraps the selection in a fenced code block.
+
+### Floating Formatting Toolbar
+
+Whenever you **select text** in the editor, a compact floating toolbar appears just above the selection:
+
+| Button | Action |
+|--------|--------|
+| **B** | Bold (`**…**`) |
+| **I** | Italic (`*…*`) |
+| **Lien** | Insert link |
+| **Img** | Insert image |
+| **</>** | Insert code block |
+| **H1** | Apply Heading 1 |
+| **H2** | Apply Heading 2 |
+| **H3** | Apply Heading 3 |
+| **H4▾** | Dropdown for H4, H5, H6 |
+
+The toolbar **auto-hides** as soon as the selection is cleared, or when the editor loses focus. Clicking any button applies the formatting and hides the toolbar.
+
+> **Tip:** The floating toolbar and the context menu expose the same formatting actions — use whichever fits your workflow.
 
 ---
 
@@ -1356,6 +1421,22 @@ To change the language:
 | `Ctrl+H` | Open Search & Replace bar |
 | `Ctrl+Enter` | Send the current prompt from the LLM Chat input |
 
+### Markdown Formatting (Editor)
+
+| Shortcut | Action | Requires selection |
+|----------|--------|-------------------|
+| `Ctrl+B` | Bold (`**…**`) — toggle | Yes |
+| `Ctrl+I` | Italic (`*…*`) — toggle | Yes |
+| `Ctrl+K` | Insert link `[](selection)` | Yes |
+| `Ctrl+J` | Insert image `![](selection)` | Yes |
+| `Ctrl+E` | Insert fenced code block | Yes |
+| `Ctrl+1` | Apply / toggle Heading H1 | No (current line) |
+| `Ctrl+2` | Apply / toggle Heading H2 | No (current line) |
+| `Ctrl+3` | Apply / toggle Heading H3 | No (current line) |
+| `Ctrl+4` | Apply / toggle Heading H4 | No (current line) |
+| `Ctrl+5` | Apply / toggle Heading H5 | No (current line) |
+| `Ctrl+6` | Apply / toggle Heading H6 | No (current line) |
+
 ### Navigation
 
 | Shortcut | Action |
@@ -1434,4 +1515,4 @@ If you encounter issues not covered here:
 
 ---
 
-*This documentation is part of the MarkNote project. Last updated: April 2026.*
+*This documentation is part of the MarkNote project. Last updated: May 2026.*

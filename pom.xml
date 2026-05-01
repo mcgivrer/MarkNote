@@ -516,6 +516,30 @@
             </executions>
           </plugin>
 
+          <!-- Copy SVG icon into jpackage input dir so it ends up in the DEB -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-svg-icon</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-resources</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/build</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/src/main/resources/images/icons</directory>
+                      <includes>
+                        <include>marknote.svg</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+
           <!-- jpackage native installer -->
           <plugin>
             <groupId>org.panteleyev</groupId>
@@ -571,10 +595,10 @@
                   <linuxPackageName>marknote</linuxPackageName>
                   <!--
                     Script post-install pour DEB : jpackage cherche dans resourceDir
-                    un fichier nommé "template.postinst" pour remplacer son template
-                    interne. Notre template conserve les placeholders jpackage
-                    (DESKTOP_COMMANDS_INSTALL, etc.) et ajoute la copie des fichiers
-                    de bienvenue.
+                    un fichier nommé "postinst" pour remplacer son script interne.
+                    Notre script conserve les placeholders jpackage
+                    (DESKTOP_COMMANDS_INSTALL, etc.), installe les icônes dans hicolor,
+                    patche le .desktop (StartupWMClass) et copie les fichiers de bienvenue.
                   -->
                   <resourceDir>${project.basedir}/src/packaging/linux-resources</resourceDir>
 
