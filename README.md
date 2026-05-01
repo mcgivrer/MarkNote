@@ -37,6 +37,8 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Project Indexing** - Automatic incremental indexing of all Markdown files by front matter metadata (title, tags, authors, summary, created date, draft, links) and filenames, stored as a persistent local JSON index (`.marknote-index.json`)
 - **Search** - Instant full-text search across indexed documents with a live results popup (up to 20 results); matches on title, filename, tags, summary, authors, and UUID; keyboard navigation
 - **Search & Replace** - In-editor search/replace overlay (`Ctrl+F` / `Ctrl+H`) with optional **Regular Expression**, **Full Word**, and **Match Case** toggles; navigate occurrences with `▲`/`▼`; replace current match or all matches at once; result counter; closes with `Escape`
+- **Editor Context Menu** - Right-click context menu on the editor exposing Copy / Cut / Paste, heading levels H1–H6 (`Ctrl+1`–`Ctrl+6`), Bold (`Ctrl+B`), Italic (`Ctrl+I`), Insert link (`Ctrl+K`), Insert image (`Ctrl+J`), and Insert code block (`Ctrl+E`); items are context-sensitive (disabled when no selection is required but none exists); heading actions toggle the prefix on the current line
+- **Floating Formatting Toolbar** - A lightweight popup toolbar that appears automatically above the active text selection; exposes Bold, Italic, Link, Image, Code (`</>`), H1–H3 buttons and an H4▾ dropdown for H4/H5/H6; auto-hides when selection is cleared or editor loses focus
 - **LLM Chat** - Optional dockable chat panel for **Ollama** and **OpenAI-compatible** endpoints with streaming responses, conversation history, editable user prompts, cancel support, per-session export, message/session insertion into the active document, and configurable system context
 - **Tag Cloud** - Visual tag cloud panel below the project explorer showing tag frequency; click any tag to search for it
 - **Network Diagram** - Interactive force-directed graph visualizing document links and shared tags; drag nodes, pan, zoom, click to open documents, click tags for search popup; tooltips with title/author/date; current document highlighted with orange border; isolated nodes hidden; auto zoom-to-fit; **document groups** shown with pastel-colored circles (click to zoom, double-click to name); **detach button** to open diagram in a dedicated tab; **automatic label hiding** at high zoom-out for large projects
@@ -49,7 +51,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Recent Files & Projects** - Quick access to recently opened files and projects, organized in separate sections with Clear History
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
-- **Application Icon** - Custom SVG icon with PNG exports (16, 32, 64, 128 px) shown in the title bar, taskbar, and Alt+Tab switcher
+- **Application Icon** - Custom SVG icon with PNG exports (16, 32, 64, 128 px) shown in the title bar, taskbar, and Alt+Tab switcher; on Linux the SVG is installed into `/usr/share/icons/hicolor/scalable/apps/` and the PNG-128 into `/usr/share/icons/hicolor/128x128/apps/` by the DEB post-install script; the `.desktop` entry includes `StartupWMClass=MarkNote` so GNOME Shell correctly associates running windows with the dock icon
 - **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), Network Diagram (`Ctrl+L`), and **LLM Chat** (`Ctrl+M`) via the View menu; Show Welcome
 - **Close Tab** - Close the active document tab with `Ctrl+W`
 

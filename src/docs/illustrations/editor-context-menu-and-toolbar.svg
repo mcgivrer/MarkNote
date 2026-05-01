@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 600" width="860" height="600">
+
+  <!-- Background -->
+  <rect width="860" height="600" fill="#e8edf3"/>
+
+  <!-- Main title -->
+  <text x="430" y="24" font-family="Arial, sans-serif" font-size="15" fill="#1f2937" text-anchor="middle" font-weight="bold">Editor Context Menu &amp; Floating Toolbar</text>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- LEFT PANEL — Context Menu                         -->
+  <!-- ══════════════════════════════════════════════════ -->
+
+  <!-- Panel subtitle -->
+  <text x="215" y="42" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle" font-style="italic">① Right-click → Context Menu</text>
+
+  <!-- Editor window frame -->
+  <rect x="20" y="46" width="390" height="416" rx="6" fill="#fafafa" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Tab bar background -->
+  <rect x="20" y="46" width="390" height="28" rx="6" fill="#f1f3f5"/>
+  <rect x="20" y="64" width="390" height="10" fill="#f1f3f5"/>
+  <line x1="20" y1="74" x2="410" y2="74" stroke="#dde1e8" stroke-width="1"/>
+
+  <!-- Active document tab -->
+  <rect x="24" y="48" width="108" height="22" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="32" y="64" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">notes.md  ×</text>
+
+  <!-- Markdown content lines -->
+  <text x="34" y="98"  font-family="monospace" font-size="11" fill="#7c3aed"># My Notes</text>
+  <text x="34" y="117" font-family="monospace" font-size="11" fill="#374151">Welcome to **MarkNote**.</text>
+  <text x="34" y="136" font-family="monospace" font-size="11" fill="#374151">This is a paragraph of text.</text>
+  <text x="34" y="155" font-family="monospace" font-size="11" fill="#374151">Right-click here to format.</text>
+  <text x="34" y="174" font-family="monospace" font-size="11" fill="#374151">Another line of content here.</text>
+
+  <!-- Mouse cursor at right-click position -->
+  <polygon points="196,143 196,163 200,158 205,168 207,167 202,157 208,157" fill="#374151"/>
+
+  <!-- Context Menu popup — drop shadow -->
+  <rect x="203" y="152" width="192" height="248" rx="4" fill="#00000014"/>
+  <!-- Context Menu popup — body -->
+  <rect x="200" y="149" width="192" height="248" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+
+  <!-- Copy (hover highlight) -->
+  <rect x="202" y="151" width="188" height="21" rx="2" fill="#eff6ff"/>
+  <text x="212" y="166" font-family="Arial, sans-serif" font-size="11" fill="#1f2937">Copy</text>
+  <text x="386" y="166" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+C</text>
+
+  <!-- Cut -->
+  <text x="212" y="187" font-family="Arial, sans-serif" font-size="11" fill="#374151">Cut</text>
+  <text x="386" y="187" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+X</text>
+
+  <!-- Paste -->
+  <text x="212" y="208" font-family="Arial, sans-serif" font-size="11" fill="#374151">Paste</text>
+  <text x="386" y="208" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+V</text>
+
+  <!-- Separator 1 -->
+  <line x1="204" y1="217" x2="388" y2="217" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- Title H1 -->
+  <text x="212" y="233" font-family="Arial, sans-serif" font-size="11" fill="#374151">Title H1</text>
+  <text x="386" y="233" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+1</text>
+
+  <!-- Title H2 -->
+  <text x="212" y="254" font-family="Arial, sans-serif" font-size="11" fill="#6b7280">Title H2</text>
+  <text x="386" y="254" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+2</text>
+
+  <!-- Title H3 -->
+  <text x="212" y="275" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">Title H3</text>
+  <text x="386" y="275" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+3</text>
+
+  <!-- Title H4–H6 (greyed out / lower emphasis) -->
+  <text x="212" y="296" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">Title H4 – H6…</text>
+  <text x="386" y="296" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+4…6</text>
+
+  <!-- Separator 2 -->
+  <line x1="204" y1="305" x2="388" y2="305" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- Bold -->
+  <text x="212" y="321" font-family="Arial, sans-serif" font-size="11" fill="#374151">Bold</text>
+  <text x="386" y="321" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+B</text>
+
+  <!-- Italic -->
+  <text x="212" y="342" font-family="Arial, sans-serif" font-size="11" fill="#374151">Italic</text>
+  <text x="386" y="342" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+I</text>
+
+  <!-- Separator 3 -->
+  <line x1="204" y1="351" x2="388" y2="351" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- Insert link -->
+  <text x="212" y="367" font-family="Arial, sans-serif" font-size="11" fill="#374151">Insert link</text>
+  <text x="386" y="367" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+K</text>
+
+  <!-- Insert image -->
+  <text x="212" y="388" font-family="Arial, sans-serif" font-size="11" fill="#374151">Insert image</text>
+  <text x="386" y="388" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">Ctrl+J</text>
+
+  <!-- "Context Menu" label callout (blue badge) -->
+  <defs>
+    <marker id="arrBlue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <rect x="28" y="404" width="120" height="20" rx="4" fill="#2563eb"/>
+  <text x="88" y="418" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Context Menu</text>
+  <path d="M 148 414 C 165 414, 185 390, 202 370" stroke="#2563eb" stroke-width="1.5" fill="none" marker-end="url(#arrBlue)"/>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- RIGHT PANEL — Floating Toolbar                    -->
+  <!-- ══════════════════════════════════════════════════ -->
+
+  <!-- Panel subtitle -->
+  <text x="645" y="42" font-family="Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle" font-style="italic">② Select text → Floating Toolbar</text>
+
+  <!-- Editor window frame -->
+  <rect x="450" y="46" width="390" height="416" rx="6" fill="#fafafa" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Tab bar background -->
+  <rect x="450" y="46" width="390" height="28" rx="6" fill="#f1f3f5"/>
+  <rect x="450" y="64" width="390" height="10" fill="#f1f3f5"/>
+  <line x1="450" y1="74" x2="840" y2="74" stroke="#dde1e8" stroke-width="1"/>
+
+  <!-- Active document tab -->
+  <rect x="454" y="48" width="108" height="22" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="462" y="64" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">notes.md  ×</text>
+
+  <!-- Markdown content lines -->
+  <text x="466" y="98"  font-family="monospace" font-size="11" fill="#7c3aed"># My Notes</text>
+  <text x="466" y="117" font-family="monospace" font-size="11" fill="#374151">Welcome to **MarkNote**.</text>
+  <text x="466" y="136" font-family="monospace" font-size="11" fill="#374151">This is a paragraph of text.</text>
+
+  <!-- Selected text (blue highlight) -->
+  <rect x="464" y="141" width="178" height="16" rx="1" fill="#bfdbfe"/>
+  <text x="466" y="154" font-family="monospace" font-size="11" fill="#1e40af">I select this text to style</text>
+
+  <text x="466" y="174" font-family="monospace" font-size="11" fill="#374151">Another line of content here.</text>
+  <text x="466" y="193" font-family="monospace" font-size="11" fill="#374151">Yet another paragraph below.</text>
+
+  <!-- Floating toolbar down-caret (pointing to selection) -->
+  <polygon points="636,137 643,145 650,137" fill="#1e293b"/>
+
+  <!-- Floating toolbar — pill shape (dark) -->
+  <rect x="466" y="100" width="348" height="35" rx="17" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+
+  <!-- B (Bold) — active / highlighted -->
+  <rect x="473" y="105" width="27" height="25" rx="12" fill="#3b82f6"/>
+  <text x="487" y="122" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle" font-weight="bold">B</text>
+
+  <!-- I (Italic) -->
+  <rect x="504" y="105" width="27" height="25" rx="12" fill="#1e293b"/>
+  <text x="518" y="122" font-family="Arial, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle" font-style="italic">I</text>
+
+  <!-- Vertical separator -->
+  <line x1="536" y1="108" x2="536" y2="130" stroke="#475569" stroke-width="1"/>
+
+  <!-- Link button -->
+  <rect x="540" y="105" width="27" height="25" rx="12" fill="#1e293b"/>
+  <text x="554" y="121" font-family="Arial, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="middle">🔗</text>
+
+  <!-- Image button -->
+  <rect x="571" y="105" width="27" height="25" rx="12" fill="#1e293b"/>
+  <text x="585" y="121" font-family="Arial, sans-serif" font-size="13" fill="#cbd5e1" text-anchor="middle">🖼</text>
+
+  <!-- Vertical separator -->
+  <line x1="602" y1="108" x2="602" y2="130" stroke="#475569" stroke-width="1"/>
+
+  <!-- H1 button -->
+  <rect x="607" y="105" width="27" height="25" rx="12" fill="#1e293b"/>
+  <text x="621" y="122" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">H1</text>
+
+  <!-- H2 button -->
+  <rect x="638" y="105" width="27" height="25" rx="12" fill="#1e293b"/>
+  <text x="652" y="122" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">H2</text>
+
+  <!-- H3 button -->
+  <rect x="669" y="105" width="27" height="25" rx="12" fill="#1e293b"/>
+  <text x="683" y="122" font-family="Arial, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">H3</text>
+
+  <!-- Vertical separator -->
+  <line x1="700" y1="108" x2="700" y2="130" stroke="#475569" stroke-width="1"/>
+
+  <!-- H4–H6 dropdown hint -->
+  <rect x="705" y="105" width="52" height="25" rx="8" fill="#1e293b"/>
+  <text x="731" y="122" font-family="Arial, sans-serif" font-size="9" fill="#94a3b8" text-anchor="middle">H4…H6 ▾</text>
+
+  <!-- Inline annotation: selected text label -->
+  <rect x="658" y="145" width="102" height="20" rx="4" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+  <text x="709" y="159" font-family="Arial, sans-serif" font-size="9" fill="#1e40af" text-anchor="middle">selected text</text>
+  <defs>
+    <marker id="arrSel" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <path d="M 658 155 L 644 155" stroke="#2563eb" stroke-width="1.5" fill="none" marker-end="url(#arrSel)"/>
+
+  <!-- "Floating Toolbar" label callout -->
+  <defs>
+    <marker id="arrDark" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#1e293b"/>
+    </marker>
+  </defs>
+  <rect x="460" y="224" width="118" height="20" rx="4" fill="#1e293b"/>
+  <text x="519" y="238" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Floating Toolbar</text>
+  <path d="M 519 224 L 519 137" stroke="#1e293b" stroke-width="1.5" fill="none" marker-end="url(#arrDark)"/>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- LEGEND BOXES                                      -->
+  <!-- ══════════════════════════════════════════════════ -->
+
+  <!-- Left legend: Context Menu -->
+  <rect x="20" y="472" width="390" height="120" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <text x="36" y="492" font-family="Arial, sans-serif" font-size="12" fill="#0c4a6e" font-weight="bold">Context Menu (right-click in editor)</text>
+  <text x="36" y="510" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Copy / Cut / Paste — standard clipboard actions</text>
+  <text x="36" y="526" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Title H1–H6 (Ctrl+1…6) — acts on the current line</text>
+  <text x="36" y="542" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Bold (Ctrl+B) / Italic (Ctrl+I) — toggle wrapping</text>
+  <text x="36" y="558" font-family="Arial, sans-serif" font-size="11" fill="#334155">• Insert link (Ctrl+K) / Insert image (Ctrl+J)</text>
+  <text x="36" y="574" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">Formatting items are disabled when no text is selected.</text>
+
+  <!-- Right legend: Floating Toolbar -->
+  <rect x="450" y="472" width="390" height="120" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+  <text x="466" y="492" font-family="Arial, sans-serif" font-size="12" fill="#166534" font-weight="bold">Floating Toolbar (future iteration)</text>
+  <text x="466" y="510" font-family="Arial, sans-serif" font-size="11" fill="#334155">Appears automatically above any active text selection.</text>
+  <text x="466" y="526" font-family="Arial, sans-serif" font-size="11" fill="#334155">• B Bold  •  I Italic  •  🔗 Link  •  🖼 Image</text>
+  <text x="466" y="542" font-family="Arial, sans-serif" font-size="11" fill="#334155">• H1 H2 H3 — inline heading buttons  •  H4–H6 picker</text>
+  <text x="466" y="558" font-family="Arial, sans-serif" font-size="11" fill="#334155">Disappears automatically when selection is cleared.</text>
+  <text x="466" y="574" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">Popup positioned with getCharacterBoundsOnScreen().</text>
+
+</svg>

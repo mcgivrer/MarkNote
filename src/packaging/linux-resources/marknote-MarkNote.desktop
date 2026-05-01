@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=MarkNote
+Comment=Markdown Note Editor
+Exec=/opt/marknote/bin/MarkNote %f
+Icon=marknote
+Terminal=false
+Type=Application
+Categories=Utility;TextEditor;
+MimeType=text/markdown;
+StartupNotify=true
+StartupWMClass=MarkNote
