@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 640" width="780" height="640">
+  <defs>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#00000022"/>
+    </filter>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="780" height="640" fill="#e8edf3"/>
+
+  <!-- MODE LABELS -->
+  <rect x="10" y="8" width="370" height="22" rx="4" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="195" y="23" font-family="Arial, sans-serif" font-size="11" fill="#374151" text-anchor="middle" font-weight="600">⚙ Standard mode  (Options → Git → Toolbar mode)</text>
+
+  <rect x="395" y="8" width="375" height="22" rx="4" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+  <text x="582" y="23" font-family="Arial, sans-serif" font-size="11" fill="#1d4ed8" text-anchor="middle" font-weight="600">⚙ Advanced mode  (Options → Git → Toolbar mode)</text>
+
+  <!-- ============================= LEFT — STANDARD ============================= -->
+  <rect x="10" y="38" width="370" height="318" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <!-- Header -->
+  <rect x="10" y="38" width="370" height="30" rx="6" fill="#f1f5f9"/>
+  <rect x="10" y="58" width="370" height="10" fill="#f1f5f9"/>
+  <line x1="10" y1="68" x2="380" y2="68" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="28" y="59" font-family="Arial, sans-serif" font-size="12" fill="#374151" font-weight="600">Project Explorer</text>
+  <text x="366" y="61" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">×</text>
+  <!-- Toolbar -->
+  <rect x="10" y="68" width="370" height="26" fill="#f8fafc"/>
+  <line x1="10" y1="94" x2="380" y2="94" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Sync (active) -->
+  <rect x="16" y="75" width="46" height="15" rx="3" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="39" y="87" font-family="Arial, sans-serif" font-size="8" fill="#374151" text-anchor="middle">⇅ Sync</text>
+  <!-- Index (active) -->
+  <rect x="66" y="75" width="46" height="15" rx="3" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="89" y="87" font-family="Arial, sans-serif" font-size="8" fill="#374151" text-anchor="middle">↻ Index</text>
+  <!-- Branch badge read-only -->
+  <rect x="118" y="75" width="54" height="15" rx="7" fill="#64748b"/>
+  <text x="145" y="87" font-family="Arial, sans-serif" font-size="8" fill="#f8fafc" text-anchor="middle">⎇ main</text>
+  <text x="145" y="99" font-family="Arial, sans-serif" font-size="7" fill="#94a3b8" text-anchor="middle" font-style="italic">read-only</text>
+  <!-- Ghost buttons -->
+  <rect x="184" y="75" width="40" height="15" rx="3" fill="none" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="204" y="87" font-family="Arial, sans-serif" font-size="8" fill="#d1d5db" text-anchor="middle">↓ Pull</text>
+  <rect x="228" y="75" width="40" height="15" rx="3" fill="none" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="248" y="87" font-family="Arial, sans-serif" font-size="8" fill="#d1d5db" text-anchor="middle">↑ Push</text>
+  <rect x="272" y="75" width="50" height="15" rx="3" fill="none" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="297" y="87" font-family="Arial, sans-serif" font-size="8" fill="#d1d5db" text-anchor="middle">✓ Commit</text>
+  <text x="248" y="100" font-family="Arial, sans-serif" font-size="7" fill="#d1d5db" text-anchor="middle" font-style="italic">hidden in standard mode</text>
+  <!-- File tree -->
+  <g font-family="Consolas, monospace" font-size="11">
+    <text x="28" y="120" fill="#d97706">📁 my-documentation</text>
+    <text x="44" y="144" fill="#2563eb">📄 README.md</text>
+    <circle cx="368" cy="140" r="4" fill="#22c55e"/>
+    <text x="44" y="168" fill="#2563eb">📄 CHANGELOG.md</text>
+    <circle cx="368" cy="164" r="4" fill="#f59e0b"/>
+    <text x="44" y="192" fill="#d97706">📁 guides</text>
+    <rect x="42" y="196" width="328" height="22" rx="2" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+    <text x="60" y="211" fill="#1d4ed8">📄 getting-started.md</text>
+    <circle cx="368" cy="207" r="4" fill="#ef4444"/>
+    <text x="60" y="235" fill="#2563eb">📄 advanced.md</text>
+    <circle cx="368" cy="231" r="4" fill="#ef4444"/>
+    <text x="44" y="259" fill="#d97706">📁 images</text>
+    <text x="60" y="283" fill="#16a34a">🖼️ screenshot.png</text>
+    <text x="60" y="307" fill="#16a34a">🖼️ logo.svg</text>
+  </g>
+  <!-- Legend -->
+  <line x1="10" y1="322" x2="380" y2="322" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="22" cy="334" r="4" fill="#22c55e"/><text x="30" y="338" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">tracked</text>
+  <circle cx="90" cy="334" r="4" fill="#f59e0b"/><text x="98" y="338" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">modified</text>
+  <circle cx="168" cy="334" r="4" fill="#ef4444"/><text x="176" y="338" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">untracked</text>
+  <rect x="256" y="328" width="54" height="12" rx="6" fill="#64748b"/>
+  <text x="283" y="338" font-family="Arial, sans-serif" font-size="8" fill="#f8fafc" text-anchor="middle">⎇ branch</text>
+  <text x="324" y="338" font-family="Arial, sans-serif" font-size="8" fill="#94a3b8" font-style="italic"> read-only</text>
+
+  <!-- ============================= RIGHT — ADVANCED ============================= -->
+  <rect x="395" y="38" width="375" height="318" rx="6" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
+  <!-- Header -->
+  <rect x="395" y="38" width="375" height="30" rx="6" fill="#eff6ff"/>
+  <rect x="395" y="58" width="375" height="10" fill="#eff6ff"/>
+  <line x1="395" y1="68" x2="770" y2="68" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="413" y="59" font-family="Arial, sans-serif" font-size="12" fill="#1e40af" font-weight="600">Project Explorer</text>
+  <text x="756" y="61" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af">×</text>
+  <!-- Toolbar -->
+  <rect x="395" y="68" width="375" height="26" fill="#f0f9ff"/>
+  <line x1="395" y1="94" x2="770" y2="94" stroke="#bfdbfe" stroke-width="1"/>
+  <!-- Pull -->
+  <rect x="401" y="75" width="40" height="15" rx="3" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+  <text x="421" y="87" font-family="Arial, sans-serif" font-size="8" fill="#1d4ed8" text-anchor="middle">↓ Pull</text>
+  <!-- Push -->
+  <rect x="445" y="75" width="40" height="15" rx="3" fill="#dbeafe" stroke="#93c5fd" stroke-width="1"/>
+  <text x="465" y="87" font-family="Arial, sans-serif" font-size="8" fill="#1d4ed8" text-anchor="middle">↑ Push</text>
+  <!-- Commit -->
+  <rect x="489" y="75" width="50" height="15" rx="3" fill="#dcfce7" stroke="#86efac" stroke-width="1"/>
+  <text x="514" y="87" font-family="Arial, sans-serif" font-size="8" fill="#15803d" text-anchor="middle">✓ Commit</text>
+  <!-- Separator -->
+  <line x1="543" y1="77" x2="543" y2="89" stroke="#bfdbfe" stroke-width="1"/>
+  <!-- Sync -->
+  <rect x="547" y="75" width="40" height="15" rx="3" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="567" y="87" font-family="Arial, sans-serif" font-size="8" fill="#374151" text-anchor="middle">⇅ Sync</text>
+  <!-- Index -->
+  <rect x="591" y="75" width="40" height="15" rx="3" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="611" y="87" font-family="Arial, sans-serif" font-size="8" fill="#374151" text-anchor="middle">↻ Index</text>
+  <!-- Branch badge active -->
+  <rect x="637" y="75" width="58" height="15" rx="7" fill="#1e293b"/>
+  <text x="666" y="87" font-family="Arial, sans-serif" font-size="8" fill="#f8fafc" text-anchor="middle">⎇ main ▾</text>
+  <text x="666" y="99" font-family="Arial, sans-serif" font-size="7" fill="#3b82f6" text-anchor="middle" font-style="italic">click → list branches</text>
+  <!-- "new git buttons" annotation arc -->
+  <path d="M 421,74 C 421,60 514,60 514,74" fill="none" stroke="#3b82f6" stroke-width="1" stroke-dasharray="2,2"/>
+  <rect x="440" y="48" width="76" height="12" rx="3" fill="#dbeafe"/>
+  <text x="478" y="58" font-family="Arial, sans-serif" font-size="7.5" fill="#1d4ed8" text-anchor="middle">new git buttons</text>
+  <!-- File tree (same) -->
+  <g font-family="Consolas, monospace" font-size="11">
+    <text x="413" y="120" fill="#d97706">📁 my-documentation</text>
+    <text x="429" y="144" fill="#2563eb">📄 README.md</text>
+    <circle cx="762" cy="140" r="4" fill="#22c55e"/>
+    <text x="429" y="168" fill="#2563eb">📄 CHANGELOG.md</text>
+    <circle cx="762" cy="164" r="4" fill="#f59e0b"/>
+    <text x="429" y="192" fill="#d97706">📁 guides</text>
+    <rect x="427" y="196" width="335" height="22" rx="2" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+    <text x="445" y="211" fill="#1d4ed8">📄 getting-started.md</text>
+    <circle cx="762" cy="207" r="4" fill="#ef4444"/>
+    <text x="445" y="235" fill="#2563eb">📄 advanced.md</text>
+    <circle cx="762" cy="231" r="4" fill="#ef4444"/>
+    <text x="429" y="259" fill="#d97706">📁 images</text>
+    <text x="445" y="283" fill="#16a34a">🖼️ screenshot.png</text>
+    <text x="445" y="307" fill="#16a34a">🖼️ logo.svg</text>
+  </g>
+  <!-- Legend -->
+  <line x1="395" y1="322" x2="770" y2="322" stroke="#bfdbfe" stroke-width="1"/>
+  <circle cx="407" cy="334" r="4" fill="#22c55e"/><text x="415" y="338" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">tracked</text>
+  <circle cx="475" cy="334" r="4" fill="#f59e0b"/><text x="483" y="338" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">modified</text>
+  <circle cx="553" cy="334" r="4" fill="#ef4444"/><text x="561" y="338" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">untracked</text>
+  <rect x="643" y="328" width="58" height="12" rx="6" fill="#1e293b"/>
+  <text x="672" y="338" font-family="Arial, sans-serif" font-size="8" fill="#f8fafc" text-anchor="middle">⎇ branch ▾</text>
+  <text x="716" y="338" font-family="Arial, sans-serif" font-size="8" fill="#3b82f6" font-style="italic">active</text>
+
+  <!-- ============================= BOTTOM — shared callouts ============================= -->
+
+  <!-- Branch dropdown (advanced only) -->
+  <rect x="10" y="372" width="370" height="82" rx="5" fill="#f0f9ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="22" y="389" font-family="Arial, sans-serif" font-size="9.5" fill="#1e40af" font-weight="600">⎇ Branch badge dropdown  (advanced mode only — read-only)</text>
+  <line x1="10" y1="395" x2="380" y2="395" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="22" y="412" font-family="Arial, sans-serif" font-size="9" fill="#374151">Clicking the badge lists existing local branches:</text>
+  <rect x="22" y="418" width="116" height="14" rx="3" fill="#1e293b"/>
+  <text x="80" y="429" font-family="Arial, sans-serif" font-size="8.5" fill="#f8fafc" text-anchor="middle">✓  main  (current)</text>
+  <text x="146" y="429" font-family="Arial, sans-serif" font-size="8.5" fill="#374151">develop</text>
+  <text x="210" y="429" font-family="Arial, sans-serif" font-size="8.5" fill="#374151">feature/search</text>
+  <text x="22" y="447" font-family="Arial, sans-serif" font-size="8" fill="#64748b" font-style="italic">No branch creation or switching — listing only.</text>
+
+  <!-- Right-click menu (shared) -->
+  <rect x="395" y="366" width="148" height="180" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="469" y="381" font-family="Arial, sans-serif" font-size="8" fill="#9ca3af" text-anchor="middle" font-style="italic">right-click on file</text>
+  <line x1="395" y1="385" x2="543" y2="385" stroke="#f1f5f9" stroke-width="1"/>
+  <rect x="395" y="385" width="148" height="20" fill="#eff6ff"/>
+  <text x="409" y="399" font-family="Arial, sans-serif" font-size="10" fill="#1d4ed8">+  git add</text>
+  <line x1="402" y1="405" x2="536" y2="405" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="409" y="420" font-family="Arial, sans-serif" font-size="10" fill="#374151">✓  Commit…</text>
+  <line x1="402" y1="427" x2="536" y2="427" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="409" y="442" font-family="Arial, sans-serif" font-size="10" fill="#374151">↓  Pull</text>
+  <text x="409" y="460" font-family="Arial, sans-serif" font-size="10" fill="#374151">↑  Push</text>
+  <text x="409" y="478" font-family="Arial, sans-serif" font-size="10" fill="#374151">↺  Fetch</text>
+  <line x1="402" y1="484" x2="536" y2="484" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="409" y="499" font-family="Arial, sans-serif" font-size="9.5" fill="#9ca3af">✗  Remove from index</text>
+  <text x="469" y="536" font-family="Arial, sans-serif" font-size="8" fill="#64748b" text-anchor="middle" font-style="italic">visible in both modes</text>
+
+  <!-- Root folder callout -->
+  <rect x="553" y="366" width="217" height="192" rx="5" fill="#fefce8" stroke="#fcd34d" stroke-width="1.5"/>
+  <text x="565" y="383" font-family="Arial, sans-serif" font-size="9.5" fill="#92400e" font-weight="600">Root folder  (no .git/ yet)</text>
+  <line x1="553" y1="389" x2="770" y2="389" stroke="#fcd34d" stroke-width="1"/>
+  <text x="566" y="406" font-family="Arial, sans-serif" font-size="9.5" fill="#374151">⚙  Initialize Git repository…</text>
+  <text x="566" y="420" font-family="Arial, sans-serif" font-size="7.5" fill="#78716c" font-style="italic">  creates .git/, branch "main", asks identity</text>
+  <line x1="560" y1="426" x2="764" y2="426" stroke="#fcd34d" stroke-width="1"/>
+  <text x="566" y="443" font-family="Arial, sans-serif" font-size="9.5" fill="#374151">⊕  Add Remote…</text>
+  <text x="566" y="457" font-family="Arial, sans-serif" font-size="7.5" fill="#78716c" font-style="italic">  URL + auth (user / token / SSH key)</text>
+  <line x1="560" y1="463" x2="764" y2="463" stroke="#fcd34d" stroke-width="1"/>
+  <text x="566" y="479" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">↓ Pull  ↑ Push  ↺ Fetch  ✓ Commit…</text>
+  <text x="566" y="493" font-family="Arial, sans-serif" font-size="7.5" fill="#b8a27a" font-style="italic">  (once repo is initialized)</text>
+  <text x="566" y="508" font-family="Arial, sans-serif" font-size="7.5" fill="#9ca3af" font-style="italic">After init → proposes git add . + initial commit</text>
+  <text x="566" y="522" font-family="Arial, sans-serif" font-size="7.5" fill="#9ca3af" font-style="italic">After remote → proposes push to origin/main</text>
+
+  <!-- Footer notes -->
+  <text x="10" y="566" font-family="Arial, sans-serif" font-size="8.5" fill="#475569">* Status dots and root-folder context menu (⚙ Init / ⊕ Add Remote) are always visible, regardless of mode.</text>
+  <text x="10" y="582" font-family="Arial, sans-serif" font-size="8.5" fill="#475569">* Mode is persisted in ~/.marknote/config  —  key: git.toolbarMode = standard | advanced</text>
+
+</svg>
