@@ -21,6 +21,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SeparatorMenuItem;
@@ -60,10 +61,26 @@ public class ProjectExplorerPanel extends BasePanel {
     private BiConsumer<List<File>, File> onFilesMoved;
     private BiConsumer<List<File>, File> onFilesCopied;
 
-    // Git toolbar
+    // Git toolbar (buttons visibles selon mode)
     private HBox gitToolbar;
     private Button syncButton;
     private Button indexButton;
+    // Advanced-mode buttons
+    private Button pullButton;
+    private Button pushButton;
+    private Button commitButton;
+    private Label  branchLabel;
+    private String gitToolbarMode = "standard";
+
+    // Git action callbacks (set par MarkNote)
+    private Runnable         onGitCommit;
+    private Runnable         onGitInit;
+    private Runnable         onGitAddRemote;
+    private Consumer<File>   onGitAdd;
+    private Consumer<File>   onGitRemoveFromIndex;
+    private Runnable         onGitPull;
+    private Runnable         onGitPush;
+    private Runnable         onGitFetch;
 
     public ProjectExplorerPanel() {
         super("project.title", "project.close.tooltip");
@@ -98,7 +115,23 @@ public class ProjectExplorerPanel extends BasePanel {
         indexButton.getStyleClass().add("git-toolbar-button");
         indexButton.setOnAction(e -> handleResetIndex());
 
-        gitToolbar = new HBox(6, syncButton, indexButton);
+        // Boutons mode avancé
+        pullButton = new Button("\u2193 " + safeKey("git.pull", "Pull"));
+        pullButton.getStyleClass().add("git-toolbar-button");
+        pullButton.setOnAction(e -> { if (onGitPull   != null) onGitPull.run(); });
+
+        pushButton = new Button("\u2191 " + safeKey("git.push", "Push"));
+        pushButton.getStyleClass().add("git-toolbar-button");
+        pushButton.setOnAction(e -> { if (onGitPush   != null) onGitPush.run(); });
+
+        commitButton = new Button("\u2713 " + safeKey("git.commit", "Commit"));
+        commitButton.getStyleClass().add("git-toolbar-button");
+        commitButton.setOnAction(e -> { if (onGitCommit != null) onGitCommit.run(); });
+
+        branchLabel = new Label();
+        branchLabel.getStyleClass().add("git-branch-badge");
+
+        gitToolbar = new HBox(6, syncButton, pullButton, pushButton, commitButton, branchLabel, indexButton);
         gitToolbar.setPadding(new Insets(4, 6, 4, 6));
         gitToolbar.setAlignment(Pos.CENTER_LEFT);
         gitToolbar.getStyleClass().add("git-toolbar");
@@ -133,7 +166,44 @@ public class ProjectExplorerPanel extends BasePanel {
         MenuItem resetIndexItem = new MenuItem(bundle.getString("context.resetIndex"));
         resetIndexItem.setOnAction(e -> handleResetIndex());
 
-        menu.getItems().addAll(newFileItem, newFolderItem, new SeparatorMenuItem(), renameItem, new SeparatorMenuItem(), deleteItem, new SeparatorMenuItem(), resetIndexItem);
+        // --- Section git dans le menu contextuel ---
+        SeparatorMenuItem gitSep1  = new SeparatorMenuItem();
+        MenuItem gitAddItem        = new MenuItem(safeKey("git.add",              "git add"));
+        MenuItem gitCommitItem     = new MenuItem(safeKey("git.commit",           "Commit\u2026"));
+        SeparatorMenuItem gitSep2  = new SeparatorMenuItem();
+        MenuItem gitPullItem       = new MenuItem(safeKey("git.pull",             "Pull"));
+        MenuItem gitPushItem       = new MenuItem(safeKey("git.push",             "Push"));
+        MenuItem gitFetchItem      = new MenuItem(safeKey("git.fetch",            "Fetch"));
+        SeparatorMenuItem gitSep3  = new SeparatorMenuItem();
+        MenuItem gitRemoveItem     = new MenuItem(safeKey("git.remove.from.index","Retirer de l'index"));
+        SeparatorMenuItem gitSep4  = new SeparatorMenuItem();
+        MenuItem gitInitItem       = new MenuItem(safeKey("git.init",             "Initialiser Git\u2026"));
+        MenuItem gitAddRemoteItem  = new MenuItem(safeKey("git.add.remote",       "Ajouter un remote\u2026"));
+
+        gitAddItem.setOnAction(e -> {
+            if (onGitAdd != null) {
+                TreeItem<File> sel = treeView.getSelectionModel().getSelectedItem();
+                if (sel != null) onGitAdd.accept(sel.getValue());
+            }
+        });
+        gitCommitItem.setOnAction(e -> { if (onGitCommit    != null) onGitCommit.run(); });
+        gitPullItem.setOnAction(e   -> { if (onGitPull      != null) onGitPull.run(); });
+        gitPushItem.setOnAction(e   -> { if (onGitPush      != null) onGitPush.run(); });
+        gitFetchItem.setOnAction(e  -> { if (onGitFetch     != null) onGitFetch.run(); });
+        gitRemoveItem.setOnAction(e -> {
+            if (onGitRemoveFromIndex != null) {
+                TreeItem<File> sel = treeView.getSelectionModel().getSelectedItem();
+                if (sel != null) onGitRemoveFromIndex.accept(sel.getValue());
+            }
+        });
+        gitInitItem.setOnAction(e      -> { if (onGitInit      != null) onGitInit.run(); });
+        gitAddRemoteItem.setOnAction(e -> { if (onGitAddRemote != null) onGitAddRemote.run(); });
+
+        menu.getItems().addAll(newFileItem, newFolderItem, new SeparatorMenuItem(), renameItem, new SeparatorMenuItem(), deleteItem, new SeparatorMenuItem(), resetIndexItem,
+                gitSep1, gitAddItem, gitCommitItem,
+                gitSep2, gitPullItem, gitPushItem, gitFetchItem,
+                gitSep3, gitRemoveItem,
+                gitSep4, gitInitItem, gitAddRemoteItem);
 
         // Désactiver les items si aucune sélection
         menu.setOnShowing(e -> {
@@ -147,6 +217,28 @@ public class ProjectExplorerPanel extends BasePanel {
             // Reset index : uniquement sur le nœud racine
             boolean isRoot = hasSelection && selected == treeView.getRoot();
             resetIndexItem.setDisable(!isRoot);
+
+            // Items git : visibles seulement si gitService actif
+            boolean isGit    = gitService != null && gitService.isGitRepo();
+            boolean hasRemote = isGit && gitService.hasRemote();
+            boolean fileSelected = hasSelection && selected.getValue() != null && selected.getValue().isFile();
+            boolean isStageable = fileSelected && isGit && gitService.getStatus(selected.getValue()) != GitService.GitStatus.CLEAN
+                                                        && gitService.getStatus(selected.getValue()) != GitService.GitStatus.STAGED;
+            boolean isIndexed   = fileSelected && isGit && gitService.getStatus(selected.getValue()) == GitService.GitStatus.STAGED;
+
+            gitSep1.setVisible(isGit);
+            gitAddItem.setVisible(isStageable);
+            gitCommitItem.setVisible(isGit);
+            gitSep2.setVisible(isGit && hasRemote);
+            gitPullItem.setVisible(isGit && hasRemote);
+            gitPushItem.setVisible(isGit && hasRemote);
+            gitFetchItem.setVisible(isGit && hasRemote);
+            gitSep3.setVisible(isIndexed);
+            gitRemoveItem.setVisible(isIndexed);
+            // Init/AddRemote (root entry)
+            gitSep4.setVisible(!isGit || !hasRemote);
+            gitInitItem.setVisible(!isGit && isRoot);
+            gitAddRemoteItem.setVisible(isGit && !hasRemote && isRoot);
         });
 
         return menu;
@@ -365,6 +457,18 @@ public class ProjectExplorerPanel extends BasePanel {
      */
     public void setGitService(GitService service) {
         this.gitService = service;
+        if (service != null) {
+            branchLabel.textProperty().bind(service.currentBranchProperty());
+        } else {
+            branchLabel.textProperty().unbind();
+            branchLabel.setText("");
+        }
+    }
+
+    /** Définit le mode de la barre d'outils git ("standard" ou "advanced"). */
+    public void setGitToolbarMode(String mode) {
+        this.gitToolbarMode = (mode != null && !mode.isBlank()) ? mode : "standard";
+        updateGitToolbar();
     }
 
     /**
@@ -460,12 +564,31 @@ public class ProjectExplorerPanel extends BasePanel {
 
     /** Met à jour la visibilité de la barre d'outils git. */
     private void updateGitToolbar() {
-        boolean isGit = gitService != null && gitService.isGitRepo();
-        boolean hasProject = projectDir != null && projectDir.isDirectory();
-        gitToolbar.setVisible(isGit || hasProject);
-        gitToolbar.setManaged(isGit || hasProject);
-        syncButton.setVisible(isGit);
-        syncButton.setManaged(isGit);
+        boolean isGit    = gitService != null && gitService.isGitRepo();
+        boolean hasProj  = projectDir != null && projectDir.isDirectory();
+        boolean hasRemote = isGit && gitService.hasRemote();
+        boolean advanced  = "advanced".equals(gitToolbarMode);
+
+        gitToolbar.setVisible(isGit || hasProj);
+        gitToolbar.setManaged(isGit || hasProj);
+
+        // Standard mode: Sync + Index
+        syncButton.setVisible(isGit && !advanced);
+        syncButton.setManaged(isGit && !advanced);
+
+        // Advanced mode: Pull + Push + Commit + Branch badge
+        pullButton.setVisible(isGit && advanced && hasRemote);
+        pullButton.setManaged(isGit && advanced && hasRemote);
+        pushButton.setVisible(isGit && advanced && hasRemote);
+        pushButton.setManaged(isGit && advanced && hasRemote);
+        commitButton.setVisible(isGit && advanced);
+        commitButton.setManaged(isGit && advanced);
+        branchLabel.setVisible(isGit && advanced);
+        branchLabel.setManaged(isGit && advanced);
+
+        // Index always visible when project loaded
+        indexButton.setVisible(hasProj);
+        indexButton.setManaged(hasProj);
     }
 
     /**
@@ -776,5 +899,26 @@ public class ProjectExplorerPanel extends BasePanel {
         
         Optional<ButtonType> result = alert.showAndWait();
         return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+    // -------------------------------------------------------------------------
+    // Setters pour les callbacks git
+    // -------------------------------------------------------------------------
+
+    public void setOnGitCommit(Runnable cb)               { this.onGitCommit         = cb; }
+    public void setOnGitInit(Runnable cb)                  { this.onGitInit           = cb; }
+    public void setOnGitAddRemote(Runnable cb)             { this.onGitAddRemote      = cb; }
+    public void setOnGitAdd(Consumer<File> cb)             { this.onGitAdd            = cb; }
+    public void setOnGitRemoveFromIndex(Consumer<File> cb) { this.onGitRemoveFromIndex = cb; }
+    public void setOnGitPull(Runnable cb)                  { this.onGitPull           = cb; }
+    public void setOnGitPush(Runnable cb)                  { this.onGitPush           = cb; }
+    public void setOnGitFetch(Runnable cb)                 { this.onGitFetch          = cb; }
+
+    // -------------------------------------------------------------------------
+    // Utilitaire i18n
+    // -------------------------------------------------------------------------
+
+    private static String safeKey(String key, String fallback) {
+        try { return bundle.getString(key); } catch (Exception e) { return fallback; }
     }
 }

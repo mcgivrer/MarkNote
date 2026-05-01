@@ -400,3 +400,13 @@
     -fx-background-color: #3b82f6;
     -fx-text-fill: #ffffff;
 }
+
+.git-toolbar-button {
+    -fx-font-size: 10px;
+    -fx-padding: 2px 6px;
+}
+
+.git-branch-badge {
+    -fx-font-size: 10px;
+    -fx-padding: 2px 5px;
+}

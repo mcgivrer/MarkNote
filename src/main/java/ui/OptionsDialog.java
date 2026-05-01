@@ -31,6 +31,8 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -48,6 +50,10 @@ public class OptionsDialog {
 
     private static ResourceBundle getMessages() {
         return ResourceBundle.getBundle("i18n.messages", Locale.getDefault());
+    }
+
+    private static String safeKey(String key, String fallback) {
+        try { return getMessages().getString(key); } catch (Exception e) { return fallback; }
     }
 
     // Supported languages with their display names
@@ -373,10 +379,28 @@ public class OptionsDialog {
         gitGrid.setVgap(10);
         gitGrid.setPadding(new Insets(20));
 
+        // Section mode barre d'outils git
+        Label modeLabel = new Label(safeKey("git.toolbar.mode.label", "Mode barre d'outils Git :"));
+        modeLabel.setStyle("-fx-font-weight: bold;");
+        gitGrid.add(modeLabel, 0, 0, 3, 1);
+
+        ToggleGroup modeGroup = new ToggleGroup();
+        RadioButton standardRb = new RadioButton(safeKey("git.toolbar.mode.standard", "Standard"));
+        standardRb.setToggleGroup(modeGroup);
+        RadioButton advancedRb = new RadioButton(safeKey("git.toolbar.mode.advanced", "Avancé"));
+        advancedRb.setToggleGroup(modeGroup);
+        if ("advanced".equals(config.getGitToolbarMode())) {
+            advancedRb.setSelected(true);
+        } else {
+            standardRb.setSelected(true);
+        }
+        HBox modeBox = new HBox(16, standardRb, advancedRb);
+        gitGrid.add(modeBox, 0, 1, 3, 1);
+
         // Section SSH
         Label sshHeader = new Label(getMessages().getString("options.git.ssh.header"));
         sshHeader.setStyle("-fx-font-weight: bold;");
-        gitGrid.add(sshHeader, 0, 0, 3, 1);
+        gitGrid.add(sshHeader, 0, 3, 3, 1);
 
         Label sshKeyLabel = new Label(getMessages().getString("options.git.ssh.keyPath"));
         TextField sshKeyField = new TextField(config.getGitSshKeyPath());
@@ -398,20 +422,20 @@ public class OptionsDialog {
             File selected = fc.showOpenDialog(dialog);
             if (selected != null) sshKeyField.setText(selected.getAbsolutePath());
         });
-        gitGrid.add(sshKeyLabel, 0, 1);
-        gitGrid.add(sshKeyField, 1, 1);
-        gitGrid.add(browseSshBtn, 2, 1);
+        gitGrid.add(sshKeyLabel, 0, 4);
+        gitGrid.add(sshKeyField, 1, 4);
+        gitGrid.add(browseSshBtn, 2, 4);
 
         // Section Token HTTPS
         Label tokenHeader = new Label(getMessages().getString("options.git.token.header"));
         tokenHeader.setStyle("-fx-font-weight: bold;");
-        gitGrid.add(tokenHeader, 0, 3, 3, 1);
+        gitGrid.add(tokenHeader, 0, 6, 3, 1);
 
         Label usernameLabel = new Label(getMessages().getString("options.git.token.username"));
         TextField usernameField = new TextField(config.getGitUsername());
         usernameField.setPromptText(getMessages().getString("options.git.token.username.prompt"));
-        gitGrid.add(usernameLabel, 0, 4);
-        gitGrid.add(usernameField, 1, 4);
+        gitGrid.add(usernameLabel, 0, 7);
+        gitGrid.add(usernameField, 1, 7);
 
         Label tokenLabel = new Label(getMessages().getString("options.git.token.token"));
         PasswordField tokenField = new PasswordField();
@@ -419,8 +443,8 @@ public class OptionsDialog {
         tokenField.setPromptText(getMessages().getString("options.git.token.token.prompt"));
         tokenField.setPrefWidth(280);
         GridPane.setHgrow(tokenField, Priority.ALWAYS);
-        gitGrid.add(tokenLabel, 0, 5);
-        gitGrid.add(tokenField, 1, 5);
+        gitGrid.add(tokenLabel, 0, 8);
+        gitGrid.add(tokenField, 1, 8);
 
         gitTab.setContent(gitGrid);
         optionsTabs.getTabs().add(gitTab);
@@ -559,6 +583,7 @@ public class OptionsDialog {
             config.setGitSshKeyPath(sshKeyField.getText().trim());
             config.setGitUsername(usernameField.getText().trim());
             config.setGitToken(tokenField.getText());
+            config.setGitToolbarMode(advancedRb.isSelected() ? "advanced" : "standard");
             config.save();
             
             // Save LLM config

@@ -29,6 +29,8 @@ import ui.TagCloudPanel;
 import ui.ThemeTab;
 import ui.VisualLinkPanel;
 import ui.WelcomeTab;
+import ui.CommitDialog;
+import ui.AddRemoteDialog;
 import java.util.List;
 import utils.Debouncer;
 import utils.DocumentService;
@@ -177,6 +179,17 @@ public class MarkNote extends Application {
         gitService.setOnStatusUpdated(() -> projectExplorerPanel.refresh());
         gitService.setOnOperationResult(this::showGitOperationResult);
         projectExplorerPanel.setGitService(gitService);
+
+        // Callbacks git avancés
+        projectExplorerPanel.setGitToolbarMode(config.getGitToolbarMode());
+        projectExplorerPanel.setOnGitCommit(this::handleGitCommit);
+        projectExplorerPanel.setOnGitInit(this::handleGitInit);
+        projectExplorerPanel.setOnGitAddRemote(this::handleGitAddRemote);
+        projectExplorerPanel.setOnGitAdd(file -> gitService.addAsync(file));
+        projectExplorerPanel.setOnGitRemoveFromIndex(file -> gitService.removeFromIndexAsync(file));
+        projectExplorerPanel.setOnGitPull(() -> gitService.pullAsync());
+        projectExplorerPanel.setOnGitPush(() -> gitService.pushAsync());
+        projectExplorerPanel.setOnGitFetch(() -> gitService.fetchAsync());
 
         // Project session service
         projectSessionService = new ProjectSessionService();
@@ -1183,6 +1196,7 @@ public class MarkNote extends Application {
             gitService.setSshKeyPath(config.getGitSshKeyPath());
             gitService.setGitToken(config.getGitToken());
             gitService.setGitUsername(config.getGitUsername());
+            projectExplorerPanel.setGitToolbarMode(config.getGitToolbarMode());
         }
     }
 
@@ -1201,6 +1215,64 @@ public class MarkNote extends Application {
         textArea.setPrefSize(420, 180);
         alert.getDialogPane().setContent(textArea);
         alert.showAndWait();
+    }
+
+    /** Ouvre la boîte de dialogue de commit git. */
+    private void handleGitCommit() {
+        new CommitDialog(primaryStage, gitService).showAndWait()
+                .ifPresent(msg -> gitService.commitAsync(msg));
+    }
+
+    /** Ouvre la boîte de dialogue d'ajout d'un remote git. */
+    private void handleGitAddRemote() {
+        boolean saved = new AddRemoteDialog(primaryStage, gitService, config).showAndWait();
+        if (saved) projectExplorerPanel.refresh();
+    }
+
+    /** Initialise un dépôt git dans le répertoire de projet courant. */
+    private void handleGitInit() {
+        File projectDir = projectExplorerPanel.getProjectDirectory();
+        if (projectDir == null) return;
+        try {
+            gitService.init(projectDir);
+            // Vérifier que l'identité est configurée
+            String[] identity = gitService.getLocalIdentity();
+            if (identity == null || identity[0].isBlank() || identity[1].isBlank()) {
+                javafx.scene.control.TextInputDialog nameDialog = new javafx.scene.control.TextInputDialog();
+                nameDialog.initOwner(primaryStage);
+                nameDialog.setTitle(messages.getString("git.init.identity.title"));
+                nameDialog.setHeaderText(messages.getString("git.init.identity.header"));
+                nameDialog.setContentText(messages.getString("git.init.identity.name"));
+                String name = nameDialog.showAndWait().orElse("").trim();
+
+                javafx.scene.control.TextInputDialog emailDialog = new javafx.scene.control.TextInputDialog();
+                emailDialog.initOwner(primaryStage);
+                emailDialog.setTitle(messages.getString("git.init.identity.title"));
+                emailDialog.setHeaderText(messages.getString("git.init.identity.header"));
+                emailDialog.setContentText(messages.getString("git.init.identity.email"));
+                String email = emailDialog.showAndWait().orElse("").trim();
+
+                if (!name.isBlank() && !email.isBlank()) {
+                    gitService.setLocalIdentity(name, email, false);
+                }
+            }
+            // Proposer un premier commit
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.initOwner(primaryStage);
+            confirm.setTitle(messages.getString("git.init.first.commit.title"));
+            confirm.setHeaderText(messages.getString("git.init.first.commit.header"));
+            confirm.showAndWait().ifPresent(bt -> {
+                if (bt == javafx.scene.control.ButtonType.OK) {
+                    gitService.addAllAsync();
+                    javafx.application.Platform.runLater(() ->
+                        new CommitDialog(primaryStage, gitService).showAndWait()
+                                .ifPresent(msg -> gitService.commitAsync(msg)));
+                }
+            });
+            projectExplorerPanel.refresh();
+        } catch (Exception ex) {
+            showGitOperationResult("Error: " + ex.getMessage());
+        }
     }
 
     /**

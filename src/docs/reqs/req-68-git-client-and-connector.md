@@ -305,17 +305,17 @@ No additional native binaries are required. JGit bundles all transitive dependen
 
 ## ToDo
 
-- [ ] Use plan mode to prepare the implementation,
-- [ ] wait for plan approval before proceeding,
-- [ ] write a dedicated specification in `src/docs/git-client-and-connector-implementation.md`,
-- [ ] add JGit dependency to `pom.xml`,
-- [ ] implement `GitService` with all operations listed above,
-- [ ] update Project Explorer toolbar (Pull / Push / Commit buttons + branch badge),
-- [ ] add Git section to file and root-folder context menus,
-- [ ] implement Commit dialog,
-- [ ] implement Add Remote / Credentials dialog,
-- [ ] wire status dot refresh to post-operation events,
-- [ ] add Git tab in Options dialog (toolbar mode: standard / advanced; remote credentials).
+- [x] Use plan mode to prepare the implementation,
+- [x] wait for plan approval before proceeding,
+- [x] write a dedicated specification in `src/docs/git-client-and-connector-implementation.md`,
+- [x] add JGit dependency to `pom.xml`,
+- [x] implement `GitService` with all operations listed above,
+- [x] update Project Explorer toolbar (Pull / Push / Commit buttons + branch badge),
+- [x] add Git section to file and root-folder context menus,
+- [x] implement Commit dialog,
+- [x] implement Add Remote / Credentials dialog,
+- [x] wire status dot refresh to post-operation events,
+- [x] add Git tab in Options dialog (toolbar mode: standard / advanced; remote credentials).
 
 > [!IMPORTANT] GitService class
 > The Git client is a big feature; create it as a dedicated `GitService` class and keep all JGit calls inside it. The UI layer must never import JGit directly.
