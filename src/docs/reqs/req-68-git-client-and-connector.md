@@ -37,6 +37,8 @@ After initialisation (or when performing a first commit on an existing repo that
 
 If either value is missing, a small modal dialog prompts the user to provide both. The values are written to the **local** repo config only (`git config --local user.name …`), leaving the global config untouched unless the user explicitly checks an *"Apply globally"* option.
 
+![Git Identity dialog](../illustrations/git-identity-dialog.svg)
+
 ### 3. Initial add + commit
 
 Immediately after a successful `git init` + identity setup, a confirmation dialog lists all non-ignored files in the project directory and asks:
@@ -149,6 +151,8 @@ The dialog validates that the message is non-empty and that at least one file is
 ### Add Remote / Credentials dialog
 
 A single-page modal with the fields listed in §4 (Proposal). The auth type selector shows/hides the relevant credential fields dynamically. A **Test Connection** button optionally calls `git ls-remote <url>` to verify connectivity before saving.
+
+![Add Remote / Credentials dialog — Token auth (left) vs SSH key auth (right)](../illustrations/git-add-remote-dialog.svg)
 
 ## Architecture
 

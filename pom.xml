@@ -217,8 +217,11 @@
             <goals><goal>copy-dependencies</goal></goals>
             <configuration>
               <outputDirectory>${project.build.directory}/dependency</outputDirectory>
-              <includeScope>runtime</includeScope>
-            </configuration>
+              <includeScope>runtime</includeScope>                <!-- Exclude jars that cause split-package errors in the JPMS boot layer:
+                     junit-4.x and hamcrest-core both export org.hamcrest.internal,
+                     which triggers a ResolutionException when both sit on the module-path.
+                     These jars are only needed on the classpath (test scope), not here. -->
+                <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>            </configuration>
           </execution>
         </executions>
       </plugin>

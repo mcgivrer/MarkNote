@@ -80,9 +80,7 @@ public class CommitDialog {
         confirmBtn.setDisable(true);
         confirmBtn.setOnAction(e -> handleConfirm());
 
-        Button cancelBtn = new Button(messages.getString("cancel") != null
-                ? safeKey("cancel", "Annuler")
-                : "Annuler");
+        Button cancelBtn = new Button(safeKey("cancel", "Annuler"));
         cancelBtn.setCancelButton(true);
         cancelBtn.setOnAction(e -> dialog.close());
 

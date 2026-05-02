@@ -184,12 +184,14 @@ public class GitService {
      * puis charge le projet via {@link #setProject(File)}.
      */
     public void init(File dir) throws GitAPIException, IOException {
+        log.startOperation(LOG_SOURCE, "git init");
         try (Git newRepo = Git.init()
                 .setDirectory(dir)
                 .setInitialBranch("main")
                 .call()) {
             // Repo créé ; on le referme immédiatement puis on rouvre via setProject
         }
+        log.endOperation(LOG_SOURCE, "git init", "OK — " + dir.getName());
         setProject(dir);
     }
 
@@ -201,10 +203,12 @@ public class GitService {
      */
     public void addRemote(String name, String url) throws GitAPIException, URISyntaxException {
         if (!isGitRepo || jgit == null) throw new IllegalStateException("Not a git repo");
+        log.info(LOG_SOURCE, "git remote add " + name + " " + url);
         RemoteAddCommand cmd = jgit.remoteAdd();
         cmd.setName(name);
         cmd.setUri(new URIish(url));
         cmd.call();
+        log.info(LOG_SOURCE, "Remote '" + name + "' added.");
     }
 
     /**
@@ -284,7 +288,9 @@ public class GitService {
                     .relativize(file.toPath())
                     .toString()
                     .replace(File.separatorChar, '/');
+            log.info(LOG_SOURCE, "git add " + relative);
             jgit.add().addFilepattern(relative).call();
+            log.debug(LOG_SOURCE, "Staged: " + relative);
             refreshStatus();
         });
     }
@@ -294,7 +300,9 @@ public class GitService {
      */
     public void addAllAsync() {
         runAsync("git-add-all", () -> {
+            log.info(LOG_SOURCE, "git add -A");
             addAllInternal();
+            log.debug(LOG_SOURCE, "Stage all complete.");
         });
     }
 
@@ -314,7 +322,9 @@ public class GitService {
                     .relativize(file.toPath())
                     .toString()
                     .replace(File.separatorChar, '/');
+            log.info(LOG_SOURCE, "git rm --cached " + relative);
             jgit.rm().addFilepattern(relative).setCached(true).call();
+            log.debug(LOG_SOURCE, "Removed from index: " + relative);
             refreshStatus();
         });
     }
@@ -323,12 +333,14 @@ public class GitService {
     public void commitAsync(String message) {
         runAsync("git-commit", () -> {
             if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git commit");
             PersonIdent author = buildPersonIdent();
             jgit.commit()
                     .setMessage(message)
                     .setAuthor(author)
                     .setCommitter(author)
                     .call();
+            log.endOperation(LOG_SOURCE, "git commit", "OK — " + firstLine(message));
             refreshStatus();
             updateBranchProperty(currentBranch());
         });
@@ -337,12 +349,14 @@ public class GitService {
     /** Crée un commit de manière synchrone. */
     public void commit(String message) throws GitAPIException {
         if (!isGitRepo || jgit == null) throw new IllegalStateException("Not a git repo");
+        log.startOperation(LOG_SOURCE, "git commit");
         PersonIdent author = buildPersonIdent();
         jgit.commit()
                 .setMessage(message)
                 .setAuthor(author)
                 .setCommitter(author)
                 .call();
+        log.endOperation(LOG_SOURCE, "git commit", "OK — " + firstLine(message));
         refreshStatus();
         updateBranchProperty(currentBranch());
     }
@@ -351,11 +365,13 @@ public class GitService {
     public void fetchAsync() {
         runAsync("git-fetch", () -> {
             if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git fetch");
             FetchResult result = jgit.fetch()
                     .setCredentialsProvider(buildCredentials())
                     .call();
             refreshStatus();
             String msg = nvl(result.getMessages()).strip();
+            log.endOperation(LOG_SOURCE, "git fetch", msg.isBlank() ? "OK" : msg);
             if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
         });
     }
@@ -364,6 +380,7 @@ public class GitService {
     public void pullAsync() {
         runAsync("git-pull", () -> {
             if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git pull --ff-only");
             PullResult result = jgit.pull()
                     .setFastForward(FastForwardMode.FF_ONLY)
                     .setCredentialsProvider(buildCredentials())
@@ -371,6 +388,7 @@ public class GitService {
             refreshStatus();
             updateBranchProperty(currentBranch());
             String msg = result.isSuccessful() ? "" : "Pull failed: " + result;
+            log.endOperation(LOG_SOURCE, "git pull --ff-only", result.isSuccessful() ? "OK" : "FAILED — " + result);
             if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
         });
     }
@@ -379,6 +397,7 @@ public class GitService {
     public void pushAsync() {
         runAsync("git-push", () -> {
             if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git push");
             StringBuilder sb = new StringBuilder();
             Iterable<PushResult> results = jgit.push()
                     .setCredentialsProvider(buildCredentials())
@@ -387,13 +406,17 @@ public class GitService {
                 for (RemoteRefUpdate rru : pr.getRemoteUpdates()) {
                     RemoteRefUpdate.Status s = rru.getStatus();
                     if (s != RemoteRefUpdate.Status.OK && s != RemoteRefUpdate.Status.UP_TO_DATE) {
-                        sb.append("Error: ").append(s)
-                          .append(" — ").append(nvl(rru.getMessage())).append("\n");
+                        String detail = "Error: " + s + " — " + nvl(rru.getMessage());
+                        log.warn(LOG_SOURCE, detail);
+                        sb.append(detail).append("\n");
+                    } else {
+                        log.debug(LOG_SOURCE, "Push OK: " + rru.getRemoteName() + " [" + s + "]");
                     }
                 }
             }
             refreshStatus();
             String msg = sb.toString().strip();
+            log.endOperation(LOG_SOURCE, "git push", msg.isBlank() ? "OK" : "FAILED");
             if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
         });
     }
@@ -505,14 +528,18 @@ public class GitService {
      * @return chaîne vide si succès, message d'erreur sinon.
      */
     public String testRemoteConnection(String url) {
+        log.info(LOG_SOURCE, "Testing remote connection: " + url);
         try {
             Git.lsRemoteRepository()
                     .setRemote(url)
                     .setCredentialsProvider(buildCredentials())
                     .call();
+            log.info(LOG_SOURCE, "Remote connection OK: " + url);
             return "";
         } catch (GitAPIException e) {
-            return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            log.warn(LOG_SOURCE, "Remote connection FAILED: " + msg);
+            return msg;
         }
     }
 
@@ -603,6 +630,12 @@ public class GitService {
         String name  = identity[0].isBlank() ? "MarkNote" : identity[0];
         String email = identity[1].isBlank() ? "marknote@local" : identity[1];
         return new PersonIdent(name, email);
+    }
+
+    private static String firstLine(String s) {
+        if (s == null || s.isBlank()) return "(no message)";
+        String first = s.strip().lines().findFirst().orElse("");
+        return first.length() > 72 ? first.substring(0, 72) + "…" : first;
     }
 
     private String buildCommitMessage(List<String> changedFiles) {

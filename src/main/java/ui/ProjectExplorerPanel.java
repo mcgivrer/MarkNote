@@ -20,6 +20,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -39,6 +40,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -70,6 +72,7 @@ public class ProjectExplorerPanel extends BasePanel {
     private Button pushButton;
     private Button commitButton;
     private Label  branchLabel;
+    private ComboBox<String> branchCombo;
     private String gitToolbarMode = "standard";
 
     // Git action callbacks (set par MarkNote)
@@ -105,33 +108,44 @@ public class ProjectExplorerPanel extends BasePanel {
         treeView.setContextMenu(contextMenu);
 
         // Barre d'outils git (cachée par défaut)
-        syncButton = new Button("\u21C5 " + bundle.getString("git.sync"));
+        syncButton = new Button("\u21C5");
         syncButton.setTooltip(new Tooltip(bundle.getString("git.sync.tooltip")));
         syncButton.getStyleClass().add("git-toolbar-button");
         syncButton.setOnAction(e -> { if (gitService != null) gitService.syncAsync(); });
 
-        indexButton = new Button("\u21BB " + bundle.getString("toolbar.index"));
+        indexButton = new Button("\u21BB");
         indexButton.setTooltip(new Tooltip(bundle.getString("toolbar.index.tooltip")));
         indexButton.getStyleClass().add("git-toolbar-button");
         indexButton.setOnAction(e -> handleResetIndex());
 
         // Boutons mode avancé
-        pullButton = new Button("\u2193 " + safeKey("git.pull", "Pull"));
+        pullButton = new Button("\u2193");
+        pullButton.setTooltip(new Tooltip(safeKey("git.pull", "Pull")));
         pullButton.getStyleClass().add("git-toolbar-button");
         pullButton.setOnAction(e -> { if (onGitPull   != null) onGitPull.run(); });
 
-        pushButton = new Button("\u2191 " + safeKey("git.push", "Push"));
+        pushButton = new Button("\u2191");
+        pushButton.setTooltip(new Tooltip(safeKey("git.push", "Push")));
         pushButton.getStyleClass().add("git-toolbar-button");
         pushButton.setOnAction(e -> { if (onGitPush   != null) onGitPush.run(); });
 
-        commitButton = new Button("\u2713 " + safeKey("git.commit", "Commit"));
+        commitButton = new Button("\u2713");
+        commitButton.setTooltip(new Tooltip(safeKey("git.commit", "Commit")));
         commitButton.getStyleClass().add("git-toolbar-button");
         commitButton.setOnAction(e -> { if (onGitCommit != null) onGitCommit.run(); });
 
         branchLabel = new Label();
         branchLabel.getStyleClass().add("git-branch-badge");
 
-        gitToolbar = new HBox(6, syncButton, pullButton, pushButton, commitButton, branchLabel, indexButton);
+        branchCombo = new ComboBox<>();
+        branchCombo.getStyleClass().add("git-branch-combo");
+        branchCombo.setTooltip(new Tooltip(safeKey("git.branch", "Branche")));
+        branchCombo.setMaxWidth(Double.MAX_VALUE);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        gitToolbar = new HBox(6, syncButton, pullButton, pushButton, commitButton, indexButton, spacer, branchCombo);
         gitToolbar.setPadding(new Insets(4, 6, 4, 6));
         gitToolbar.setAlignment(Pos.CENTER_LEFT);
         gitToolbar.getStyleClass().add("git-toolbar");
@@ -458,10 +472,10 @@ public class ProjectExplorerPanel extends BasePanel {
     public void setGitService(GitService service) {
         this.gitService = service;
         if (service != null) {
-            branchLabel.textProperty().bind(service.currentBranchProperty());
+            service.currentBranchProperty().addListener((obs, oldVal, newVal) -> updateBranchCombo(newVal));
+            updateBranchCombo(service.currentBranch());
         } else {
-            branchLabel.textProperty().unbind();
-            branchLabel.setText("");
+            branchCombo.getItems().clear();
         }
     }
 
@@ -562,6 +576,17 @@ public class ProjectExplorerPanel extends BasePanel {
         return null;
     }
 
+    private void updateBranchCombo(String branch) {
+        if (branch == null || branch.isBlank()) {
+            branchCombo.getItems().clear();
+            return;
+        }
+        if (!branchCombo.getItems().contains(branch)) {
+            branchCombo.getItems().setAll(branch);
+        }
+        branchCombo.getSelectionModel().select(branch);
+    }
+
     /** Met à jour la visibilité de la barre d'outils git. */
     private void updateGitToolbar() {
         boolean isGit    = gitService != null && gitService.isGitRepo();
@@ -583,8 +608,8 @@ public class ProjectExplorerPanel extends BasePanel {
         pushButton.setManaged(isGit && advanced && hasRemote);
         commitButton.setVisible(isGit && advanced);
         commitButton.setManaged(isGit && advanced);
-        branchLabel.setVisible(isGit && advanced);
-        branchLabel.setManaged(isGit && advanced);
+        branchCombo.setVisible(isGit && advanced);
+        branchCombo.setManaged(isGit && advanced);
 
         // Index always visible when project loaded
         indexButton.setVisible(hasProj);

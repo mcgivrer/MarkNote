@@ -16,6 +16,7 @@ import javafx.stage.Window;
 
 import config.AppConfig;
 import utils.GitService;
+import utils.LogService;
 
 /**
  * Dialogue modal pour ajouter (ou modifier) le remote "origin" d'un dépôt git.
@@ -36,10 +37,13 @@ public class AddRemoteDialog {
     private static final String AUTH_TOKEN = "token";
     private static final String AUTH_SSH   = "ssh";
 
+    private static final String LOG_SOURCE = "AddRemoteDialog";
+
     private final Stage dialog;
     private final GitService gitService;
     private final AppConfig config;
     private final ResourceBundle messages;
+    private final LogService log = LogService.getInstance();
 
     // Form fields
     private final TextField     urlField;
@@ -110,8 +114,11 @@ public class AddRemoteDialog {
         sshKeyRow   = buildSSHKeyRow(browseBtn);
         sshPassRow  = labeledRow(s("git.add.remote.ssh.passphrase"), sshPassphraseField);
 
-        // Listen to combo changes to show/hide rows
-        authCombo.getSelectionModel().selectedIndexProperty().addListener((obs, o, n) -> updateAuthRows(n.intValue()));
+        // Listen to combo changes to show/hide rows and resize dialog accordingly
+        authCombo.getSelectionModel().selectedIndexProperty().addListener((obs, o, n) -> {
+            updateAuthRows(n.intValue());
+            dialog.sizeToScene();
+        });
         updateAuthRows(0);  // initial: none
 
         // --- Test connection ---
@@ -192,13 +199,16 @@ public class AddRemoteDialog {
         }
         applyCredentialsToService();
         testResultLabel.setText("\u2026");
+        log.info(LOG_SOURCE, "Testing remote connection: " + url);
         Thread t = new Thread(() -> {
             String result = gitService.testRemoteConnection(url);
             Platform.runLater(() -> {
                 if (result.isEmpty()) {
+                    log.info(LOG_SOURCE, "Test connection OK: " + url);
                     testResultLabel.setStyle("-fx-text-fill: green;");
                     testResultLabel.setText(s("git.add.remote.test.success"));
                 } else {
+                    log.warn(LOG_SOURCE, "Test connection FAILED: " + result);
                     testResultLabel.setStyle("-fx-text-fill: red;");
                     String pattern = s("git.add.remote.test.failure");
                     testResultLabel.setText(pattern.replace("{0}", result));
@@ -216,11 +226,14 @@ public class AddRemoteDialog {
             return;
         }
         applyCredentialsToService();
+        log.info(LOG_SOURCE, "Saving remote origin: " + url);
         try {
             gitService.addRemote("origin", url);
+            log.info(LOG_SOURCE, "Remote 'origin' saved successfully.");
             saved = true;
             dialog.close();
         } catch (Exception e) {
+            log.error(LOG_SOURCE, "Failed to save remote: " + e.getMessage());
             showError(e.getMessage());
         }
     }
