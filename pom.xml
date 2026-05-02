@@ -47,6 +47,7 @@
     <wellbehavedfx.version>0.3.3</wellbehavedfx.version>
     <junit.version>5.11.4</junit.version>
     <json.simple.version>1.1.1</json.simple.version>
+    <jgit.version>7.1.0.202411261347-r</jgit.version>
 
     <!-- JVM launcher options -->
     <app.main.class>Main</app.main.class>
@@ -216,8 +217,11 @@
             <goals><goal>copy-dependencies</goal></goals>
             <configuration>
               <outputDirectory>${project.build.directory}/dependency</outputDirectory>
-              <includeScope>runtime</includeScope>
-            </configuration>
+              <includeScope>runtime</includeScope>                <!-- Exclude jars that cause split-package errors in the JPMS boot layer:
+                     junit-4.x and hamcrest-core both export org.hamcrest.internal,
+                     which triggers a ResolutionException when both sit on the module-path.
+                     These jars are only needed on the classpath (test scope), not here. -->
+                <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -419,6 +423,18 @@
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
       <version>${json.simple.version}</version>
+    </dependency>
+
+    <!-- ── JGit (pure-Java Git implementation) ─────────────────────────── -->
+    <dependency>
+      <groupId>org.eclipse.jgit</groupId>
+      <artifactId>org.eclipse.jgit</artifactId>
+      <version>${jgit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jgit</groupId>
+      <artifactId>org.eclipse.jgit.ssh.apache</artifactId>
+      <version>${jgit.version}</version>
     </dependency>
 
     <!-- ── Test ─────────────────────────────────────────────────────────── -->

@@ -37,6 +37,7 @@ public class AppConfig {
     private String gitSshKeyPath = "";
     private String gitToken      = "";
     private String gitUsername   = "token";
+    private String gitToolbarMode = "standard";
 
     public record PanelState(boolean visible, boolean docked, String zone) {}
 
@@ -93,6 +94,8 @@ public class AppConfig {
                     gitToken = line.substring("gitToken=".length()).trim();
                 } else if (line.startsWith("gitUsername=")) {
                     gitUsername = line.substring("gitUsername=".length()).trim();
+                } else if (line.startsWith("gitToolbarMode=")) {
+                    gitToolbarMode = line.substring("gitToolbarMode=".length()).trim();
                 } else if (line.startsWith("panelState=")) {
                     String raw = line.substring("panelState=".length()).trim();
                     String[] parts = raw.split("\\|", -1);
@@ -134,6 +137,7 @@ public class AppConfig {
             lines.add("gitSshKeyPath=" + gitSshKeyPath);
             lines.add("gitToken=" + gitToken);
             lines.add("gitUsername=" + gitUsername);
+            lines.add("gitToolbarMode=" + gitToolbarMode);
             for (Map.Entry<String, PanelState> entry : panelStates.entrySet()) {
                 PanelState state = entry.getValue();
                 lines.add("panelState=" + entry.getKey() + "|" + state.visible() + "|" + state.docked() + "|" + state.zone());
@@ -303,6 +307,9 @@ public class AppConfig {
 
     public String getGitUsername() { return gitUsername; }
     public void setGitUsername(String username) { this.gitUsername = username != null ? username : "token"; }
+
+    public String getGitToolbarMode() { return gitToolbarMode; }
+    public void setGitToolbarMode(String mode) { this.gitToolbarMode = (mode != null && !mode.isBlank()) ? mode : "standard"; }
 
     /**
      * Supprime un fichier de la liste des récents.

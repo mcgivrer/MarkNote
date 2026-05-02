@@ -1,39 +1,40 @@
 package utils;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+
+import org.eclipse.jgit.api.*;
+import org.eclipse.jgit.api.MergeCommand.FastForwardMode;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.storage.file.FileBasedConfig;
+import org.eclipse.jgit.transport.*;
+import org.eclipse.jgit.transport.sshd.JGitKeyCache;
+import org.eclipse.jgit.transport.sshd.SshdSessionFactory;
+import org.eclipse.jgit.transport.sshd.SshdSessionFactoryBuilder;
+import org.eclipse.jgit.util.FS;
 
 /**
- * Service gérant les opérations git pour le projet courant (V1).
+ * Service gérant les opérations git pour le projet courant (V2 — JGit).
  * <p>
- * Détecte automatiquement si le répertoire de projet contient un sous-dossier
- * {@code .git/}. Si c'est le cas, il analyse le statut de chaque fichier via
- * {@code git status --porcelain} et expose l'opération de synchronisation.
- * <p>
- * Synchronisation : commit local (si modifiés) → pull --rebase → push.
- * <p>
- * Authentification supportée (V1) :
+ * Utilise la bibliothèque JGit (pur Java) pour toutes les opérations.
+ * Authentication supportée :
  * <ul>
- *   <li>SSH avec clé sans passphrase ({@code GIT_SSH_COMMAND}).</li>
- *   <li>Token personnel GitHub/GitLab via {@code GIT_ASKPASS} (script shell temporaire).</li>
+ *   <li>SSH avec fichier de clé privée via Apache MINA SSHD ({@code jgit.ssh.apache}).</li>
+ *   <li>HTTPS / Token via {@link UsernamePasswordCredentialsProvider}.</li>
  * </ul>
  */
 public class GitService {
@@ -46,14 +47,29 @@ public class GitService {
     // -------------------------------------------------------------------------
 
     public enum GitStatus {
-        /** Fichier suivi par git et non modifié. */
+        /** Fichier suivi et non modifié. */
         CLEAN,
-        /** Fichier suivi et modifié (ou supprimé) dans le working tree ou l'index. */
+        /** Fichier suivi et modifié (ou supprimé) dans le working tree. */
         MODIFIED,
-        /** Fichier ajouté à l'index (staged) mais pas encore commité. */
+        /** Fichier dans l'index (staged). */
         STAGED,
-        /** Fichier non suivi (untracked) par git. */
+        /** Fichier non suivi (untracked). */
         UNTRACKED
+    }
+
+    // -------------------------------------------------------------------------
+    // Record pour un fichier staged (utilisé par CommitDialog)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Représente un fichier présent dans l'index (staged).
+     * {@code status} vaut 'A' (added), 'M' (modified) ou 'D' (deleted).
+     */
+    public record StagedFile(String path, char status) {
+        @Override
+        public String toString() {
+            return status + " " + path;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -63,18 +79,22 @@ public class GitService {
     private File projectDir;
     private volatile Map<String, GitStatus> statusMap = new HashMap<>();
     private volatile boolean isGitRepo = false;
+    private Git jgit;  // null quand pas de dépôt git ouvert
 
-    // Credentials (V1)
+    // Credentials
     private String sshKeyPath  = "";
     private String gitToken    = "";
-    private String gitUsername = "token";  // default for GitHub/GitLab token auth
+    private String gitUsername = "token";
+
+    // Propriété JavaFX pour la branche courante (bindable depuis l'UI)
+    private final StringProperty currentBranchProperty = new SimpleStringProperty("");
 
     // Callbacks
     private Runnable         onStatusUpdated;
     private Consumer<String> onOperationResult;
 
     // -------------------------------------------------------------------------
-    // API publique
+    // API publique — gestion du projet
     // -------------------------------------------------------------------------
 
     /**
@@ -82,13 +102,24 @@ public class GitService {
      * Détecte automatiquement si c'est un dépôt git et lance un refresh asynchrone.
      */
     public void setProject(File dir) {
+        closeJGit();
         this.projectDir = dir;
-        this.isGitRepo  = dir != null && new File(dir, ".git").isDirectory();
-        statusMap       = new HashMap<>();
-        if (isGitRepo) {
-            refreshStatusAsync();
-        } else if (onStatusUpdated != null) {
-            Platform.runLater(onStatusUpdated);
+        statusMap = new HashMap<>();
+        if (dir != null && new File(dir, ".git").isDirectory()) {
+            try {
+                jgit = Git.open(dir);
+                isGitRepo = true;
+                refreshStatusAsync();
+            } catch (IOException e) {
+                log.error(LOG_SOURCE, "Cannot open git repo: " + e.getMessage());
+                isGitRepo = false;
+                updateBranchProperty("");
+                if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
+            }
+        } else {
+            isGitRepo = false;
+            updateBranchProperty("");
+            if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
         }
     }
 
@@ -98,114 +129,367 @@ public class GitService {
     }
 
     /**
-     * Retourne le statut git d'un fichier ou {@code null} si git n'est pas actif.
-     * Les fichiers suivis et non modifiés (CLEAN) qui n'apparaissent pas dans
-     * {@code git status --porcelain} sont signalés comme {@link GitStatus#CLEAN}.
-     *
-     * @param file Fichier absolu appartenant au projet.
+     * Retourne le statut git d'un fichier.
+     * Les fichiers suivis non modifiés retournent {@link GitStatus#CLEAN}.
      */
     public GitStatus getStatus(File file) {
         if (!isGitRepo || projectDir == null) return null;
         try {
-            String relative = projectDir.toPath().relativize(file.toPath()).toString();
+            String relative = projectDir.toPath()
+                    .relativize(file.toPath())
+                    .toString()
+                    .replace(File.separatorChar, '/');
             return statusMap.getOrDefault(relative, GitStatus.CLEAN);
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Propriété JavaFX
+    // -------------------------------------------------------------------------
+
+    /** Propriété JavaFX bindable pour la branche courante. */
+    public StringProperty currentBranchProperty() {
+        return currentBranchProperty;
+    }
+
+    /** @return nom de la branche courante, ou chaîne vide. */
+    public String currentBranch() {
+        if (!isGitRepo || jgit == null) return "";
+        try {
+            String branch = jgit.getRepository().getBranch();
+            return branch != null ? branch : "";
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    /** @return {@code true} si au moins un remote est configuré. */
+    public boolean hasRemote() {
+        if (!isGitRepo || jgit == null) return false;
+        try {
+            return !jgit.remoteList().call().isEmpty();
+        } catch (GitAPIException e) {
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // API — init & configure
+    // -------------------------------------------------------------------------
+
     /**
-     * Rafraîchit le statut git en arrière-plan, puis appelle
-     * {@code onStatusUpdated} sur le thread JavaFX.
+     * Initialise un nouveau dépôt git dans {@code dir} (branche principale : main),
+     * puis charge le projet via {@link #setProject(File)}.
+     */
+    public void init(File dir) throws GitAPIException, IOException {
+        log.startOperation(LOG_SOURCE, "git init");
+        try (Git newRepo = Git.init()
+                .setDirectory(dir)
+                .setInitialBranch("main")
+                .call()) {
+            // Repo créé ; on le referme immédiatement puis on rouvre via setProject
+        }
+        log.endOperation(LOG_SOURCE, "git init", "OK — " + dir.getName());
+        setProject(dir);
+    }
+
+    /**
+     * Ajoute un remote.
+     *
+     * @param name nom du remote (typiquement "origin")
+     * @param url  URL du dépôt distant
+     */
+    public void addRemote(String name, String url) throws GitAPIException, URISyntaxException {
+        if (!isGitRepo || jgit == null) throw new IllegalStateException("Not a git repo");
+        log.info(LOG_SOURCE, "git remote add " + name + " " + url);
+        RemoteAddCommand cmd = jgit.remoteAdd();
+        cmd.setName(name);
+        cmd.setUri(new URIish(url));
+        cmd.call();
+        log.info(LOG_SOURCE, "Remote '" + name + "' added.");
+    }
+
+    /**
+     * Lit l'identité (user.name, user.email) depuis la config locale du dépôt,
+     * ou à défaut depuis {@code ~/.gitconfig}.
+     *
+     * @return tableau {name, email}, toujours non-null mais potentiellement vide.
+     */
+    public String[] getLocalIdentity() {
+        String name = "", email = "";
+        if (isGitRepo && jgit != null) {
+            StoredConfig local = jgit.getRepository().getConfig();
+            name  = nvl(local.getString("user", null, "name"));
+            email = nvl(local.getString("user", null, "email"));
+        }
+        // Fallback vers ~/.gitconfig
+        if (name.isBlank() || email.isBlank()) {
+            try {
+                File globalConfigFile = new File(System.getProperty("user.home"), ".gitconfig");
+                if (globalConfigFile.exists()) {
+                    FileBasedConfig global = new FileBasedConfig(globalConfigFile, FS.DETECTED);
+                    global.load();
+                    if (name.isBlank())  name  = nvl(global.getString("user", null, "name"));
+                    if (email.isBlank()) email = nvl(global.getString("user", null, "email"));
+                }
+            } catch (Exception ignored) {
+                // Pas bloquant
+            }
+        }
+        return new String[]{name, email};
+    }
+
+    /**
+     * Enregistre l'identité dans la config locale du dépôt, et optionnellement
+     * dans {@code ~/.gitconfig}.
+     */
+    public void setLocalIdentity(String name, String email, boolean global) throws IOException {
+        if (isGitRepo && jgit != null) {
+            StoredConfig local = jgit.getRepository().getConfig();
+            local.setString("user", null, "name",  name);
+            local.setString("user", null, "email", email);
+            local.save();
+        }
+        if (global) {
+            File globalConfigFile = new File(System.getProperty("user.home"), ".gitconfig");
+            FileBasedConfig globalConfig = new FileBasedConfig(globalConfigFile, FS.DETECTED);
+            try { globalConfig.load(); } catch (Exception ignored) {}
+            globalConfig.setString("user", null, "name",  name);
+            globalConfig.setString("user", null, "email", email);
+            globalConfig.save();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // API — opérations asynchrones
+    // -------------------------------------------------------------------------
+
+    /**
+     * Rafraîchit le statut git en arrière-plan, puis notifie {@code onStatusUpdated}
+     * sur le thread JavaFX.
      */
     public void refreshStatusAsync() {
         Thread t = new Thread(() -> {
             refreshStatus();
+            updateBranchProperty(currentBranch());
             if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
         }, "git-status-refresh");
         t.setDaemon(true);
         t.start();
     }
 
+    /** Stage un fichier individuel (git add <file>). */
+    public void addAsync(File file) {
+        runAsync("git-add", () -> {
+            if (!isGitRepo || jgit == null) return;
+            String relative = projectDir.toPath()
+                    .relativize(file.toPath())
+                    .toString()
+                    .replace(File.separatorChar, '/');
+            log.info(LOG_SOURCE, "git add " + relative);
+            jgit.add().addFilepattern(relative).call();
+            log.debug(LOG_SOURCE, "Staged: " + relative);
+            refreshStatus();
+        });
+    }
+
     /**
-     * Synchronise le dépôt local avec le distant en trois étapes :
-     * <ol>
-     *   <li>Si des fichiers sont modifiés/non suivis : {@code git add -A} puis
-     *       {@code git commit} avec un message auto-généré (date, machine, liste
-     *       des fichiers affectés).</li>
-     *   <li>{@code git pull --rebase} pour intégrer les modifications distantes.</li>
-     *   <li>{@code git push} pour envoyer les commits locaux.</li>
-     * </ol>
-     * Le résultat complet (sorties des commandes ou message d'erreur) est
-     * transmis via {@code onOperationResult} sur le thread JavaFX.
+     * Stage tous les changements (équivalent git add -A) de manière asynchrone.
+     */
+    public void addAllAsync() {
+        runAsync("git-add-all", () -> {
+            log.info(LOG_SOURCE, "git add -A");
+            addAllInternal();
+            log.debug(LOG_SOURCE, "Stage all complete.");
+        });
+    }
+
+    /**
+     * Stage tous les changements de manière synchrone (appelé depuis CommitDialog
+     * qui tourne déjà sur un thread daemon).
+     */
+    public void addAll() throws GitAPIException {
+        addAllInternal();
+    }
+
+    /** Retire un fichier de l'index sans supprimer le fichier (git rm --cached). */
+    public void removeFromIndexAsync(File file) {
+        runAsync("git-rm-cached", () -> {
+            if (!isGitRepo || jgit == null) return;
+            String relative = projectDir.toPath()
+                    .relativize(file.toPath())
+                    .toString()
+                    .replace(File.separatorChar, '/');
+            log.info(LOG_SOURCE, "git rm --cached " + relative);
+            jgit.rm().addFilepattern(relative).setCached(true).call();
+            log.debug(LOG_SOURCE, "Removed from index: " + relative);
+            refreshStatus();
+        });
+    }
+
+    /** Crée un commit avec le message donné (asynchrone). */
+    public void commitAsync(String message) {
+        runAsync("git-commit", () -> {
+            if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git commit");
+            PersonIdent author = buildPersonIdent();
+            jgit.commit()
+                    .setMessage(message)
+                    .setAuthor(author)
+                    .setCommitter(author)
+                    .call();
+            log.endOperation(LOG_SOURCE, "git commit", "OK — " + firstLine(message));
+            refreshStatus();
+            updateBranchProperty(currentBranch());
+        });
+    }
+
+    /** Crée un commit de manière synchrone. */
+    public void commit(String message) throws GitAPIException {
+        if (!isGitRepo || jgit == null) throw new IllegalStateException("Not a git repo");
+        log.startOperation(LOG_SOURCE, "git commit");
+        PersonIdent author = buildPersonIdent();
+        jgit.commit()
+                .setMessage(message)
+                .setAuthor(author)
+                .setCommitter(author)
+                .call();
+        log.endOperation(LOG_SOURCE, "git commit", "OK — " + firstLine(message));
+        refreshStatus();
+        updateBranchProperty(currentBranch());
+    }
+
+    /** Récupère les changements distants sans fusionner (git fetch). */
+    public void fetchAsync() {
+        runAsync("git-fetch", () -> {
+            if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git fetch");
+            FetchResult result = jgit.fetch()
+                    .setCredentialsProvider(buildCredentials())
+                    .call();
+            refreshStatus();
+            String msg = nvl(result.getMessages()).strip();
+            log.endOperation(LOG_SOURCE, "git fetch", msg.isBlank() ? "OK" : msg);
+            if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
+        });
+    }
+
+    /** Tire les changements distants en fast-forward uniquement (git pull --ff-only). */
+    public void pullAsync() {
+        runAsync("git-pull", () -> {
+            if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git pull --ff-only");
+            PullResult result = jgit.pull()
+                    .setFastForward(FastForwardMode.FF_ONLY)
+                    .setCredentialsProvider(buildCredentials())
+                    .call();
+            refreshStatus();
+            updateBranchProperty(currentBranch());
+            String msg = result.isSuccessful() ? "" : "Pull failed: " + result;
+            log.endOperation(LOG_SOURCE, "git pull --ff-only", result.isSuccessful() ? "OK" : "FAILED — " + result);
+            if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
+        });
+    }
+
+    /** Pousse les commits locaux vers le remote (git push). */
+    public void pushAsync() {
+        runAsync("git-push", () -> {
+            if (!isGitRepo || jgit == null) return;
+            log.startOperation(LOG_SOURCE, "git push");
+            StringBuilder sb = new StringBuilder();
+            Iterable<PushResult> results = jgit.push()
+                    .setCredentialsProvider(buildCredentials())
+                    .call();
+            for (PushResult pr : results) {
+                for (RemoteRefUpdate rru : pr.getRemoteUpdates()) {
+                    RemoteRefUpdate.Status s = rru.getStatus();
+                    if (s != RemoteRefUpdate.Status.OK && s != RemoteRefUpdate.Status.UP_TO_DATE) {
+                        String detail = "Error: " + s + " — " + nvl(rru.getMessage());
+                        log.warn(LOG_SOURCE, detail);
+                        sb.append(detail).append("\n");
+                    } else {
+                        log.debug(LOG_SOURCE, "Push OK: " + rru.getRemoteName() + " [" + s + "]");
+                    }
+                }
+            }
+            refreshStatus();
+            String msg = sb.toString().strip();
+            log.endOperation(LOG_SOURCE, "git push", msg.isBlank() ? "OK" : "FAILED");
+            if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
+        });
+    }
+
+    /**
+     * Synchronisation complète : commit automatique + pull --ff-only + push.
+     * Conserve la sémantique du bouton "Sync" de la V1.
      */
     public void syncAsync() {
         Thread t = new Thread(() -> {
             StringBuilder logBuilder = new StringBuilder();
             log.startOperation(LOG_SOURCE, "Git Sync");
             try {
-                // 1. Recenser les fichiers modifiés avant staging
-                log.debug(LOG_SOURCE, "Refreshing git status...");
+                if (!isGitRepo || jgit == null) throw new GitException("Not a git repository");
+
                 refreshStatus();
                 List<String> changedFiles = statusMap.entrySet().stream()
                         .filter(e -> e.getValue() != GitStatus.CLEAN)
                         .map(Map.Entry::getKey)
                         .sorted()
                         .collect(Collectors.toList());
-                log.info(LOG_SOURCE, "Found " + changedFiles.size() + " changed file(s)");
 
-                // 2. Commit si des changements existent
                 if (!changedFiles.isEmpty()) {
                     String message = buildCommitMessage(changedFiles);
-                    log.info(LOG_SOURCE, "Staging all changes...");
-                    runGit("add", "-A");
-                    log.info(LOG_SOURCE, "Committing " + changedFiles.size() + " file(s)...");
-                    List<String> commitOut = runGit("commit", "-m", message);
+                    addAllInternal();
+                    PersonIdent author = buildPersonIdent();
+                    jgit.commit()
+                            .setMessage(message)
+                            .setAuthor(author)
+                            .setCommitter(author)
+                            .call();
                     logBuilder.append("Committed:\n");
-                    changedFiles.forEach(f -> {
-                        logBuilder.append("  ").append(f).append("\n");
-                        log.debug(LOG_SOURCE, "  Committed: " + f);
-                    });
+                    changedFiles.forEach(f -> logBuilder.append("  ").append(f).append("\n"));
                     logBuilder.append("\n");
-                    commitOut.forEach(l -> logBuilder.append(l).append("\n"));
-                    logBuilder.append("\n");
-                    log.info(LOG_SOURCE, "Commit completed successfully");
-                } else {
-                    log.info(LOG_SOURCE, "No local changes to commit");
                 }
 
-                // 3. Pull (rebase pour conserver un historique propre)
+                CredentialsProvider creds = buildCredentials();
+
+                // Pull (ff-only)
                 try {
-                    log.info(LOG_SOURCE, "Pulling remote changes (rebase)...");
-                    List<String> pullOut = runGitWithAuth("pull", "--rebase");
-                    pullOut.forEach(l -> {
-                        logBuilder.append(l).append("\n");
-                        log.debug(LOG_SOURCE, "  pull: " + l);
-                    });
-                    if (!pullOut.isEmpty()) logBuilder.append("\n");
-                    log.info(LOG_SOURCE, "Pull completed successfully");
-                } catch (GitException e) {
-                    log.error(LOG_SOURCE, "Pull failed: " + e.getMessage());
-                    logBuilder.append("Pull error:\n").append(e.getMessage()).append("\n\n");
+                    PullResult pullResult = jgit.pull()
+                            .setFastForward(FastForwardMode.FF_ONLY)
+                            .setCredentialsProvider(creds)
+                            .call();
+                    if (!pullResult.isSuccessful()) {
+                        logBuilder.append("Pull warning: ").append(pullResult).append("\n\n");
+                    }
+                } catch (GitAPIException e) {
+                    logBuilder.append("Pull error: ").append(e.getMessage()).append("\n\n");
                 }
 
-                // 4. Push
-                log.info(LOG_SOURCE, "Pushing to remote...");
-                List<String> pushOut = runGitWithAuth("push");
-                pushOut.forEach(l -> {
-                    logBuilder.append(l).append("\n");
-                    log.debug(LOG_SOURCE, "  push: " + l);
-                });
-                log.info(LOG_SOURCE, "Push completed successfully");
+                // Push
+                Iterable<PushResult> pushResults = jgit.push()
+                        .setCredentialsProvider(creds)
+                        .call();
+                for (PushResult pr : pushResults) {
+                    for (RemoteRefUpdate rru : pr.getRemoteUpdates()) {
+                        RemoteRefUpdate.Status s = rru.getStatus();
+                        if (s != RemoteRefUpdate.Status.OK && s != RemoteRefUpdate.Status.UP_TO_DATE) {
+                            logBuilder.append("Push error: ").append(s)
+                                      .append(" — ").append(nvl(rru.getMessage())).append("\n");
+                        }
+                    }
+                }
 
-                log.debug(LOG_SOURCE, "Refreshing git status after sync...");
                 refreshStatus();
+                updateBranchProperty(currentBranch());
                 String result = logBuilder.toString().strip();
                 log.endOperation(LOG_SOURCE, "Git Sync", "SUCCESS");
                 if (onStatusUpdated   != null) Platform.runLater(onStatusUpdated);
                 if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(result));
 
-            } catch (GitException e) {
+            } catch (Exception e) {
                 log.error(LOG_SOURCE, "Git sync failed: " + e.getMessage());
                 refreshStatus();
                 if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
@@ -220,10 +504,140 @@ public class GitService {
     }
 
     /**
-     * Construit le message de commit automatique.
-     * Format : {@code [MarkNote sync] yyyy-MM-dd HH:mm:ss @ hostname}
-     * suivi de la liste des fichiers affectés.
+     * Retourne la liste des fichiers actuellement dans l'index (staged),
+     * utilisée pour alimenter CommitDialog.
      */
+    public List<StagedFile> listStagedFiles() {
+        if (!isGitRepo || jgit == null) return List.of();
+        try {
+            Status status = jgit.status().call();
+            List<StagedFile> result = new ArrayList<>();
+            status.getAdded().forEach(p   -> result.add(new StagedFile(p, 'A')));
+            status.getChanged().forEach(p -> result.add(new StagedFile(p, 'M')));
+            status.getRemoved().forEach(p -> result.add(new StagedFile(p, 'D')));
+            result.sort(Comparator.comparing(StagedFile::path));
+            return result;
+        } catch (GitAPIException e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Teste la connectivité à une URL de remote (ls-remote).
+     *
+     * @return chaîne vide si succès, message d'erreur sinon.
+     */
+    public String testRemoteConnection(String url) {
+        log.info(LOG_SOURCE, "Testing remote connection: " + url);
+        try {
+            Git.lsRemoteRepository()
+                    .setRemote(url)
+                    .setCredentialsProvider(buildCredentials())
+                    .call();
+            log.info(LOG_SOURCE, "Remote connection OK: " + url);
+            return "";
+        } catch (GitAPIException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            log.warn(LOG_SOURCE, "Remote connection FAILED: " + msg);
+            return msg;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Setters credentials & callbacks
+    // -------------------------------------------------------------------------
+
+    public void setSshKeyPath(String path) {
+        this.sshKeyPath = path != null ? path : "";
+        applySSHFactory();
+    }
+
+    public void setGitToken(String token)      { this.gitToken    = token    != null ? token    : ""; }
+    public void setGitUsername(String username){ this.gitUsername = username != null ? username : "token"; }
+
+    public void setOnStatusUpdated(Runnable callback)          { this.onStatusUpdated   = callback; }
+    public void setOnOperationResult(Consumer<String> callback){ this.onOperationResult = callback; }
+
+    // -------------------------------------------------------------------------
+    // Implémentation interne
+    // -------------------------------------------------------------------------
+
+    private void addAllInternal() throws GitAPIException {
+        if (!isGitRepo || jgit == null) return;
+        // Stage new files + modifications
+        jgit.add().addFilepattern(".").call();
+        // Stage deletions (fichiers disparus du working tree)
+        Status s = jgit.status().call();
+        if (!s.getMissing().isEmpty()) {
+            RmCommand rm = jgit.rm();
+            s.getMissing().forEach(rm::addFilepattern);
+            rm.call();
+        }
+        refreshStatus();
+    }
+
+    private void refreshStatus() {
+        if (!isGitRepo || jgit == null || projectDir == null) return;
+        Map<String, GitStatus> newMap = new HashMap<>();
+        try {
+            Status status = jgit.status().call();
+            status.getAdded().forEach(p       -> newMap.put(p, GitStatus.STAGED));
+            status.getChanged().forEach(p     -> newMap.put(p, GitStatus.STAGED));
+            status.getRemoved().forEach(p     -> newMap.put(p, GitStatus.STAGED));
+            status.getModified().forEach(p    -> newMap.put(p, GitStatus.MODIFIED));
+            status.getMissing().forEach(p     -> newMap.put(p, GitStatus.MODIFIED));
+            status.getConflicting().forEach(p -> newMap.put(p, GitStatus.MODIFIED));
+            status.getUntracked().forEach(p   -> newMap.put(p, GitStatus.UNTRACKED));
+        } catch (Exception e) {
+            log.debug(LOG_SOURCE, "Status check failed: " + e.getMessage());
+        }
+        statusMap = newMap;
+    }
+
+    private CredentialsProvider buildCredentials() {
+        if (!gitToken.isBlank()) {
+            String user = gitUsername.isBlank() ? "token" : gitUsername;
+            return new UsernamePasswordCredentialsProvider(user, gitToken);
+        }
+        return null;
+    }
+
+    /**
+     * Configure la session SSH factory globale JGit avec le chemin de clé privée.
+     * Appelé lors du changement de {@code sshKeyPath}.
+     */
+    private void applySSHFactory() {
+        if (sshKeyPath.isBlank()) return;
+        String expanded = sshKeyPath.replace("~", System.getProperty("user.home"));
+        Path keyFile = Path.of(expanded);
+        if (!Files.exists(keyFile)) {
+            log.debug(LOG_SOURCE, "SSH key file not found: " + keyFile);
+            return;
+        }
+        try {
+            SshdSessionFactory factory = new SshdSessionFactoryBuilder()
+                    .setPreferredAuthentications("publickey")
+                    .setDefaultIdentities(sshDir -> List.of(keyFile))
+                    .build(new JGitKeyCache());
+            SshSessionFactory.setInstance(factory);
+        } catch (Exception e) {
+            log.error(LOG_SOURCE, "SSH factory setup failed: " + e.getMessage());
+        }
+    }
+
+    private PersonIdent buildPersonIdent() {
+        String[] identity = getLocalIdentity();
+        String name  = identity[0].isBlank() ? "MarkNote" : identity[0];
+        String email = identity[1].isBlank() ? "marknote@local" : identity[1];
+        return new PersonIdent(name, email);
+    }
+
+    private static String firstLine(String s) {
+        if (s == null || s.isBlank()) return "(no message)";
+        String first = s.strip().lines().findFirst().orElse("");
+        return first.length() > 72 ? first.substring(0, 72) + "…" : first;
+    }
+
     private String buildCommitMessage(List<String> changedFiles) {
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String host;
@@ -238,144 +652,54 @@ public class GitService {
         return "[MarkNote sync] " + date + " @ " + host + "\n\nModified:\n" + fileList;
     }
 
-    // -------------------------------------------------------------------------
-    // Setters credentials & callbacks
-    // -------------------------------------------------------------------------
-
-    public void setSshKeyPath(String path)     { this.sshKeyPath  = path     != null ? path     : ""; }
-    public void setGitToken(String token)      { this.gitToken    = token    != null ? token    : ""; }
-    public void setGitUsername(String username){ this.gitUsername = username != null ? username : "token"; }
-
-    public void setOnStatusUpdated(Runnable callback)          { this.onStatusUpdated   = callback; }
-    public void setOnOperationResult(Consumer<String> callback){ this.onOperationResult = callback; }
-
-    // -------------------------------------------------------------------------
-    // Implémentation interne
-    // -------------------------------------------------------------------------
-
-    private void refreshStatus() {
-        if (!isGitRepo || projectDir == null) return;
-        Map<String, GitStatus> newMap = new HashMap<>();
-        try {
-            List<String> lines = runGit("status", "--porcelain");
-            for (String line : lines) {
-                if (line.length() < 3) continue;
-                char indexStatus = line.charAt(0);
-                char workStatus  = line.charAt(1);
-                String path      = line.substring(3).trim();
-                // Rename notation: "old -> new"
-                if (path.contains(" -> ")) {
-                    path = path.substring(path.indexOf(" -> ") + 4);
-                }
-                if (indexStatus == '?' || workStatus == '?') {
-                    newMap.put(path, GitStatus.UNTRACKED);
-                } else if (indexStatus == 'A') {
-                    newMap.put(path, GitStatus.STAGED);
-                } else if (indexStatus != ' ' || workStatus == 'M' || workStatus == 'D') {
-                    newMap.put(path, GitStatus.MODIFIED);
-                }
-            }
-        } catch (Exception e) {
-            // git not found or not a repo — keep empty map
-        }
-        statusMap = newMap;
-    }
-
-    /** Exécute git sans credentials supplémentaires. */
-    private List<String> runGit(String... args) throws GitException {
-        log.debug(LOG_SOURCE, "Executing: git " + String.join(" ", args));
-        return runGitWithEnv(Map.of(), args);
+    private void updateBranchProperty(String branch) {
+        Platform.runLater(() -> currentBranchProperty.set(branch));
     }
 
     /**
-     * Exécute git avec les credentials configurés (SSH key ou token HTTPS).
-     * <p>
-     * Pour SSH : positionne {@code GIT_SSH_COMMAND} avec la clé privée.
-     * Pour HTTPS token : écrit un script {@code GIT_ASKPASS} temporaire qui
-     * répond aux demandes de username/password sans interaction utilisateur.
+     * Lance une opération git dans un thread daemon.
+     * En cas d'erreur, notifie {@code onOperationResult} avec "Error: …".
      */
-    private List<String> runGitWithAuth(String... args) throws GitException {
-        log.debug(LOG_SOURCE, "Executing with auth: git " + String.join(" ", args));
-        Map<String, String> env = new HashMap<>();
-
-        // SSH (passphrase-less) — V1
-        if (!sshKeyPath.isBlank()) {
-            env.put("GIT_SSH_COMMAND",
-                    "ssh -i \"" + sshKeyPath + "\" -o StrictHostKeyChecking=accept-new -o BatchMode=yes");
-        }
-
-        // HTTPS token via GIT_ASKPASS — V1
-        File askpassScript = null;
-        if (!gitToken.isBlank()) {
+    private void runAsync(String threadName, GitOperation op) {
+        Thread t = new Thread(() -> {
             try {
-                askpassScript = File.createTempFile("marknote-askpass-", ".sh");
-                askpassScript.deleteOnExit();
-                String username = gitUsername.isBlank() ? "token" : gitUsername;
-                String script =
-                        "#!/bin/sh\n" +
-                        "case \"$1\" in\n" +
-                        "  *Username*) echo \"" + escapeSh(username)  + "\" ;;\n" +
-                        "  *Password*) echo \"" + escapeSh(gitToken)  + "\" ;;\n" +
-                        "  *)          echo \"\" ;;\n" +
-                        "esac\n";
-                Files.writeString(askpassScript.toPath(), script);
-                Set<PosixFilePermission> perms = new HashSet<>(
-                        Files.getPosixFilePermissions(askpassScript.toPath()));
-                perms.add(PosixFilePermission.OWNER_EXECUTE);
-                Files.setPosixFilePermissions(askpassScript.toPath(), perms);
-                env.put("GIT_ASKPASS", askpassScript.getAbsolutePath());
-                env.put("GIT_TERMINAL_PROMPT", "0");
-            } catch (IOException e) {
-                // Proceed without askpass — git may prompt or fail
+                op.run();
+                if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
+            } catch (Exception e) {
+                log.error(LOG_SOURCE, threadName + " failed: " + e.getMessage());
+                refreshStatus();
+                if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
+                String msg = "Error: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+                if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
             }
-        }
+        }, threadName);
+        t.setDaemon(true);
+        t.start();
+    }
 
-        try {
-            return runGitWithEnv(env, args);
-        } finally {
-            if (askpassScript != null) askpassScript.delete();
+    @FunctionalInterface
+    private interface GitOperation {
+        void run() throws Exception;
+    }
+
+    private void closeJGit() {
+        if (jgit != null) {
+            jgit.close();
+            jgit = null;
         }
     }
 
-    private List<String> runGitWithEnv(Map<String, String> extraEnv, String... args) throws GitException {
-        try {
-            List<String> cmd = new ArrayList<>();
-            cmd.add("git");
-            cmd.addAll(Arrays.asList(args));
-
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            pb.directory(projectDir);
-            pb.environment().put("GIT_TERMINAL_PROMPT", "0");
-            pb.environment().putAll(extraEnv);
-            pb.redirectErrorStream(true);
-
-            Process process = pb.start();
-            List<String> lines;
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
-                lines = reader.lines().collect(Collectors.toList());
-            }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new GitException(String.join("\n", lines));
-            }
-            return lines;
-        } catch (IOException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new GitException(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
-        }
-    }
-
-    /** Échappe les caractères dangereux pour une insertion dans une chaîne entre guillemets shell. */
-    private static String escapeSh(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("`", "\\`").replace("$", "\\$");
+    private static String nvl(String s) {
+        return s != null ? s : "";
     }
 
     // -------------------------------------------------------------------------
-    // Exception interne
+    // Exception interne (maintenue pour compatibilité)
     // -------------------------------------------------------------------------
 
     public static class GitException extends Exception {
-        public GitException(String message) { super(message); }
+        public GitException(String message) {
+            super(message);
+        }
     }
 }
