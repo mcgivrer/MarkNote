@@ -244,14 +244,22 @@ public class PromptPanel extends BasePanel {
             return;
         }
 
-        ContextDialog dialog = new ContextDialog(getScene().getWindow());
+        ContextDialog dialog = new ContextDialog(getScene().getWindow(), llmConfig);
         dialog.setContext(llmConfig.getSystemContext());
 
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(context -> {
+            String previousModel = llmConfig.getModel();
             llmConfig.setSystemContext(context);
+            String selectedModel = dialog.getSelectedModel();
+            if (!selectedModel.isEmpty()) {
+                llmConfig.setModel(selectedModel);
+            }
             llmConfig.save();
             log.info(LOG_SOURCE, "System context updated");
+            if (!llmConfig.getModel().equals(previousModel)) {
+                onConfigChanged();
+            }
         });
     }
 
@@ -294,6 +302,21 @@ public class PromptPanel extends BasePanel {
     @Override
     public String getDetachTabTitle() {
         return getMessages().getString("llm.panel.title");
+    }
+
+    /**
+     * À appeler après un changement de configuration LLM (depuis OptionsDialog).
+     * Recharge la config depuis le disque et affiche une notification dans la conversation.
+     */
+    public void onConfigChanged() {
+        var msgs = getMessages();
+        String apiType = llmConfig.isOpenAIFormat() ? "OpenAI" : "Ollama";
+        String content = msgs.getString("llm.config.changed") + " : `" + llmConfig.getModel() + "`  \n"
+                + msgs.getString("llm.welcome.endpoint") + " : `" + llmConfig.getEndpointUrl() + "`"
+                + "  —  " + msgs.getString("llm.welcome.type") + " : " + apiType;
+        conversationView.addMessage(new Message(MessageRole.SYSTEM, content));
+        log.info(LOG_SOURCE, "LLM config reloaded — model: " + llmConfig.getModel()
+                + ", endpoint: " + llmConfig.getEndpointUrl());
     }
 
     private void showWelcomeMessage() {

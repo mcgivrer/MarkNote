@@ -1183,6 +1183,11 @@ public class MarkNote extends Application {
         dialog.setOnLanguageChanged(this::restartApplication);
         if (dialog.showAndWait()) {
             refreshRecentMenu();
+            // Reload LLM config (saved by OptionsDialog into disk)
+            llmConfig.load();
+            if (promptPanel != null) {
+                promptPanel.onConfigChanged();
+            }
             // Apply theme if it changed
             if (!previousTheme.equals(config.getCurrentTheme())) {
                 applyTheme(primaryStage.getScene());

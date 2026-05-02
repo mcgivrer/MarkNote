@@ -141,7 +141,6 @@ public class ConversationView extends VBox {
                     }
                 }
             }
-            scrollToBottom();
         });
     }
 
@@ -250,6 +249,7 @@ public class ConversationView extends VBox {
 
     private HBox createMessageWrapper(Message message, int index, List<ContextLink> contextLinks) {
         MessageBlock block = new MessageBlock(message, contextLinks);
+        block.setOnHeightChanged(this::scrollToBottom);
         block.setOnCopy(() -> copyToClipboard(message.getContent()));
         block.setOnExport(() -> exportMessage(message, getScene().getWindow()));
         block.setOnInsert(() -> { if (onInsertToDocument != null) onInsertToDocument.accept(message.getContent()); });
@@ -266,6 +266,10 @@ public class ConversationView extends VBox {
         if (message.getRole() == MessageRole.USER) {
             // Questions de l'utilisateur : alignées à gauche
             wrapper.getChildren().addAll(block, spacer);
+        } else if (message.getRole() == MessageRole.SYSTEM) {
+            // Notifications système : pleine largeur
+            HBox.setHgrow(block, Priority.ALWAYS);
+            wrapper.getChildren().add(block);
         } else {
             // Réponses de l'assistant : alignées à droite
             wrapper.getChildren().addAll(spacer, block);
@@ -326,10 +330,12 @@ public class ConversationView extends VBox {
 
         private final WebView contentView;
         private final boolean isUser;
+        private final boolean isSystem;
         private Runnable onCopy;
         private Runnable onExport;
         private Runnable onEdit;
         private Runnable onInsert;
+        private Runnable onHeightChanged;
 
         public MessageBlock(Message message) {
             this(message, List.of());
@@ -340,13 +346,14 @@ public class ConversationView extends VBox {
             setPadding(new Insets(8));
             getStyleClass().add("conversation-message");
             isUser = message.getRole() == MessageRole.USER;
-            getStyleClass().add(isUser ? "user" : "assistant");
+            isSystem = message.getRole() == MessageRole.SYSTEM;
+            getStyleClass().add(isUser ? "user" : isSystem ? "system" : "assistant");
 
             // Header avec rôle et timestamp
             HBox header = new HBox(5);
             header.setAlignment(Pos.CENTER_LEFT);
 
-            Label roleLabel = new Label(isUser ? "You" : "Assistant");
+            Label roleLabel = new Label(isUser ? "You" : isSystem ? "\u2139" : "Assistant");
             roleLabel.getStyleClass().add("message-role");
 
             Label timeLabel = new Label(message.getTimestamp()
@@ -356,31 +363,35 @@ public class ConversationView extends VBox {
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
-            // Boutons d'action
-            Button copyBtn = new Button("\u2398"); // ⎘
-            copyBtn.getStyleClass().add("message-action-button");
-            copyBtn.setTooltip(new Tooltip("Copy"));
-            copyBtn.setOnAction(e -> { if (onCopy != null) onCopy.run(); });
+            header.getChildren().addAll(roleLabel, timeLabel, spacer);
 
-            Button exportBtn = new Button("\u2913"); // ⤓
-            exportBtn.getStyleClass().add("message-action-button");
-            exportBtn.setTooltip(new Tooltip("Export"));
-            exportBtn.setOnAction(e -> { if (onExport != null) onExport.run(); });
+            // Boutons d'action (non affichés pour les messages système)
+            if (!isSystem) {
+                Button copyBtn = new Button("\u2398"); // ⎘
+                copyBtn.getStyleClass().add("message-action-button");
+                copyBtn.setTooltip(new Tooltip("Copy"));
+                copyBtn.setOnAction(e -> { if (onCopy != null) onCopy.run(); });
 
-            Button insertBtn = new Button("\u2937"); // ↷ insérer dans le document
-            insertBtn.getStyleClass().add("message-action-button");
-            insertBtn.setTooltip(new Tooltip(getMessages().getString("llm.insert.document")));
-            insertBtn.setOnAction(e -> { if (onInsert != null) onInsert.run(); });
+                Button exportBtn = new Button("\u2913"); // ⤓
+                exportBtn.getStyleClass().add("message-action-button");
+                exportBtn.setTooltip(new Tooltip("Export"));
+                exportBtn.setOnAction(e -> { if (onExport != null) onExport.run(); });
 
-            header.getChildren().addAll(roleLabel, timeLabel, spacer, copyBtn, exportBtn, insertBtn);
+                Button insertBtn = new Button("\u2937"); // ↷ insérer dans le document
+                insertBtn.getStyleClass().add("message-action-button");
+                insertBtn.setTooltip(new Tooltip(getMessages().getString("llm.insert.document")));
+                insertBtn.setOnAction(e -> { if (onInsert != null) onInsert.run(); });
 
-            // Ajouter bouton édition seulement pour les messages user
-            if (isUser) {
-                Button editBtn = new Button("\u270E"); // ✎
-                editBtn.getStyleClass().add("message-action-button");
-                editBtn.setTooltip(new Tooltip("Edit"));
-                editBtn.setOnAction(e -> { if (onEdit != null) onEdit.run(); });
-                header.getChildren().add(editBtn);
+                header.getChildren().addAll(copyBtn, exportBtn, insertBtn);
+
+                // Ajouter bouton édition seulement pour les messages user
+                if (isUser) {
+                    Button editBtn = new Button("\u270E"); // ✎
+                    editBtn.getStyleClass().add("message-action-button");
+                    editBtn.setTooltip(new Tooltip("Edit"));
+                    editBtn.setOnAction(e -> { if (onEdit != null) onEdit.run(); });
+                    header.getChildren().add(editBtn);
+                }
             }
 
             getChildren().add(header);
@@ -457,6 +468,7 @@ public class ConversationView extends VBox {
         public void setOnExport(Runnable action) { this.onExport = action; }
         public void setOnEdit(Runnable action) { this.onEdit = action; }
         public void setOnInsert(Runnable action) { this.onInsert = action; }
+        public void setOnHeightChanged(Runnable action) { this.onHeightChanged = action; }
 
         // --- Private helpers ---
 
@@ -466,16 +478,15 @@ public class ConversationView extends VBox {
 
         private void adjustHeight() {
             try {
-                // #md.scrollHeight donne la hauteur réelle du contenu même si body
-                // a overflow:hidden. On ajoute une marge de sécurité de 16px.
                 Object result = contentView.getEngine().executeScript(
-                    "(function(){" +
-                    "var el=document.getElementById('md');" +
-                    "return el ? el.scrollHeight : document.body.scrollHeight;" +
-                    "})()"
+                    "(function(){"
+                    + "var el=document.getElementById('md');"
+                    + "return el ? el.scrollHeight : document.body.scrollHeight;"
+                    + "})()"
                 );
                 if (result instanceof Number n && n.doubleValue() > 0) {
                     contentView.setPrefHeight(n.doubleValue() + 16);
+                    if (onHeightChanged != null) onHeightChanged.run();
                 }
             } catch (Exception ex) {
                 // Engine pas encore prêt – ignoré silencieusement
@@ -483,7 +494,7 @@ public class ConversationView extends VBox {
         }
 
         private String buildPage(String markdown) {
-            String bg = isUser ? "#ddeeff" : "#f0f2f5";
+            String bg = isUser ? "#ddeeff" : isSystem ? "#fff8e1" : "#f0f2f5";
             String body = MD_RENDERER.render(MD_PARSER.parse(markdown.isBlank() ? "&nbsp;" : markdown));
             return "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>" +
                 "*{box-sizing:border-box;margin:0;padding:0}" +

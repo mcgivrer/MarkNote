@@ -216,6 +216,14 @@
     -fx-border-color: #dde0e8;
 }
 
+/* Notification système (config, info) → fond jaune pâle, pleine largeur */
+.conversation-message.system {
+    -fx-background-color: #fff8e1;
+    -fx-border-color: #ffe082;
+    -fx-max-width: infinity;
+    -fx-font-style: italic;
+}
+
 .message-role {
     -fx-font-weight: bold;
     -fx-font-size: 11px;

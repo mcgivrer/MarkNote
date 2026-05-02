@@ -284,14 +284,24 @@ public class LLMService {
         try {
             JSONObject json = (JSONObject) new JSONParser().parse(line);
 
-            // Format Ollama: {"response": "chunk"}
+            // Format Ollama /api/generate streaming: {"response": "chunk"}
             String response = (String) json.get("response");
             if (response != null && !response.isEmpty()) {
                 onChunk.accept(response);
                 return;
             }
 
-            // Format OpenAI: {"choices": [{"delta": {"content": "chunk"}}]}
+            // Format Ollama /api/chat streaming: {"message": {"role": "assistant", "content": "chunk"}}
+            JSONObject message = (JSONObject) json.get("message");
+            if (message != null) {
+                String content = (String) message.get("content");
+                if (content != null && !content.isEmpty()) {
+                    onChunk.accept(content);
+                    return;
+                }
+            }
+
+            // Format OpenAI streaming: {"choices": [{"delta": {"content": "chunk"}}]}
             String content = extractChoicesContent(json, "delta");
             if (content != null && !content.isEmpty()) {
                 onChunk.accept(content);
