@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 460" width="520" height="460">
+
+  <!-- Outer background -->
+  <rect width="520" height="460" rx="10" fill="#e8edf3"/>
+
+  <!-- Dialog window shadow -->
+  <rect x="33" y="33" width="454" height="394" rx="8" fill="rgba(0,0,0,0.12)"/>
+
+  <!-- Dialog window -->
+  <rect x="30" y="30" width="454" height="394" rx="8" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Dialog title bar -->
+  <rect x="30" y="30" width="454" height="38" rx="8" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="30" y="56" width="454" height="12" fill="#f1f5f9"/>
+  <text x="50" y="54" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#374151">Model &amp; System Context</text>
+  <!-- Close button -->
+  <rect x="460" y="38" width="16" height="16" rx="3" fill="#e5e7eb"/>
+  <text x="468" y="50" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#6b7280" text-anchor="middle">✕</text>
+
+  <!-- Dialog content area -->
+  <rect x="30" y="68" width="454" height="326" fill="#ffffff"/>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SECTION 1 : MODEL SELECTOR         -->
+  <!-- ═══════════════════════════════════ -->
+
+  <!-- Section label "Model" -->
+  <text x="50" y="100" font-family="'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" fill="#374151">Model :</text>
+
+  <!-- ComboBox -->
+  <rect x="110" y="84" width="200" height="28" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+  <text x="122" y="102" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#1f2937">qwen2.5:7b</text>
+  <!-- Dropdown arrow -->
+  <text x="297" y="103" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#6b7280">▼</text>
+
+  <!-- Refresh button -->
+  <rect x="322" y="84" width="140" height="28" rx="4" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  <text x="392" y="102" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#2563eb" text-anchor="middle">↺  Refresh models</text>
+
+  <!-- Endpoint label (gray, small) -->
+  <text x="110" y="126" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#9ca3af">Endpoint : http://nextserver02:11434  —  Type : Ollama</text>
+
+  <!-- Callout annotation: ComboBox -->
+  <rect x="82" y="140" width="164" height="18" rx="3" fill="#dbeafe" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="164" y="153" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#1e40af" text-anchor="middle">Editable (type model name)</text>
+  <line x1="164" y1="140" x2="175" y2="112" stroke="#93c5fd" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Callout annotation: Refresh button -->
+  <rect x="292" y="140" width="166" height="18" rx="3" fill="#dbeafe" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="375" y="153" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#1e40af" text-anchor="middle">Calls getAvailableModels()</text>
+  <line x1="375" y1="140" x2="390" y2="112" stroke="#93c5fd" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SEPARATOR                          -->
+  <!-- ═══════════════════════════════════ -->
+  <line x1="50" y1="170" x2="464" y2="170" stroke="#e5e7eb" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- SECTION 2 : SYSTEM CONTEXT         -->
+  <!-- ═══════════════════════════════════ -->
+
+  <!-- Section label -->
+  <text x="50" y="193" font-family="'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" fill="#374151">System context</text>
+  <text x="50" y="208" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#9ca3af">(instructions for the AI — sent with every prompt)</text>
+
+  <!-- TextArea -->
+  <rect x="50" y="216" width="414" height="110" rx="4" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+  <text x="62" y="236" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">You are a helpful writing assistant. Answer</text>
+  <text x="62" y="252" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">concisely in the same language as the user.</text>
+  <text x="62" y="268" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">Focus on Markdown document editing.</text>
+  <!-- Cursor blink -->
+  <rect x="62" y="278" width="1.5" height="14" fill="#2563eb">
+    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Callout: textarea -->
+  <rect x="350" y="334" width="126" height="18" rx="3" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="413" y="347" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#166534" text-anchor="middle">Existing since v0.x</text>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- BUTTON BAR                         -->
+  <!-- ═══════════════════════════════════ -->
+  <rect x="30" y="356" width="454" height="38" rx="0" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="30" y="356" width="454" height="6" fill="#f8fafc"/>
+  <rect x="30" y="380" width="454" height="14" rx="8" fill="#f8fafc"/>
+
+  <!-- Cancel button -->
+  <rect x="280" y="362" width="88" height="26" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+  <text x="324" y="379" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#374151" text-anchor="middle">Cancel</text>
+
+  <!-- OK button -->
+  <rect x="380" y="362" width="88" height="26" rx="4" fill="#2563eb"/>
+  <text x="424" y="379" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff" text-anchor="middle">OK</text>
+
+  <!-- Callout: OK saves model + context -->
+  <rect x="130" y="358" width="224" height="18" rx="3" fill="#fff7ed" stroke="#fed7aa" stroke-width="1"/>
+  <text x="242" y="371" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#9a3412" text-anchor="middle">OK saves model + context; triggers chat notification if model changed</text>
+
+  <!-- ═══════════════════════════════════ -->
+  <!-- NEW badge in title bar             -->
+  <!-- ═══════════════════════════════════ -->
+  <rect x="330" y="37" width="122" height="18" rx="4" fill="#fbbf24"/>
+  <text x="391" y="50" font-family="'Segoe UI', Arial, sans-serif" font-size="9" font-weight="bold" fill="#78350f" text-anchor="middle">New: model selector</text>
+
+  <!-- Caption -->
+  <text x="260" y="442" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">ContextDialog — combined model selector + system context</text>
+
+</svg>

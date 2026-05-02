@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 440" width="480" height="440">
+
+  <!-- Outer background -->
+  <rect width="480" height="440" rx="10" fill="#e8edf3"/>
+
+  <!-- Panel window -->
+  <rect x="20" y="20" width="440" height="400" rx="6" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Panel header bar -->
+  <rect x="20" y="20" width="440" height="36" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="20" y="44" width="440" height="12" fill="#f1f5f9"/>
+  <text x="38" y="43" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#374151">LLM Chat</text>
+
+  <!-- Header action buttons -->
+  <rect x="338" y="28" width="22" height="20" rx="4" fill="#e5e7eb"/>
+  <text x="349" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">⚙</text>
+  <rect x="364" y="28" width="22" height="20" rx="4" fill="#e5e7eb"/>
+  <text x="375" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">↺</text>
+  <rect x="390" y="28" width="22" height="20" rx="4" fill="#e5e7eb"/>
+  <text x="401" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#6b7280" text-anchor="middle">⇱</text>
+
+  <!-- Model selector badge -->
+  <rect x="96" y="29" width="130" height="18" rx="9" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <circle cx="109" cy="38" r="4" fill="#22c55e"/>
+  <text x="117" y="42" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#2563eb">qwen2.5:7b</text>
+
+  <!-- Conversation area -->
+  <rect x="20" y="56" width="440" height="296" fill="#fafafa" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- ── User bubble ── -->
+  <rect x="154" y="70" width="294" height="44" rx="8" fill="#dbeafe" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="164" y="87" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#1e3a8a">Which model do you use?</text>
+  <text x="440" y="106" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#93c5fd" text-anchor="end">14:31</text>
+
+  <!-- ── Assistant bubble ── -->
+  <rect x="34" y="128" width="298" height="44" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="50" cy="142" r="9" fill="#e0e7ff"/>
+  <text x="50" y="146" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#7c3aed" text-anchor="middle">AI</text>
+  <text x="68" y="144" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">I'm using llama3.2:latest on</text>
+  <text x="68" y="160" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#374151">http://nextserver02:11434</text>
+  <text x="316" y="164" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="end">14:31</text>
+
+  <!-- ── SYSTEM notification message (full width, yellow) ── -->
+  <!-- Background + border -->
+  <rect x="34" y="188" width="410" height="52" rx="6" fill="#fff8e1" stroke="#ffe082" stroke-width="1.5"/>
+  <!-- ℹ icon -->
+  <circle cx="52" cy="214" r="10" fill="#ffd54f"/>
+  <text x="52" y="219" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="bold" fill="#5d4037" text-anchor="middle">ℹ</text>
+  <!-- System message text (italic) -->
+  <text x="70" y="207" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-style="italic" fill="#6b5c2e">LLM configuration updated — active model : </text>
+  <text x="70" y="207" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-style="italic" fill="#6b5c2e">
+    <tspan>LLM configuration updated — active model : </tspan>
+    <tspan font-weight="bold" font-style="normal" fill="#b45309">`qwen2.5:7b`</tspan>
+  </text>
+  <text x="70" y="223" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-style="italic" fill="#6b5c2e">Endpoint : </text>
+  <text x="70" y="223" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-style="italic" fill="#6b5c2e">
+    <tspan>Endpoint : </tspan>
+    <tspan font-family="monospace" font-style="normal" fill="#92400e">`http://nextserver02:11434`</tspan>
+    <tspan>  —  Type : Ollama</tspan>
+  </text>
+  <text x="436" y="232" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#b45309" text-anchor="end">14:35</text>
+  <!-- NEW badge callout -->
+  <rect x="352" y="190" width="86" height="16" rx="3" fill="#fbbf24"/>
+  <text x="395" y="202" font-family="'Segoe UI', Arial, sans-serif" font-size="9" font-weight="bold" fill="#78350f" text-anchor="middle">Config changed</text>
+
+  <!-- ── Subsequent user bubble ── -->
+  <rect x="154" y="256" width="294" height="44" rx="8" fill="#dbeafe" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="164" y="274" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#1e3a8a">Great, let's continue with the new</text>
+  <text x="164" y="290" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#1e3a8a">model!</text>
+  <text x="440" y="292" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#93c5fd" text-anchor="end">14:36</text>
+
+  <!-- Annotation arrow pointing to system message -->
+  <line x1="460" y1="214" x2="447" y2="214" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrowYellow)"/>
+  <defs>
+    <marker id="arrowYellow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+
+  <!-- Separator -->
+  <line x1="20" y1="352" x2="460" y2="352" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Prompt area -->
+  <rect x="20" y="352" width="440" height="68" fill="#f8fafc"/>
+  <rect x="34" y="360" width="330" height="34" rx="5" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="44" y="381" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#9ca3af">Ask a question...</text>
+  <rect x="372" y="360" width="68" height="34" rx="5" fill="#2563eb"/>
+  <text x="406" y="381" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff" text-anchor="middle">Send</text>
+  <text x="406" y="408" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#9ca3af" text-anchor="middle">Ctrl+Enter</text>
+
+  <!-- Caption -->
+  <text x="240" y="430" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#6b7280" text-anchor="middle">System notification displayed after an LLM config change</text>
+
+</svg>
