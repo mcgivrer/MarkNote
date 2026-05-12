@@ -353,6 +353,11 @@ public class ProjectExplorerPanel extends BasePanel {
         return projectDir;
     }
 
+    @Override
+    public void afterReattach() {
+        refresh();
+    }
+
     /**
      * Définit le service git à utiliser pour les indicateurs visuels et les
      * opérations pull/push.

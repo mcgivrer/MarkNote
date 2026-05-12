@@ -27,11 +27,14 @@ public abstract class BasePanel extends BorderPane implements Detachable {
     private final Label titleLabel;
     private final Button closeButton;
     private final Button detachButton;
+    private final Button minimizeButton;
     private final HBox header;
     private final String titleKey;
 
     private Runnable onCloseAction;
     private Runnable onDetachAction;
+    private Runnable onMinimizeAction;
+    private boolean panelMinimized = false;
 
     /**
      * Crée un panel avec un bandeau contenant un titre et un bouton de fermeture.
@@ -70,8 +73,20 @@ public abstract class BasePanel extends BorderPane implements Detachable {
             }
         });
 
+        // Bouton réduire/agrandir (caché par défaut, activé en mode lecture)
+        minimizeButton = new Button("▾"); // ▾
+        minimizeButton.getStyleClass().add("panel-close-button");
+        minimizeButton.setTooltip(new Tooltip(getMessages().getString("panel.minimize.tooltip")));
+        minimizeButton.setVisible(false);
+        minimizeButton.setManaged(false);
+        minimizeButton.setOnAction(e -> {
+            if (onMinimizeAction != null) {
+                onMinimizeAction.run();
+            }
+        });
+
         // Header
-        header = new HBox(titleLabel, spacer, detachButton, closeButton);
+        header = new HBox(titleLabel, spacer, minimizeButton, detachButton, closeButton);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(4));
         header.getStyleClass().add("panel-header");
@@ -175,6 +190,27 @@ public abstract class BasePanel extends BorderPane implements Detachable {
 
     public String getPanelStateId() {
         return getClass().getSimpleName();
+    }
+
+    public void setMinimizeEnabled(boolean enabled) {
+        minimizeButton.setVisible(enabled);
+        minimizeButton.setManaged(enabled);
+    }
+
+    public void setOnMinimize(Runnable action) {
+        this.onMinimizeAction = action;
+    }
+
+    /** Updates the minimize button icon to reflect collapsed (true) or expanded (false) state. */
+    public void setMinimizedState(boolean minimized) {
+        panelMinimized = minimized;
+        minimizeButton.setText(minimized ? "▴" : "▾");
+        String tipKey = minimized ? "panel.maximize.tooltip" : "panel.minimize.tooltip";
+        minimizeButton.setTooltip(new Tooltip(getMessages().getString(tipKey)));
+    }
+
+    public boolean isPanelMinimized() {
+        return panelMinimized;
     }
 
     // ══════════════════════════════════════════════════════════════

@@ -50,6 +50,7 @@ A lightweight and modern Markdown editor built with JavaFX.
 - **Welcome Page** - Configurable welcome screen with recent projects
 - **Cross-platform** - Works on Linux, macOS, and Windows
 - **Application Icon** - Custom SVG icon with PNG exports (16, 32, 64, 128 px) shown in the title bar, taskbar, and Alt+Tab switcher
+- **Reading Mode** - Distraction-free fullscreen reading (`Ctrl+Shift+P` or **View → Enter Reading Mode**): the Preview panel fills the whole screen, the editor and all side panels are hidden; the Project Explorer reappears as a compact floating overlay with a **▾/▴ minimize toggle** to collapse it to its title bar; exiting restores all panels and split-divider positions exactly as they were before
 - **View Menu Controls** - Toggle visibility of Project Explorer (`Ctrl+E`), Preview (`Ctrl+P`), Tag Cloud (`Ctrl+T`), Network Diagram (`Ctrl+L`), and **LLM Chat** (`Ctrl+M`) via the View menu; Show Welcome
 - **Close Tab** - Close the active document tab with `Ctrl+W`
 

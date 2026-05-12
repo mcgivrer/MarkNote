@@ -206,13 +206,11 @@ public class DockingManager {
     }
 
     /**
-     * Configure les actions du panel (fermeture, drag).
+     * Configure les actions du panel (drag).
+     * Note: the close action is managed by the caller (e.g. MarkNote) so it is
+     * not overwritten here.
      */
     private void setupPanelActions(BasePanel panel, DockZone zone) {
-        // Fermeture = cacher le panel
-        panel.setOnClose(() -> hidePanel(panel));
-
-        // Activer le drag sur le header du panel
         enableDrag(panel);
     }
 
@@ -610,6 +608,34 @@ public class DockingManager {
     public void rememberPanelZone(BasePanel panel, DockZone zone) {
         if (panel != null && zone != null && zone != DockZone.CENTER) {
             lastPanelZone.put(panel, zone);
+        }
+    }
+
+    public double[] getHorizontalDividers() {
+        if (horizontalSplit != null && !horizontalSplit.getDividers().isEmpty()) {
+            return horizontalSplit.getDividers().stream()
+                    .mapToDouble(SplitPane.Divider::getPosition).toArray();
+        }
+        return new double[0];
+    }
+
+    public double[] getVerticalDividers() {
+        if (verticalSplit != null && !verticalSplit.getDividers().isEmpty()) {
+            return verticalSplit.getDividers().stream()
+                    .mapToDouble(SplitPane.Divider::getPosition).toArray();
+        }
+        return new double[0];
+    }
+
+    public void setHorizontalDividers(double[] positions) {
+        if (horizontalSplit != null && positions.length > 0) {
+            horizontalSplit.setDividerPositions(positions);
+        }
+    }
+
+    public void setVerticalDividers(double[] positions) {
+        if (verticalSplit != null && positions.length > 0) {
+            verticalSplit.setDividerPositions(positions);
         }
     }
 
