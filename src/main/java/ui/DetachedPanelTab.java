@@ -72,6 +72,9 @@ public class DetachedPanelTab extends Tab {
 
     public void hideWithoutDocking() {
         runCloseActionOnClose = false;
+        // Restore the panel's content before removing the tab so the panel
+        // is not left with a null center when shown again.
+        sourcePanel.onReattached(detachedContent);
         if (getTabPane() != null) {
             getTabPane().getTabs().remove(this);
         }

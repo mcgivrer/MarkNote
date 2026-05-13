@@ -46,5 +46,5 @@
     ],
     "java.project.outputPath": "target/classes",
     "java.format.settings.url": ".vscode/java-formatter.xml",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "automatic"
 }

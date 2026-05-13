@@ -23,6 +23,10 @@
       <name>Frédéric Delorme</name>
       <email>contact.snapgames@gmail.com</email>
     </developer>
+     <developer>
+      <name>Jean-Baptiste Meyer</name>
+      <email>unfixed11_scarab@icloud.com</email>
+    </developer>
   </developers>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
@@ -52,6 +56,9 @@
     <app.main.class>Main</app.main.class>
     <app.jvm.options>-Djava.net.preferIPv6Addresses=true -Xmx512m</app.jvm.options>
     <javafx.modules>javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web</javafx.modules>
+
+    <!-- Fallback used when the git plugin cannot read the repo (e.g. read-only .git) -->
+    <git.commit.id.abbrev>local</git.commit.id.abbrev>
 
     <!-- jpackage / installer metadata -->
     <!-- Version used by jpackage: overridden in mac profiles because macOS
@@ -143,6 +150,8 @@
         <configuration>
           <generateGitPropertiesFile>false</generateGitPropertiesFile>
           <abbrevLength>12</abbrevLength>
+          <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+          <useNativeGit>true</useNativeGit>
         </configuration>
       </plugin>
 
@@ -281,17 +290,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <executable>java</executable>
-          <arguments>
-            <argument>${app.jvm.options}</argument>
-            <argument>--module-path</argument>
-            <argument>${project.build.directory}/dependency</argument>
-            <argument>--add-modules</argument>
-            <argument>${javafx.modules}</argument>
-            <argument>-cp</argument>
-            <argument>${project.build.directory}/build/${project.name}-${project.version}-${git.commit.id.abbrev}.jar</argument>
-            <argument>${app.main.class}</argument>
-          </arguments>
+          <executable>${java.home}/bin/java</executable>
+          <workingDirectory>${project.basedir}</workingDirectory>
+          <commandlineArgs>-Djava.net.preferIPv6Addresses=true -Xmx512m --module-path target/dependency --add-modules ${javafx.modules} -cp target/classes:target/dependency/* ${app.main.class}</commandlineArgs>
         </configuration>
       </plugin>
 

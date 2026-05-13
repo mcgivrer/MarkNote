@@ -31,12 +31,13 @@ Welcome to MarkNote, a lightweight and modern Markdown editor built with JavaFX.
 11. [Network Diagram](#network-diagram)
 12. [Status Bar](#status-bar)
 13. [Live Preview](#live-preview)
-14. [LLM Chat](#llm-chat)
-15. [Splash Screen & About](#splash-screen--about)
-16. [Themes](#themes)
-17. [Options & Settings](#options--settings)
-18. [Keyboard Shortcuts](#keyboard-shortcuts)
-19. [Troubleshooting](#troubleshooting)
+14. [Reading Mode](#reading-mode)
+15. [LLM Chat](#llm-chat)
+16. [Splash Screen & About](#splash-screen--about)
+17. [Themes](#themes)
+18. [Options & Settings](#options--settings)
+19. [Keyboard Shortcuts](#keyboard-shortcuts)
+20. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -74,6 +75,7 @@ MarkNote is a cross-platform Markdown editor designed for writers, developers, a
 - **Project Session Restore** - Open documents are automatically saved when you close a project and restored when you reopen it; the session is stored in a `.marknote` file at the project root
 - **Scroll Synchronization** - The editor and preview panels scroll in sync so that the rendered output always reflects the text at the cursor position
 - **Drag & Drop** - Drop files into the editor to insert Markdown links or images
+- **Reading Mode** - Distraction-free fullscreen reading with the preview panel filling the screen; the Project Explorer floats as a compact overlay with a minimize toggle; all other panels are hidden and fully restored on exit (`Ctrl+Shift+P`)
 - **Multi-language Support** - Available in 5 languages
 
 ---
@@ -193,6 +195,7 @@ You can show or hide panels using the **View** menu or by clicking the **×** cl
 | **View → Tag Cloud** (`Ctrl+T`) | Toggle the Tag Cloud sub-panel |
 | **View → Network Diagram** (`Ctrl+L`) | Toggle the Network Diagram sub-panel |
 | **View → LLM Chat** (`Ctrl+M`) | Toggle the LLM Chat panel when the feature is enabled |
+| **View → Enter Reading Mode** (`Ctrl+Shift+P`) | Enter distraction-free fullscreen reading mode |
 | **View → Show Welcome** | Open the Welcome tab |
 
 Each panel can also be closed by clicking the **×** button in its header. Re-opening it from the View menu restores it to the layout.
@@ -992,6 +995,50 @@ You can also specify only width or only height:
 
 ---
 
+## Reading Mode
+
+Reading Mode provides a distraction-free, fullscreen environment for reading and reviewing your documents without any editing UI in the way.
+
+### Entering Reading Mode
+
+| Method | Description |
+|--------|-------------|
+| **View → Enter Reading Mode** | Menu item in the View menu |
+| `Ctrl+Shift+P` | Keyboard shortcut |
+
+When reading mode is activated:
+- The application goes **fullscreen**
+- All side panels (Project Explorer, Tag Cloud, Network Diagram, LLM Chat) are **hidden**
+- The **editor tab bar** is removed from the layout
+- The **Preview panel** expands to fill the entire screen
+- The **menu bar** is replaced by a thin bar containing only an **Exit Reading Mode** button
+- The **Project Explorer** reappears as a compact **floating overlay** panel pinned to the top-left corner of the screen
+
+### The Floating Project Explorer
+
+In reading mode, the Project Explorer stays accessible as a floating panel so you can navigate between files without leaving the reader:
+
+| Control | Description |
+|---------|-------------|
+| **▾ minimize button** | Collapses the panel to just its title bar, clearing the reading area |
+| **▴ maximize button** | Restores the full panel after minimizing |
+
+The **close (×)** and **detach (⇱)** buttons are hidden in reading mode — the panel is always visible and cannot be closed or detached while reading.
+
+### Exiting Reading Mode
+
+| Method | Description |
+|--------|-------------|
+| **Exit Reading Mode** button | Click the button in the top-right bar |
+| `Escape` / exit fullscreen | Exiting fullscreen (F11 on Linux/Windows, `Cmd+Ctrl+F` on macOS) also exits reading mode |
+
+When reading mode exits:
+- All panels that were visible before are **restored** to their original docked positions
+- The **split divider positions** (panel widths, editor/preview ratio) are fully restored to what they were before entering reading mode
+- The editor tab bar and the menu bar return
+
+---
+
 ## LLM Chat
 
 MarkNote can connect to a local or remote Large Language Model and provide an integrated chat workflow alongside your notes.
@@ -1363,6 +1410,7 @@ To change the language:
 | `Ctrl+T` | Toggle Tag Cloud |
 | `Ctrl+L` | Toggle Network Diagram |
 | `Ctrl+M` | Toggle LLM Chat |
+| `Ctrl+Shift+P` | Enter Reading Mode |
 
 > **Note:** On macOS, use `Cmd` instead of `Ctrl`.
 
