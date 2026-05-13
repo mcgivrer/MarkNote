@@ -9,6 +9,7 @@
 ![Maven](https://img.shields.io/badge/Maven-3.9-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![i18n](https://img.shields.io/badge/i18n-EN_|_FR_|_ES_|_DE_|_IT-blueviolet)
+[![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20me-%23FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/mcgivrer)
 
 A lightweight and modern Markdown editor built with JavaFX.
 
