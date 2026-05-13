@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -22,6 +21,10 @@
     <developer>
       <name>Frédéric Delorme</name>
       <email>contact.snapgames@gmail.com</email>
+    </developer>
+    <developer>
+      <name>Jean-Baptiste Meyer</name>
+      <email>unfixed11_scarab@icloud.com</email>
     </developer>
   </developers>
 
@@ -53,6 +56,9 @@
     <app.main.class>Main</app.main.class>
     <app.jvm.options>-Djava.net.preferIPv6Addresses=true -Xmx512m</app.jvm.options>
     <javafx.modules>javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.media,javafx.web</javafx.modules>
+
+    <!-- Fallback used when the git plugin cannot read the repo (e.g. read-only .git) -->
+    <git.commit.id.abbrev>local</git.commit.id.abbrev>
 
     <!-- jpackage / installer metadata -->
     <!-- Version used by jpackage: overridden in mac profiles because macOS
@@ -137,13 +143,17 @@
         <executions>
           <execution>
             <id>git-info</id>
-            <goals><goal>revision</goal></goals>
+            <goals>
+              <goal>revision</goal>
+            </goals>
             <phase>initialize</phase>
           </execution>
         </executions>
         <configuration>
           <generateGitPropertiesFile>false</generateGitPropertiesFile>
           <abbrevLength>12</abbrevLength>
+          <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+          <useNativeGit>true</useNativeGit>
         </configuration>
       </plugin>
 
@@ -176,8 +186,7 @@
           <useModulePath>false</useModulePath>
           <argLine>
             --module-path ${project.build.directory}/dependency
-            --add-modules ${javafx.modules}
-            -Djava.net.preferIPv6Addresses=true
+            --add-modules ${javafx.modules} -Djava.net.preferIPv6Addresses=true
             -Xmx512m
           </argLine>
         </configuration>
@@ -214,14 +223,17 @@
           <execution>
             <id>copy-deps-for-modulepath</id>
             <phase>generate-test-resources</phase>
-            <goals><goal>copy-dependencies</goal></goals>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
             <configuration>
               <outputDirectory>${project.build.directory}/dependency</outputDirectory>
-              <includeScope>runtime</includeScope>                <!-- Exclude jars that cause split-package errors in the JPMS boot layer:
+              <includeScope>runtime</includeScope>              <!-- Exclude jars that cause split-package errors in the JPMS boot layer:
                      junit-4.x and hamcrest-core both export org.hamcrest.internal,
                      which triggers a ResolutionException when both sit on the module-path.
                      These jars are only needed on the classpath (test scope), not here. -->
-                <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>            </configuration>
+              <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -235,7 +247,9 @@
           <execution>
             <id>copy-welcome-project</id>
             <phase>process-resources</phase>
-            <goals><goal>copy-resources</goal></goals>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
             <configuration>
               <outputDirectory>${project.build.outputDirectory}/welcome-project</outputDirectory>
               <resources>
@@ -274,7 +288,9 @@
           <execution>
             <id>fat-jar</id>
             <phase>package</phase>
-            <goals><goal>shade</goal></goals>
+            <goals>
+              <goal>shade</goal>
+            </goals>
             <configuration>
               <finalName>${project.name}-${project.version}-${git.commit.id.abbrev}</finalName>
               <outputDirectory>${project.build.directory}/build</outputDirectory>
@@ -318,18 +334,9 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <mainClass>${app.main.class}</mainClass>
-          <executable>java</executable>
-          <arguments>
-            <argument>${app.jvm.options}</argument>
-            <argument>--module-path</argument>
-            <argument>${project.build.directory}/dependency</argument>
-            <argument>--add-modules</argument>
-            <argument>${javafx.modules}</argument>
-            <argument>-cp</argument>
-            <argument>${project.build.directory}/build/${project.name}-${project.version}-${git.commit.id.abbrev}.jar</argument>
-            <argument>${app.main.class}</argument>
-          </arguments>
+          <executable>${java.home}/bin/java</executable>
+          <workingDirectory>${project.basedir}</workingDirectory>
+          <commandlineArgs>-Djava.net.preferIPv6Addresses=true -Xmx512m --module-path target/dependency --add-modules ${javafx.modules} -cp target/classes:target/dependency/* ${app.main.class}</commandlineArgs>
         </configuration>
       </plugin>
 
@@ -456,7 +463,10 @@
     <profile>
       <id>linux</id>
       <activation>
-        <os><family>unix</family><name>linux</name></os>
+        <os>
+          <family>unix</family>
+          <name>linux</name>
+        </os>
       </activation>
       <properties>
         <javafx.platform>linux</javafx.platform>
@@ -469,7 +479,10 @@
     <profile>
       <id>mac</id>
       <activation>
-        <os><family>mac</family><arch>x86_64</arch></os>
+        <os>
+          <family>mac</family>
+          <arch>x86_64</arch>
+        </os>
       </activation>
       <properties>
         <javafx.platform>mac</javafx.platform>
@@ -481,7 +494,10 @@
     <profile>
       <id>mac-aarch64</id>
       <activation>
-        <os><family>mac</family><arch>aarch64</arch></os>
+        <os>
+          <family>mac</family>
+          <arch>aarch64</arch>
+        </os>
       </activation>
       <properties>
         <javafx.platform>mac-aarch64</javafx.platform>
@@ -493,7 +509,9 @@
     <profile>
       <id>win</id>
       <activation>
-        <os><family>windows</family></os>
+        <os>
+          <family>windows</family>
+        </os>
       </activation>
       <properties>
         <javafx.platform>win</javafx.platform>
@@ -523,7 +541,9 @@
               <execution>
                 <id>copy-deps</id>
                 <phase>prepare-package</phase>
-                <goals><goal>copy-dependencies</goal></goals>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
                 <configuration>
                   <outputDirectory>${project.build.directory}/dependency</outputDirectory>
                   <includeScope>runtime</includeScope>
@@ -540,7 +560,9 @@
               <execution>
                 <id>copy-svg-icon</id>
                 <phase>prepare-package</phase>
-                <goals><goal>copy-resources</goal></goals>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
                 <configuration>
                   <outputDirectory>${project.build.directory}/build</outputDirectory>
                   <resources>
@@ -565,7 +587,9 @@
                 <id>native-installer</id>
                 <!-- Run after the fat JAR is built -->
                 <phase>package</phase>
-                <goals><goal>jpackage</goal></goals>
+                <goals>
+                  <goal>jpackage</goal>
+                </goals>
                 <configuration>
                   <!-- Application info -->
                   <name>${project.name}</name>

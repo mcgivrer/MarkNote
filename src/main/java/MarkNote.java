@@ -45,6 +45,7 @@ import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
@@ -62,7 +63,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 /**
  * Application principale MarkNote - Éditeur Markdown.
@@ -82,6 +85,11 @@ public class MarkNote extends Application {
     private IndexService indexService;
     private AppConfig config;
     private Menu recentMenu;
+
+    // Layout racine et barre du haut (champs pour le mode lecture)
+    private BorderPane root;
+    private HBox topBar;
+    private HBox exitReadingModeBar;
 
     // Panels et SplitPanes pour la gestion de l'affichage
     private SplitPane editorSplit;
@@ -103,6 +111,18 @@ public class MarkNote extends Application {
     private final Map<BasePanel, Boolean> lastDockedState = new HashMap<>();
     private final Map<BasePanel, CheckMenuItem> panelMenuItems = new HashMap<>();
     private boolean syncingPanelMenuState = false;
+
+    // Mode lecture
+    private boolean readingModeActive = false;
+    private final Map<BasePanel, Boolean> readingModePanelVisibility = new HashMap<>();
+    private boolean readingModePreviewVisible;
+    private double readingModeEditorSplitDivider = 0.5;
+    private double[] readingModeDockingHDividers = new double[0];
+    private double[] readingModeDockingVDividers = new double[0];
+    private Stage readingModeFloatingStage;
+    private double readingModeFloatingSavedHeight = 600;
+    // Center content of the explorer panel saved before minimizing in reading mode
+    private javafx.scene.Node readingModeExplorerCenter = null;
 
     public static void main(String[] args) {
         // Prefer IPv6 when both IPv4/IPv6 exist for the same host.
@@ -142,7 +162,7 @@ public class MarkNote extends Application {
     public void start(Stage stage) {
         this.primaryStage = stage;
 
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
 
         // TabPane pour les documents
         mainTabPane = new TabPane();
@@ -335,11 +355,28 @@ public class MarkNote extends Application {
         MenuBar menuBar = createMenuBar();
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox topBar = new HBox(menuBar, spacer, searchBox);
+        topBar = new HBox(menuBar, spacer, searchBox);
         topBar.getStyleClass().add("top-bar");
         topBar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         HBox.setHgrow(menuBar, Priority.NEVER);
         root.setTop(topBar);
+
+        // Barre du mode lecture (remplace la barre de menu en mode lecture)
+        Button exitReadingBtn = new Button(messages.getString("reading.mode.exit"));
+        exitReadingBtn.setOnAction(e -> exitReadingMode());
+        Region exitSpacer = new Region();
+        HBox.setHgrow(exitSpacer, Priority.ALWAYS);
+        exitReadingModeBar = new HBox(exitSpacer, exitReadingBtn);
+        exitReadingModeBar.getStyleClass().add("top-bar");
+        exitReadingModeBar.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        exitReadingModeBar.setPadding(new javafx.geometry.Insets(4, 8, 4, 8));
+
+        // Listener pour gérer la sortie du mode plein écran via Echap
+        primaryStage.fullScreenProperty().addListener((obs, wasFS, isFS) -> {
+            if (readingModeActive && !isFS) {
+                exitReadingMode(false);
+            }
+        });
 
         Scene scene = new Scene(root, 1200, 700);
         applyTheme(scene);
@@ -484,7 +521,11 @@ public class MarkNote extends Application {
             viewMenu.getItems().add(showLLMPanelMenuItem);
         }
         
-        viewMenu.getItems().addAll(new SeparatorMenuItem(), showWelcomeItem);
+        MenuItem enterReadingModeItem = new MenuItem(messages.getString("menu.view.readingMode"));
+        enterReadingModeItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Shift+P"));
+        enterReadingModeItem.setOnAction(e -> enterReadingMode());
+  
+        viewMenu.getItems().addAll(new SeparatorMenuItem(), enterReadingModeItem, new SeparatorMenuItem(), showWelcomeItem);
 
         // Option Console (uniquement si --console-debug est actif)
         if (consoleDebugEnabled) {
@@ -778,6 +819,168 @@ public class MarkNote extends Application {
         } else if (dockingManager.isDocked(panel)) {
             dockingManager.hidePanel(panel);
         }
+    }
+
+    private void enterReadingMode() {
+        if (readingModeActive) return;
+        readingModeActive = true;
+
+        // Sauvegarder l'état du panneau de preview et la position du diviseur
+        readingModePreviewVisible = editorSplit.getItems().contains(previewPanel);
+        if (!editorSplit.getDividers().isEmpty()) {
+            readingModeEditorSplitDivider = editorSplit.getDividers().get(0).getPosition();
+        }
+
+        // Sauvegarder les positions des diviseurs du docking manager
+        readingModeDockingHDividers = dockingManager.getHorizontalDividers();
+        readingModeDockingVDividers = dockingManager.getVerticalDividers();
+
+        // Sauvegarder la visibilité de tous les panneaux
+        readingModePanelVisibility.clear();
+        for (BasePanel panel : managedPanels.values()) {
+            readingModePanelVisibility.put(panel, isManagedPanelVisible(panel));
+        }
+
+        // Masquer tous les panneaux sauf l'explorateur de projet
+        for (BasePanel panel : managedPanels.values()) {
+            if (panel != projectExplorerPanel && isManagedPanelVisible(panel)) {
+                hideManagedPanel(panel);
+            }
+        }
+
+        // Retirer l'explorateur du layout principal et l'afficher en fenêtre flottante
+        if (isManagedPanelVisible(projectExplorerPanel)) {
+            hideManagedPanel(projectExplorerPanel);
+
+            // rebuildLayout() crée un nouveau SplitPane et orpheline l'ancien,
+            // mais le panel en reste enfant. Il faut l'en détacher explicitement
+            // avant de le placer comme racine d'une nouvelle Scene.
+            javafx.scene.Parent orphan = projectExplorerPanel.getParent();
+            if (orphan instanceof SplitPane sp) {
+                sp.getItems().remove(projectExplorerPanel);
+            } else if (orphan instanceof javafx.scene.layout.Pane pane) {
+                pane.getChildren().remove(projectExplorerPanel);
+            }
+
+            readingModeFloatingStage = new Stage();
+            readingModeFloatingStage.initOwner(primaryStage);
+            readingModeFloatingStage.initStyle(StageStyle.UTILITY);
+            readingModeFloatingStage.setTitle(messages.getString("menu.view.projectExplorer"));
+            readingModeFloatingStage.setAlwaysOnTop(true);
+
+            Scene floatingScene = new Scene(projectExplorerPanel, 260, 600);
+            applyTheme(floatingScene);
+            readingModeFloatingStage.setScene(floatingScene);
+
+            // Positionner en haut à gauche de l'écran principal
+            javafx.geometry.Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            readingModeFloatingStage.setX(screen.getMinX());
+            readingModeFloatingStage.setY(screen.getMinY());
+
+            // Capture the center content now (before show) so we can restore it later
+            readingModeExplorerCenter = projectExplorerPanel.getCenter();
+            readingModeFloatingSavedHeight = 600;
+
+            readingModeFloatingStage.show();
+
+            // Hide close/detach buttons; show minimize toggle
+            projectExplorerPanel.setCloseEnabled(false);
+            projectExplorerPanel.setDetachEnabled(false);
+            projectExplorerPanel.setMinimizeEnabled(true);
+            projectExplorerPanel.setMinimizedState(false);
+
+            projectExplorerPanel.setOnMinimize(() -> {
+                if (!projectExplorerPanel.isPanelMinimized()) {
+                    // Collapse: use the already-rendered header height (accurate since stage is shown).
+                    // Chrome height = OS title bar = stage total − scene content area.
+                    double headerH = projectExplorerPanel.getHeader().getHeight();
+                    double chromeH = readingModeFloatingStage.getHeight()
+                            - readingModeFloatingStage.getScene().getHeight();
+                    readingModeFloatingSavedHeight = readingModeFloatingStage.getHeight();
+                    projectExplorerPanel.setCenter(null);
+                    projectExplorerPanel.setMinimizedState(true);
+                    double collapsedH = headerH + chromeH;
+                    Platform.runLater(() -> readingModeFloatingStage.setHeight(collapsedH));
+                } else {
+                    // Expand: restore center then set stage back to saved height
+                    projectExplorerPanel.setCenter(readingModeExplorerCenter);
+                    projectExplorerPanel.setMinimizedState(false);
+                    Platform.runLater(() -> readingModeFloatingStage.setHeight(readingModeFloatingSavedHeight));
+                }
+            });
+        }
+
+        // Assurer que la preview est dans editorSplit et retirer l'éditeur
+        if (!editorSplit.getItems().contains(previewPanel)) {
+            editorSplit.getItems().add(previewPanel);
+        }
+        editorSplit.getItems().remove(mainTabPane);
+
+        // Passer en plein écran et remplacer la barre de menu
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.setFullScreen(true);
+        root.setTop(exitReadingModeBar);
+    }
+
+    private void exitReadingMode() {
+        exitReadingMode(true);
+    }
+
+    private void exitReadingMode(boolean callSetFullScreen) {
+        if (!readingModeActive) return;
+        readingModeActive = false;
+
+        // Détacher l'explorateur de la scène flottante avant de le redocker
+        if (readingModeFloatingStage != null) {
+            // Restore panel to full state before removing from floating stage
+            projectExplorerPanel.setOnMinimize(null);
+            projectExplorerPanel.setMinimizeEnabled(false);
+            projectExplorerPanel.setMinimizedState(false);
+            projectExplorerPanel.setCloseEnabled(true);
+            projectExplorerPanel.setDetachEnabled(true);
+            // If the panel was minimized its center was set to null; restore it
+            if (projectExplorerPanel.getCenter() == null && readingModeExplorerCenter != null) {
+                projectExplorerPanel.setCenter(readingModeExplorerCenter);
+            }
+            readingModeExplorerCenter = null;
+            readingModeFloatingStage.getScene().setRoot(new BorderPane());
+            readingModeFloatingStage.close();
+            readingModeFloatingStage = null;
+        }
+
+        // Restaurer la barre de menu et quitter le plein écran
+        root.setTop(topBar);
+        if (callSetFullScreen) {
+            primaryStage.setFullScreen(false);
+        }
+
+        // Restaurer editorSplit (items only — divider positions deferred below)
+        if (!editorSplit.getItems().contains(mainTabPane)) {
+            editorSplit.getItems().add(0, mainTabPane);
+        }
+        if (!readingModePreviewVisible) {
+            editorSplit.getItems().remove(previewPanel);
+        }
+
+        // Restaurer les panneaux qui étaient visibles (chaque appel peut déclencher rebuildLayout)
+        for (Map.Entry<BasePanel, Boolean> entry : readingModePanelVisibility.entrySet()) {
+            if (entry.getValue()) {
+                showManagedPanel(entry.getKey());
+            }
+        }
+
+        // Restaurer les positions des diviseurs après que tous les rebuildLayout ont été faits.
+        // Platform.runLater garantit que les positions sont appliquées après le passage de layout.
+        final double savedEditorDivider = readingModeEditorSplitDivider;
+        final double[] savedHDividers = readingModeDockingHDividers;
+        final double[] savedVDividers = readingModeDockingVDividers;
+        Platform.runLater(() -> {
+            if (editorSplit.getItems().size() > 1) {
+                editorSplit.setDividerPositions(savedEditorDivider);
+            }
+            dockingManager.setHorizontalDividers(savedHDividers);
+            dockingManager.setVerticalDividers(savedVDividers);
+        });
     }
 
     private void saveManagedPanelStates() {
