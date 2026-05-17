@@ -1057,6 +1057,7 @@ public class MarkNote extends Application {
                 previewPanel.updatePreview(docTab.getFullContent());
                 previewPanel.setCurrentFile(docTab.getFile());
                 updateStatusBarForTab(docTab);
+                docTab.scrollToTop();
             } else {
                 statusBar.clearDocumentInfo();
                 statusBar.updateStats(indexService.getEntries().size(), 0, 0);
