@@ -336,7 +336,7 @@
         <configuration>
           <executable>${java.home}/bin/java</executable>
           <workingDirectory>${project.basedir}</workingDirectory>
-          <commandlineArgs>-Djava.net.preferIPv6Addresses=true -Xmx512m --module-path target/dependency --add-modules ${javafx.modules} -cp target/classes:target/dependency/* ${app.main.class}</commandlineArgs>
+          <commandlineArgs>-Djava.net.preferIPv6Addresses=true -Xmx512m --sun-misc-unsafe-memory-access=allow --module-path target/dependency --add-modules ${javafx.modules} -cp target/classes:target/dependency/* ${app.main.class}</commandlineArgs>
         </configuration>
       </plugin>
 
@@ -613,6 +613,7 @@
                   <javaOptions>
                     <!--javaOption>-Djava.net.preferIPv6Addresses=true</javaOption-->
                     <javaOption>-Xmx512m</javaOption>
+                    <javaOption>--sun-misc-unsafe-memory-access=allow</javaOption>
                   </javaOptions>
 
                   <!-- Output directory -->

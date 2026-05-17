@@ -39,6 +39,9 @@ public class AppConfig {
     private String gitUsername   = "token";
     private String gitToolbarMode = "standard";
 
+    private boolean autoCheckUpdate = true;
+    private String skipVersion = null;
+
     public record PanelState(boolean visible, boolean docked, String zone) {}
 
     /**
@@ -96,6 +99,11 @@ public class AppConfig {
                     gitUsername = line.substring("gitUsername=".length()).trim();
                 } else if (line.startsWith("gitToolbarMode=")) {
                     gitToolbarMode = line.substring("gitToolbarMode=".length()).trim();
+                } else if (line.startsWith("autoCheckUpdate=")) {
+                    autoCheckUpdate = Boolean.parseBoolean(line.substring("autoCheckUpdate=".length()).trim());
+                } else if (line.startsWith("skipVersion=")) {
+                    String v = line.substring("skipVersion=".length()).trim();
+                    skipVersion = v.isEmpty() ? null : v;
                 } else if (line.startsWith("panelState=")) {
                     String raw = line.substring("panelState=".length()).trim();
                     String[] parts = raw.split("\\|", -1);
@@ -138,6 +146,8 @@ public class AppConfig {
             lines.add("gitToken=" + gitToken);
             lines.add("gitUsername=" + gitUsername);
             lines.add("gitToolbarMode=" + gitToolbarMode);
+            lines.add("autoCheckUpdate=" + autoCheckUpdate);
+            lines.add("skipVersion=" + (skipVersion != null ? skipVersion : ""));
             for (Map.Entry<String, PanelState> entry : panelStates.entrySet()) {
                 PanelState state = entry.getValue();
                 lines.add("panelState=" + entry.getKey() + "|" + state.visible() + "|" + state.docked() + "|" + state.zone());
@@ -310,6 +320,12 @@ public class AppConfig {
 
     public String getGitToolbarMode() { return gitToolbarMode; }
     public void setGitToolbarMode(String mode) { this.gitToolbarMode = (mode != null && !mode.isBlank()) ? mode : "standard"; }
+
+    public boolean isAutoCheckUpdate() { return autoCheckUpdate; }
+    public void setAutoCheckUpdate(boolean autoCheckUpdate) { this.autoCheckUpdate = autoCheckUpdate; }
+
+    public String getSkipVersion() { return skipVersion; }
+    public void setSkipVersion(String version) { this.skipVersion = version; }
 
     /**
      * Supprime un fichier de la liste des récents.
