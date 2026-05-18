@@ -1,23 +1,32 @@
-# This is an example configuration file
-# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
-
-name: Example Config
+name: Local Config
 version: 1.0.0
 schema: v1
 
-# Define which models can be used
-# https://docs.continue.dev/customization/models
 models:
-  - name: my gpt-5
-    provider: openai
-    model: gpt-5
-    apiKey: YOUR_OPENAI_API_KEY_HERE
-  - uses: ollama/qwen2.5-coder-7b
-  - uses: anthropic/claude-4-sonnet
-    with:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  - name: Qwen Coder 32B
+    provider: ollama
+    model: qwen2.5-coder:32b
+    apiBase: http://localhost:11434
+    roles:
+      - chat
+      - edit
+      - apply
 
-# MCP Servers that Continue can access
-# https://docs.continue.dev/customization/mcp-tools
-mcpServers:
-  - uses: anthropic/memory-mcp
+  - name: Qwen Coder Autocomplete
+    provider: ollama
+    model: qwen2.5-coder:1.5b-base
+    apiBase: http://localhost:11434
+    roles:
+      - autocomplete
+
+  - name: Nomic Embed
+    provider: ollama
+    model: nomic-embed-text:latest
+    apiBase: http://localhost:11434
+    roles:
+      - embed
+
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
