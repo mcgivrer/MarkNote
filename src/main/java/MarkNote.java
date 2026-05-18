@@ -62,7 +62,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
@@ -99,7 +99,6 @@ public class MarkNote extends Application {
     private DockingManager dockingManager;
 
     private ConsolePanel consolePanel;
-    private CheckMenuItem showConsoleMenuItem;
     private boolean consoleDebugEnabled = false;
 
     private GitService gitService;
@@ -386,9 +385,18 @@ public class MarkNote extends Application {
             }
         });
 
-        // L'overlay est empilé au-dessus du root via un StackPane pour couvrir toute la fenêtre
+        // L'overlay recouvre toute la fenêtre via un AnchorPane (ancres 0 sur les 4 côtés)
         restoreOverlay = new WorkspaceRestoreOverlay(messages);
-        StackPane sceneRoot = new StackPane(root, restoreOverlay);
+        AnchorPane sceneRoot = new AnchorPane();
+        sceneRoot.getChildren().addAll(root, restoreOverlay);
+        AnchorPane.setTopAnchor(root, 0.0);
+        AnchorPane.setBottomAnchor(root, 0.0);
+        AnchorPane.setLeftAnchor(root, 0.0);
+        AnchorPane.setRightAnchor(root, 0.0);
+        AnchorPane.setTopAnchor(restoreOverlay, 0.0);
+        AnchorPane.setBottomAnchor(restoreOverlay, 0.0);
+        AnchorPane.setLeftAnchor(restoreOverlay, 0.0);
+        AnchorPane.setRightAnchor(restoreOverlay, 0.0);
 
         Scene scene = new Scene(sceneRoot, 1200, 700);
         applyTheme(scene);
@@ -537,7 +545,7 @@ public class MarkNote extends Application {
 
         // Option Console (uniquement si --console-debug est actif)
         if (consoleDebugEnabled) {
-            showConsoleMenuItem = new CheckMenuItem(messages.getString("menu.view.console"));
+            CheckMenuItem showConsoleMenuItem = new CheckMenuItem(messages.getString("menu.view.console"));
             bindManagedPanelMenuItem(consolePanel, showConsoleMenuItem);
 
             viewMenu.getItems().add(viewMenu.getItems().size() - 1, new SeparatorMenuItem());
@@ -1465,11 +1473,20 @@ public class MarkNote extends Application {
         if (config.isWindowMaximized()) {
             stage.setMaximized(true);
         }
-        // Le fullscreen est différé après show() car certaines plateformes l'ignorent avant
+        // Le fullscreen doit être appliqué après que la fenêtre soit affichée (macOS green button)
         if (config.isWindowFullscreen()) {
-            Platform.runLater(() -> {
-                stage.setFullScreenExitHint("");
-                stage.setFullScreen(true);
+            stage.showingProperty().addListener(new javafx.beans.value.ChangeListener<>() {
+                @Override
+                public void changed(javafx.beans.value.ObservableValue<? extends Boolean> obs,
+                                    Boolean wasShowing, Boolean isShowing) {
+                    if (isShowing) {
+                        stage.showingProperty().removeListener(this);
+                        Platform.runLater(() -> {
+                            stage.setFullScreenExitHint("");
+                            stage.setFullScreen(true);
+                        });
+                    }
+                }
             });
         }
     }
@@ -1481,39 +1498,34 @@ public class MarkNote extends Application {
      * d'écrire la config à chaque pixel lors d'un redimensionnement.
      */
     private void installWindowGeometryListeners(Stage stage) {
-        // En reading mode, toute la géométrie est ignorée : le fullscreen et les
-        // dimensions résultent du mode lecture, pas de la préférence utilisateur.
-        stage.xProperty().addListener((obs, o, n) -> {
+        // Un seul Runnable partagé qui sauvegarde les 4 dimensions d'un coup.
+        // Chaque listener déclenche le même debounce, évitant qu'une propriété
+        // n'écrase les autres quand plusieurs changent simultanément (ex: resize).
+        Runnable saveGeometry = () -> Platform.runLater(() -> {
             if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
-                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
-                    config.setWindowX(stage.getX());
-                    config.save();
-                }));
+                config.setWindowX(stage.getX());
+                config.setWindowY(stage.getY());
+                config.setWindowWidth(stage.getWidth());
+                config.setWindowHeight(stage.getHeight());
+                config.save();
             }
+        });
+
+        stage.xProperty().addListener((obs, o, n) -> {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
         });
         stage.yProperty().addListener((obs, o, n) -> {
-            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
-                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
-                    config.setWindowY(stage.getY());
-                    config.save();
-                }));
-            }
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
         });
         stage.widthProperty().addListener((obs, o, n) -> {
-            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
-                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
-                    config.setWindowWidth(stage.getWidth());
-                    config.save();
-                }));
-            }
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
         });
         stage.heightProperty().addListener((obs, o, n) -> {
-            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
-                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
-                    config.setWindowHeight(stage.getHeight());
-                    config.save();
-                }));
-            }
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
         });
         stage.maximizedProperty().addListener((obs, o, maximized) -> {
             if (!readingModeActive) {

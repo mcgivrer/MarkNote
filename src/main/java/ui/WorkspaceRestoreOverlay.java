@@ -13,6 +13,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 
 /**
  * Overlay plein écran affiché pendant la restauration du workspace au démarrage.
@@ -27,17 +28,21 @@ public class WorkspaceRestoreOverlay extends StackPane {
     public WorkspaceRestoreOverlay(ResourceBundle messages) {
         this.messages = messages;
 
-        setStyle("-fx-background-color: rgba(0,0,0,0.50);");
         setAlignment(Pos.CENTER);
-        setMaxWidth(Double.MAX_VALUE);
-        setMaxHeight(Double.MAX_VALUE);
         setPickOnBounds(true); // bloque les clics pendant le chargement
+
+        // Rectangle de fond : lié à notre propre taille, insensible au CSS du thème
+        Rectangle backdrop = new Rectangle();
+        backdrop.setFill(Color.rgb(0, 0, 0, 0.52));
+        backdrop.widthProperty().bind(widthProperty());
+        backdrop.heightProperty().bind(heightProperty());
 
         // ── Carte centrale ────────────────────────────────────────────
         VBox card = new VBox(14);
         card.setAlignment(Pos.CENTER);
-        card.setPadding(new Insets(36, 52, 36, 52));
-        card.setMaxWidth(420);
+        card.setPadding(new Insets(40, 64, 40, 64));
+        card.setMaxWidth(480);
+        card.setMaxHeight(480);
         card.setStyle(
             "-fx-background-color: rgba(255,255,255,0.96);" +
             "-fx-background-radius: 14;" +
@@ -52,12 +57,12 @@ public class WorkspaceRestoreOverlay extends StackPane {
         Label titleLabel = new Label(messages.getString("restore.overlay.title"));
         titleLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #2c3440;");
         titleLabel.setWrapText(true);
-        titleLabel.setMaxWidth(360);
+        titleLabel.setMaxWidth(580);
         titleLabel.setAlignment(Pos.CENTER);
 
         // Barre de progression
         progressBar = new ProgressBar(ProgressBar.INDETERMINATE_PROGRESS);
-        progressBar.setPrefWidth(320);
+        progressBar.setPrefWidth(520);
         progressBar.setPrefHeight(8);
         progressBar.setStyle("-fx-accent: #3584e4;");
 
@@ -65,7 +70,7 @@ public class WorkspaceRestoreOverlay extends StackPane {
         statusLabel = new Label(" ");
         statusLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #6b7a8f;");
         statusLabel.setWrapText(true);
-        statusLabel.setMaxWidth(360);
+        statusLabel.setMaxWidth(580);
         statusLabel.setAlignment(Pos.CENTER);
 
         if (logo != null) {
@@ -73,7 +78,7 @@ public class WorkspaceRestoreOverlay extends StackPane {
         } else {
             card.getChildren().addAll(titleLabel, progressBar, statusLabel);
         }
-        getChildren().add(card);
+        getChildren().addAll(backdrop, card);
         setVisible(false);
     }
 
