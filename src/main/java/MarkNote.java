@@ -31,7 +31,15 @@ import ui.VisualLinkPanel;
 import ui.WelcomeTab;
 import ui.CommitDialog;
 import ui.AddRemoteDialog;
+import ui.UpdateDialog;
 import java.util.List;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import services.UpdateChecker;
 import utils.Debouncer;
 import utils.DocumentService;
 import utils.GitService;
@@ -413,6 +421,7 @@ public class MarkNote extends Application {
                 if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
                     addNewDocument();
                 }
+                checkForUpdatesOnStartup();
             });
             splash.show();
         } else {
@@ -424,6 +433,7 @@ public class MarkNote extends Application {
             if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
                 addNewDocument();
             }
+            checkForUpdatesOnStartup();
         }
     }
 
@@ -545,7 +555,10 @@ public class MarkNote extends Application {
         MenuItem aboutItem = new MenuItem(messages.getString("menu.help.about"));
         aboutItem.setOnAction(e -> showAboutDialog());
 
-        helpMenu.getItems().addAll(optionsItem, new SeparatorMenuItem(), aboutItem);
+        MenuItem checkUpdateItem = new MenuItem(messages.getString("menu.help.checkUpdate"));
+        checkUpdateItem.setOnAction(e -> checkForUpdatesManual());
+
+        helpMenu.getItems().addAll(optionsItem, checkUpdateItem, new SeparatorMenuItem(), aboutItem);
 
         // == Menu Édition ==
         Menu editMenu = new Menu(messages.getString("menu.edit"));
@@ -1508,6 +1521,75 @@ public class MarkNote extends Application {
     private void showAboutDialog() {
         SplashScreen about = new SplashScreen(messages, primaryStage, true, config.getCurrentTheme());
         about.showAndWait();
+    }
+
+    private void checkForUpdatesOnStartup() {
+        if (!config.isAutoCheckUpdate()) return;
+        new Thread(() -> {
+            UpdateChecker.VersionInfo info =
+                    UpdateChecker.checkForUpdate(messages.getString("app.version"));
+            if (info == null) return;
+            if (info.tagName().equals(config.getSkipVersion())) return;
+            Platform.runLater(() -> showUpdateDialog(info));
+        }, "update-check").start();
+    }
+
+    private void checkForUpdatesManual() {
+        new Thread(() -> {
+            UpdateChecker.VersionInfo info =
+                    UpdateChecker.checkForUpdate(messages.getString("app.version"));
+            Platform.runLater(() -> {
+                if (info == null) {
+                    Alert a = new Alert(Alert.AlertType.INFORMATION);
+                    a.initOwner(primaryStage);
+                    a.setTitle(messages.getString("update.uptodate.title"));
+                    a.setContentText(messages.getString("update.uptodate.content")
+                            .replace("{0}", messages.getString("app.version")));
+                    a.showAndWait();
+                } else {
+                    showUpdateDialog(info);
+                }
+            });
+        }, "update-check-manual").start();
+    }
+
+    private void showUpdateDialog(UpdateChecker.VersionInfo info) {
+        UpdateDialog dlg = new UpdateDialog(messages, primaryStage, info,
+                messages.getString("app.version"));
+        UpdateDialog.UpdateResult result = dlg.showAndGet();
+        if (result == UpdateDialog.UpdateResult.SKIP) {
+            config.setSkipVersion(info.tagName());
+            config.save();
+        } else if (result == UpdateDialog.UpdateResult.UPDATE) {
+            downloadAndInstall(info);
+        }
+    }
+
+    private void downloadAndInstall(UpdateChecker.VersionInfo info) {
+        new Thread(() -> {
+            try {
+                String suffix = info.assetName()
+                        .substring(info.assetName().lastIndexOf('.'));
+                Path dest = Files.createTempFile("marknote-update-", suffix);
+                HttpClient client = HttpClient.newBuilder()
+                        .followRedirects(HttpClient.Redirect.ALWAYS)
+                        .build();
+                client.send(
+                        HttpRequest.newBuilder(URI.create(info.downloadUrl()))
+                                .header("Accept", "application/octet-stream")
+                                .build(),
+                        HttpResponse.BodyHandlers.ofFile(dest));
+                java.awt.Desktop.getDesktop().open(dest.toFile());
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    Alert err = new Alert(Alert.AlertType.ERROR);
+                    err.initOwner(primaryStage);
+                    err.setTitle(messages.getString("update.error.title"));
+                    err.setContentText(e.getMessage());
+                    err.showAndWait();
+                });
+            }
+        }, "update-download").start();
     }
 
     /**
