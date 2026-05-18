@@ -294,6 +294,11 @@ MarkNote automatically remembers which documents you had open when you close a p
 - Click on a tab to switch to that document
 - Click the **×** button on a tab to close it
 - Press `Ctrl+W` to close the active tab
+- Press `Ctrl+Shift+W` to close **all** tabs at once
+- **Right-click** on any tab for additional close actions:
+  - **Close All Tabs** — closes every open tab
+  - **Close All But This** — keeps only the tab you right-clicked
+  - **Close Tabs to the Left** — closes all tabs to the left of the current one
 - **Drag tabs** to reorder them within the tab bar
 - Modified documents show a **\*** prefix in the tab title
 - Tab names longer than 15 characters are truncated with an ellipsis (`…`); hover for the full name
@@ -1463,6 +1468,7 @@ To change the language:
 | `Ctrl+S` | Save |
 | `Ctrl+Shift+S` | Save as |
 | `Ctrl+W` | Close current tab |
+| `Ctrl+Shift+W` | Close all tabs |
 | `Ctrl+Q` | Quit application |
 
 ### Editing
