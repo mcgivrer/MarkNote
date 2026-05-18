@@ -1443,8 +1443,10 @@ public class MarkNote extends Application {
      * d'écrire la config à chaque pixel lors d'un redimensionnement.
      */
     private void installWindowGeometryListeners(Stage stage) {
+        // En reading mode, toute la géométrie est ignorée : le fullscreen et les
+        // dimensions résultent du mode lecture, pas de la préférence utilisateur.
         stage.xProperty().addListener((obs, o, n) -> {
-            if (!stage.isMaximized() && !stage.isFullScreen()) {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
                 geometryDebouncer.debounce(() -> Platform.runLater(() -> {
                     config.setWindowX(stage.getX());
                     config.save();
@@ -1452,7 +1454,7 @@ public class MarkNote extends Application {
             }
         });
         stage.yProperty().addListener((obs, o, n) -> {
-            if (!stage.isMaximized() && !stage.isFullScreen()) {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
                 geometryDebouncer.debounce(() -> Platform.runLater(() -> {
                     config.setWindowY(stage.getY());
                     config.save();
@@ -1460,7 +1462,7 @@ public class MarkNote extends Application {
             }
         });
         stage.widthProperty().addListener((obs, o, n) -> {
-            if (!stage.isMaximized() && !stage.isFullScreen()) {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
                 geometryDebouncer.debounce(() -> Platform.runLater(() -> {
                     config.setWindowWidth(stage.getWidth());
                     config.save();
@@ -1468,7 +1470,7 @@ public class MarkNote extends Application {
             }
         });
         stage.heightProperty().addListener((obs, o, n) -> {
-            if (!stage.isMaximized() && !stage.isFullScreen()) {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
                 geometryDebouncer.debounce(() -> Platform.runLater(() -> {
                     config.setWindowHeight(stage.getHeight());
                     config.save();
@@ -1476,12 +1478,16 @@ public class MarkNote extends Application {
             }
         });
         stage.maximizedProperty().addListener((obs, o, maximized) -> {
-            config.setWindowMaximized(maximized);
-            config.save();
+            if (!readingModeActive) {
+                config.setWindowMaximized(maximized);
+                config.save();
+            }
         });
         stage.fullScreenProperty().addListener((obs, o, fullscreen) -> {
-            config.setWindowFullscreen(fullscreen);
-            config.save();
+            if (!readingModeActive) {
+                config.setWindowFullscreen(fullscreen);
+                config.save();
+            }
         });
     }
 
