@@ -39,6 +39,17 @@ public class AppConfig {
     private String gitUsername   = "token";
     private String gitToolbarMode = "standard";
 
+    // Window geometry — persisted so workspace survives hard kill
+    private double windowX = -1;
+    private double windowY = -1;
+    private double windowWidth = 1200;
+    private double windowHeight = 700;
+    private boolean windowMaximized = false;
+    private boolean windowFullscreen = false;
+
+    // Workspace restore
+    private boolean restoreWorkspaceOnStart = true;
+
     public record PanelState(boolean visible, boolean docked, String zone) {}
 
     /**
@@ -96,6 +107,20 @@ public class AppConfig {
                     gitUsername = line.substring("gitUsername=".length()).trim();
                 } else if (line.startsWith("gitToolbarMode=")) {
                     gitToolbarMode = line.substring("gitToolbarMode=".length()).trim();
+                } else if (line.startsWith("windowX=")) {
+                    try { windowX = Double.parseDouble(line.substring("windowX=".length()).trim()); } catch (NumberFormatException ignored) {}
+                } else if (line.startsWith("windowY=")) {
+                    try { windowY = Double.parseDouble(line.substring("windowY=".length()).trim()); } catch (NumberFormatException ignored) {}
+                } else if (line.startsWith("windowWidth=")) {
+                    try { windowWidth = Double.parseDouble(line.substring("windowWidth=".length()).trim()); } catch (NumberFormatException ignored) {}
+                } else if (line.startsWith("windowHeight=")) {
+                    try { windowHeight = Double.parseDouble(line.substring("windowHeight=".length()).trim()); } catch (NumberFormatException ignored) {}
+                } else if (line.startsWith("windowMaximized=")) {
+                    windowMaximized = Boolean.parseBoolean(line.substring("windowMaximized=".length()).trim());
+                } else if (line.startsWith("windowFullscreen=")) {
+                    windowFullscreen = Boolean.parseBoolean(line.substring("windowFullscreen=".length()).trim());
+                } else if (line.startsWith("restoreWorkspaceOnStart=")) {
+                    restoreWorkspaceOnStart = Boolean.parseBoolean(line.substring("restoreWorkspaceOnStart=".length()).trim());
                 } else if (line.startsWith("panelState=")) {
                     String raw = line.substring("panelState=".length()).trim();
                     String[] parts = raw.split("\\|", -1);
@@ -138,6 +163,13 @@ public class AppConfig {
             lines.add("gitToken=" + gitToken);
             lines.add("gitUsername=" + gitUsername);
             lines.add("gitToolbarMode=" + gitToolbarMode);
+            lines.add("windowX=" + windowX);
+            lines.add("windowY=" + windowY);
+            lines.add("windowWidth=" + windowWidth);
+            lines.add("windowHeight=" + windowHeight);
+            lines.add("windowMaximized=" + windowMaximized);
+            lines.add("windowFullscreen=" + windowFullscreen);
+            lines.add("restoreWorkspaceOnStart=" + restoreWorkspaceOnStart);
             for (Map.Entry<String, PanelState> entry : panelStates.entrySet()) {
                 PanelState state = entry.getValue();
                 lines.add("panelState=" + entry.getKey() + "|" + state.visible() + "|" + state.docked() + "|" + state.zone());
@@ -349,4 +381,25 @@ public class AppConfig {
     public boolean hasAnyPanelStates() {
         return !panelStates.isEmpty();
     }
+
+    public double getWindowX() { return windowX; }
+    public void setWindowX(double v) { this.windowX = v; }
+
+    public double getWindowY() { return windowY; }
+    public void setWindowY(double v) { this.windowY = v; }
+
+    public double getWindowWidth() { return windowWidth; }
+    public void setWindowWidth(double v) { this.windowWidth = v; }
+
+    public double getWindowHeight() { return windowHeight; }
+    public void setWindowHeight(double v) { this.windowHeight = v; }
+
+    public boolean isWindowMaximized() { return windowMaximized; }
+    public void setWindowMaximized(boolean v) { this.windowMaximized = v; }
+
+    public boolean isWindowFullscreen() { return windowFullscreen; }
+    public void setWindowFullscreen(boolean v) { this.windowFullscreen = v; }
+
+    public boolean isRestoreWorkspaceOnStart() { return restoreWorkspaceOnStart; }
+    public void setRestoreWorkspaceOnStart(boolean v) { this.restoreWorkspaceOnStart = v; }
 }

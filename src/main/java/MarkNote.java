@@ -102,6 +102,7 @@ public class MarkNote extends Application {
     private GitService gitService;
     private ProjectSessionService projectSessionService;
     private Debouncer previewDebouncer;
+    private Debouncer geometryDebouncer;
 
     // LLM Chat Panel
     private PromptPanel promptPanel;
@@ -213,11 +214,15 @@ public class MarkNote extends Application {
 
         // Project session service
         projectSessionService = new ProjectSessionService();
-        // Sauvegarder la session à chaque ajout ou suppression d'onglet de document
+        geometryDebouncer = new Debouncer(500);
+        // Sauvegarder la session à chaque ajout/suppression d'onglet et changement d'onglet actif
         mainTabPane.getTabs().addListener(
             (javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
                 saveProjectSession();
             }
+        );
+        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) ->
+            saveProjectSession()
         );
 
         // Index service
@@ -386,6 +391,11 @@ public class MarkNote extends Application {
         stage.setScene(scene);
         stage.setOnCloseRequest(e -> saveManagedPanelStates());
 
+        // Restaurer la géométrie de fenêtre sauvegardée
+        restoreWindowGeometry(stage);
+        // Sauvegarder en temps réel pour survivre à un hard kill
+        installWindowGeometryListeners(stage);
+
         // Icônes de fenêtre / barre des tâches (du plus petit au plus grand)
         String[] iconSizes = { "16", "32", "64", "128" };
         for (String size : iconSizes) {
@@ -397,33 +407,24 @@ public class MarkNote extends Application {
             }
         }
 
+        // ShutdownHook pour SIGTERM / arrêt JVM hors FX (hard kill partiel)
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            saveManagedPanelStates();
+            saveProjectSession();
+        }, "marknote-shutdown-hook"));
+
         // Afficher le splash screen ; la fenêtre principale et la logique de
         // démarrage s'exécutent une fois le splash fermé.
         if (config.isShowSplashScreen()) {
             SplashScreen splash = new SplashScreen(messages, config.getCurrentTheme());
             splash.setOnClosed(() -> {
                 stage.show();
-                // Rouvrir le dernier projet si l'option est activée
-                handleReopenLastProject();
-                // Afficher l'onglet Welcome si l'option est activée
-                if (config.isShowWelcomePage()) {
-                    showWelcomeTab();
-                }
-                // Premier onglet (optionnel)
-                if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
-                    addNewDocument();
-                }
+                handleStartupRestore();
             });
             splash.show();
         } else {
             stage.show();
-            handleReopenLastProject();
-            if (config.isShowWelcomePage()) {
-                showWelcomeTab();
-            }
-            if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
-                addNewDocument();
-            }
+            handleStartupRestore();
         }
     }
 
@@ -1215,10 +1216,17 @@ public class MarkNote extends Application {
         refreshRecentMenu();
         loadOrBuildIndex(dir);
 
-        // Rouvrir les documents de la session précédente
-        List<File> sessionFiles = projectSessionService.loadSession(dir);
-        for (File f : sessionFiles) {
+        // Rouvrir les documents de la session précédente et restaurer l'onglet actif
+        ProjectSessionService.SessionData session = projectSessionService.loadSession(dir);
+        for (File f : session.openFiles()) {
             openFileInTab(f);
+        }
+        if (session.activeFile() != null) {
+            final File target = session.activeFile();
+            mainTabPane.getTabs().stream()
+                .filter(t -> t instanceof DocumentTab dt && target.equals(dt.getFile()))
+                .findFirst()
+                .ifPresent(t -> mainTabPane.getSelectionModel().select(t));
         }
     }
 
@@ -1374,6 +1382,107 @@ public class MarkNote extends Application {
                 }
             }
         }
+    }
+
+    /**
+     * Point d'entrée unique pour la logique de démarrage (après splash éventuel).
+     * Si restoreWorkspaceOnStart est actif, le dernier workspace est restauré
+     * automatiquement sans dialogue. Sinon, le comportement historique est conservé.
+     */
+    private void handleStartupRestore() {
+        if (config.isRestoreWorkspaceOnStart() && !config.getRecentDirs().isEmpty()) {
+            File lastDir = new File(config.getRecentDirs().getFirst());
+            if (lastDir.exists() && lastDir.isDirectory()) {
+                openProjectDirectory(lastDir);
+                return;
+            }
+        }
+        // Comportement historique : dialogue de confirmation ou onglet de bienvenue
+        handleReopenLastProject();
+        if (config.isShowWelcomePage()) {
+            showWelcomeTab();
+        }
+        if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
+            addNewDocument();
+        }
+    }
+
+    /**
+     * Applique la géométrie de fenêtre sauvegardée (position, taille, mode plein écran / maximisé).
+     * Doit être appelé avant {@code stage.show()} pour éviter un flash.
+     */
+    private void restoreWindowGeometry(Stage stage) {
+        if (config.getWindowWidth() > 100) {
+            stage.setWidth(config.getWindowWidth());
+        }
+        if (config.getWindowHeight() > 100) {
+            stage.setHeight(config.getWindowHeight());
+        }
+        if (config.getWindowX() >= 0) {
+            stage.setX(config.getWindowX());
+        }
+        if (config.getWindowY() >= 0) {
+            stage.setY(config.getWindowY());
+        }
+        if (config.isWindowMaximized()) {
+            stage.setMaximized(true);
+        }
+        // Le fullscreen est différé après show() car certaines plateformes l'ignorent avant
+        if (config.isWindowFullscreen()) {
+            Platform.runLater(() -> {
+                stage.setFullScreenExitHint("");
+                stage.setFullScreen(true);
+            });
+        }
+    }
+
+    /**
+     * Installe des listeners sur les propriétés de géométrie de fenêtre pour sauvegarder
+     * l'état en temps réel. Cela garantit la survie de l'état même après un hard kill (SIGKILL).
+     * La position et la taille sont sauvegardées avec un debounce de 500 ms pour éviter
+     * d'écrire la config à chaque pixel lors d'un redimensionnement.
+     */
+    private void installWindowGeometryListeners(Stage stage) {
+        stage.xProperty().addListener((obs, o, n) -> {
+            if (!stage.isMaximized() && !stage.isFullScreen()) {
+                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
+                    config.setWindowX(stage.getX());
+                    config.save();
+                }));
+            }
+        });
+        stage.yProperty().addListener((obs, o, n) -> {
+            if (!stage.isMaximized() && !stage.isFullScreen()) {
+                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
+                    config.setWindowY(stage.getY());
+                    config.save();
+                }));
+            }
+        });
+        stage.widthProperty().addListener((obs, o, n) -> {
+            if (!stage.isMaximized() && !stage.isFullScreen()) {
+                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
+                    config.setWindowWidth(stage.getWidth());
+                    config.save();
+                }));
+            }
+        });
+        stage.heightProperty().addListener((obs, o, n) -> {
+            if (!stage.isMaximized() && !stage.isFullScreen()) {
+                geometryDebouncer.debounce(() -> Platform.runLater(() -> {
+                    config.setWindowHeight(stage.getHeight());
+                    config.save();
+                }));
+            }
+        });
+        stage.maximizedProperty().addListener((obs, o, maximized) -> {
+            config.setWindowMaximized(maximized);
+            config.save();
+        });
+        stage.fullScreenProperty().addListener((obs, o, fullscreen) -> {
+            config.setWindowFullscreen(fullscreen);
+            config.save();
+        });
     }
 
     /**
@@ -1581,7 +1690,9 @@ public class MarkNote extends Application {
                 .map(t -> ((DocumentTab) t).getFile())
                 .filter(f -> f.toPath().startsWith(projectDir.toPath()))
                 .toList();
-        projectSessionService.saveSession(projectDir, openFiles);
+        DocumentTab activeDocTab = getActiveDocumentTab();
+        File activeFile = (activeDocTab != null && activeDocTab.getFile() != null) ? activeDocTab.getFile() : null;
+        projectSessionService.saveSession(projectDir, openFiles, activeFile);
     }
 
     @Override
@@ -1590,6 +1701,9 @@ public class MarkNote extends Application {
         saveProjectSession();
         if (previewDebouncer != null) {
             previewDebouncer.shutdown();
+        }
+        if (geometryDebouncer != null) {
+            geometryDebouncer.shutdown();
         }
     }
 
