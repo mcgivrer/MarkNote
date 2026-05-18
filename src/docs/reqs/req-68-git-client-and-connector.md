@@ -409,8 +409,103 @@ No additional native binaries are required. JGit bundles all transitive dependen
     - **Authentication**: Token-based only (stored in AppConfig, chmod 600)
     - **Scope**: Repository operations only; no issues, PRs, CI status (deferred to future Stage 4+)
 
-3. stage 3 - UI integration
-    - [ ] integrate the RemoteConnector usage into git dialogs and UI.
+3. Stage 3 - UI Integration
+
+    **Goal**: Integrate RemoteConnector functionality into MarkNote's Git UI to enable browsing remote repositories, creating new repositories, and selecting remotes from GitHub/GitLab/Gitea.
+
+    **Context**:
+    - Stage 1 Completed: GitService + full Git UI (dialogs, toolbar, menus)
+    - Stage 2 Completed: RemoteConnector backend (GitHub/GitLab/Gitea APIs)
+
+    **Architecture Decisions**:
+    1. **Integration points**: Add "Browse Repositories" and "Create Repository" dialogs accessible from AddRemoteDialog, GitOptionsTab, and root context menu
+    2. **Token management**: Reuse token from AddRemoteDialog/Options (simpler, most users use same token for Git and API)
+    3. **Error handling**: Inline error labels for non-critical errors (rate limit, 404), Alert dialogs for auth failures
+
+    **Phase 1: Repository Browser Dialog (NEW)**
+
+    - [ ] Create `RemoteRepositoryBrowserDialog.java` in `src/main/java/ui/` (~300 lines)
+        - UI components: ComboBox (platform), PasswordField (token), Button (Test/Refresh), ListView (repos with custom cell renderer), Label (status)
+        - Constructor: `RemoteRepositoryBrowserDialog(Window owner, String platform, String token)`
+        - Behavior: Auto-load repos on open, Test button validates token, Refresh re-fetches list, Select/double-click returns RemoteRepo
+        - Methods: `loadRepositories()`, `handleTestConnection()`, `handleRefresh()`, `handleSelect()`, `getSelectedRepository()`
+        - Error handling: 401/403 → "Invalid token", 429 → "Rate limit exceeded", network → "Connection failed", empty → "No repositories found"
+        - Thread safety: API calls in background thread, UI updates via Platform.runLater
+
+    **Phase 2: Create Repository Dialog (NEW)**
+
+    - [ ] Create `CreateRemoteRepositoryDialog.java` in `src/main/java/ui/` (~250 lines)
+        - UI components: ComboBox (platform), PasswordField (token), Button (Test), TextField (name with validation), TextField (description), CheckBox (private, default true), CheckBox (init README, default true), Label (status)
+        - Constructor: `CreateRemoteRepositoryDialog(Window owner, String platform, String token)`
+        - Validation: Enable Create button only if valid name (alphanumeric + dash/underscore, no spaces)
+        - Methods: `validateForm()`, `handleTestConnection()`, `handleCreate()`, `getCreatedRepository()`
+        - Error handling: 401/403 → "Authentication failed", 409 → "Repository name already exists", 422 → "Invalid repository name"
+
+    **Phase 3: Enhance AddRemoteDialog**
+
+    - [ ] Modify `src/main/java/ui/AddRemoteDialog.java` (add ~80 lines)
+        - Add "Browse…" button next to Remote URL field (enabled when token entered)
+            - Opens RemoteRepositoryBrowserDialog with detected platform
+            - On selection: fills URL field with repo's cloneUrl
+        - Add "Create New…" button next to Remote URL field (enabled when token entered)
+            - Opens CreateRemoteRepositoryDialog with detected platform
+            - On success: fills URL field with created repo's cloneUrl
+        - Auto-detect platform from URL using `RemoteConnectorFactory.detectPlatform()`
+            - Display hint: "Detected: GitHub" / "Detected: GitLab" / "Detected: Gitea"
+        - Implementation: Button disable bindings to tokenField, handlers `handleBrowseRepositories()` and `handleCreateRepository()`
+
+    **Phase 4: Enhance GitOptionsTab**
+
+    - [ ] Modify `src/main/java/ui/GitOptionsTab.java` (add ~60 lines)
+        - Add "Remote Repositories" section below credentials
+            - Shows current remote URL if configured
+            - Buttons: "Browse Repositories…" and "Create Repository…"
+        - Implementation: `buildRemoteRepoSection()`, handlers `handleBrowseFromOptions()` and `handleCreateFromOptions()`
+        - Behavior: Browse/Create may update config or offer to set as remote after success
+
+    **Phase 5: Context Menu Integration**
+
+    - [ ] Modify `src/main/java/ui/ProjectExplorerPanel.java` (add ~40 lines)
+        - Add "⊕ Create Remote Repository…" to root folder context menu (when no remote configured)
+        - Implementation: Handler `handleCreateRemoteRepository()` checks token in AppConfig, opens CreateRemoteRepositoryDialog, offers to set as remote on success
+        - Workflow: Create repo → confirmation dialog → `gitService.addRemote(repo.cloneUrl())` → success message
+
+    **Phase 6: Testing**
+
+    - [ ] Create unit tests in `src/test/java/ui/`
+        - `RemoteRepositoryBrowserDialogTest.java` (~200 lines): Test repo list rendering, selection logic, error display, mock RemoteConnector responses
+        - `CreateRemoteRepositoryDialogTest.java` (~150 lines): Test form validation, create button enable/disable, success/error scenarios, mock RemoteConnector.createRepository()
+
+    - [ ] Manual testing scenarios
+        - AddRemoteDialog integration: Enter token → Browse enables → lists repos → select → URL populated
+        - AddRemoteDialog integration: Click Create New → dialog opens → repo created → URL filled
+        - GitOptionsTab integration: Browse/Create buttons work, token validation
+        - Context menu: Right-click root → Create Remote Repository → confirm → remote configured → push works
+        - Error scenarios: Invalid token, rate limit, network error, empty repo list
+
+    - [ ] Integration testing workflows
+        - **Workflow 1 (New project)**: Init Git → commit → right-click root → Create Remote Repository → enter token → create private repo → confirm set as remote → push succeeds
+        - **Workflow 2 (Existing repo)**: Open project (no remote) → Options → Git → Browse Repositories → select → confirm → pull/push work
+        - **Workflow 3 (Token reuse)**: Configure token in Options → AddRemoteDialog auto-uses token → Browse/Create work without re-entering
+
+    **Files Summary**:
+    - **New files**: RemoteRepositoryBrowserDialog.java (~300 lines), CreateRemoteRepositoryDialog.java (~250 lines)
+    - **Modified files**: AddRemoteDialog.java (+80 lines), GitOptionsTab.java (+60 lines), ProjectExplorerPanel.java (+40 lines)
+    - **Test files**: RemoteRepositoryBrowserDialogTest.java (~200 lines), CreateRemoteRepositoryDialogTest.java (~150 lines)
+    - **Total estimate**: ~1080 lines
+
+    **Risks & Mitigations**:
+    - Token security → Use PasswordField (masked), never log tokens
+    - API rate limits → Show clear error on 429, cache repo lists for 5 minutes
+    - Network latency → All calls in background threads, show loading spinners
+    - Platform differences → Already handled in Stage 2 connectors, test each platform
+    - User confusion → Clear labels, tooltips, inline help
+
+    **Future Enhancements (Stage 4+)**:
+    - Show repo description/stats in browser dialog
+    - Filter repos by visibility, search by name
+    - Clone repos directly from browser dialog
+    - CI/CD status indicators, GitHub/GitLab issues integration, PR creation
 
 > [!IMPORTANT] GitService class
 > The Git client is a big feature; create it as a dedicated `GitService` class and keep all JGit calls inside it. The UI layer must never import JGit directly.
