@@ -10,9 +10,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import config.AppConfig;
+import services.git.GitService;
+import services.git.RemoteConnector.RemoteRepo;
+import services.git.RemoteConnectorFactory;
+import ui.git.CreateRemoteRepositoryDialog;
 import utils.DocumentService;
 import utils.FrontMatter;
-import utils.GitService;
 import utils.IndexService;
 
 import javafx.geometry.Insets;
@@ -55,6 +59,7 @@ public class ProjectExplorerPanel extends BasePanel {
     private final TreeView<File> treeView;
     private File projectDir;
     private GitService gitService;
+    private AppConfig appConfig;
     private Consumer<File> onFileDoubleClick;
     private Runnable onResetIndex;
     private Consumer<File> onFileCreated;
@@ -79,6 +84,7 @@ public class ProjectExplorerPanel extends BasePanel {
     private Runnable         onGitCommit;
     private Runnable         onGitInit;
     private Runnable         onGitAddRemote;
+    private Runnable         onGitCreateRemote;
     private Consumer<File>   onGitAdd;
     private Consumer<File>   onGitRemoveFromIndex;
     private Runnable         onGitPull;
@@ -193,6 +199,7 @@ public class ProjectExplorerPanel extends BasePanel {
         SeparatorMenuItem gitSep4  = new SeparatorMenuItem();
         MenuItem gitInitItem       = new MenuItem(safeKey("git.init",             "Initialiser Git\u2026"));
         MenuItem gitAddRemoteItem  = new MenuItem(safeKey("git.add.remote",       "Ajouter un remote\u2026"));
+        MenuItem gitCreateRemoteItem = new MenuItem(safeKey("git.create.remote",  "\u2295 Create Remote Repository\u2026"));
 
         gitAddItem.setOnAction(e -> {
             if (onGitAdd != null) {
@@ -212,12 +219,13 @@ public class ProjectExplorerPanel extends BasePanel {
         });
         gitInitItem.setOnAction(e      -> { if (onGitInit      != null) onGitInit.run(); });
         gitAddRemoteItem.setOnAction(e -> { if (onGitAddRemote != null) onGitAddRemote.run(); });
+        gitCreateRemoteItem.setOnAction(e -> handleCreateRemoteRepository());
 
         menu.getItems().addAll(newFileItem, newFolderItem, new SeparatorMenuItem(), renameItem, new SeparatorMenuItem(), deleteItem, new SeparatorMenuItem(), resetIndexItem,
                 gitSep1, gitAddItem, gitCommitItem,
                 gitSep2, gitPullItem, gitPushItem, gitFetchItem,
                 gitSep3, gitRemoveItem,
-                gitSep4, gitInitItem, gitAddRemoteItem);
+                gitSep4, gitInitItem, gitAddRemoteItem, gitCreateRemoteItem);
 
         // Désactiver les items si aucune sélection
         menu.setOnShowing(e -> {
@@ -253,6 +261,7 @@ public class ProjectExplorerPanel extends BasePanel {
             gitSep4.setVisible(!isGit || !hasRemote);
             gitInitItem.setVisible(!isGit && isRoot);
             gitAddRemoteItem.setVisible(isGit && !hasRemote && isRoot);
+            gitCreateRemoteItem.setVisible(isGit && !hasRemote && isRoot);
         });
 
         return menu;
@@ -488,6 +497,11 @@ public class ProjectExplorerPanel extends BasePanel {
     public void setGitToolbarMode(String mode) {
         this.gitToolbarMode = (mode != null && !mode.isBlank()) ? mode : "standard";
         updateGitToolbar();
+    }
+
+    /** Définit la configuration de l'application. */
+    public void setAppConfig(AppConfig config) {
+        this.appConfig = config;
     }
 
     /**
@@ -931,6 +945,65 @@ public class ProjectExplorerPanel extends BasePanel {
         return result.isPresent() && result.get() == ButtonType.OK;
     }
 
+    /**
+     * Gère la création d'un nouveau dépôt distant et sa configuration comme remote.
+     */
+    private void handleCreateRemoteRepository() {
+        if (appConfig == null) {
+            showError("Configuration Error", "AppConfig not initialized.");
+            return;
+        }
+        
+        String token = appConfig.getGitToken();
+        
+        if (token == null || token.isBlank()) {
+            showError("Git Error", "No API token configured. Please configure your token in Options > Git.");
+            return;
+        }
+        
+        // Detect platform from existing remote URL if any, or default to github
+        String platform = "github";
+        try {
+            String existingRemote = gitService.getRemoteUrl("origin");
+            if (existingRemote != null && !existingRemote.isBlank()) {
+                String detected = RemoteConnectorFactory.detectPlatform(existingRemote);
+                if (detected != null) {
+                    platform = detected;
+                }
+            }
+        } catch (Exception ignored) {
+            // No remote configured yet, use default
+        }
+        
+        CreateRemoteRepositoryDialog dialog = 
+            new CreateRemoteRepositoryDialog(getScene().getWindow(), platform, token);
+        dialog.showAndWait();
+        
+        dialog.getCreatedRepository().ifPresent(repo -> {
+            // Ask user if they want to set this as the remote
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Set Remote");
+            confirm.setHeaderText("Repository created successfully!");
+            confirm.setContentText("Do you want to set this repository as the 'origin' remote?\n\n" + repo.cloneUrl());
+            
+            Optional<ButtonType> result = confirm.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                try {
+                    gitService.addRemote("origin", repo.cloneUrl());
+                    refreshGitAware();
+                    // Show success message
+                    Alert success = new Alert(Alert.AlertType.INFORMATION);
+                    success.setTitle("Success");
+                    success.setHeaderText(null);
+                    success.setContentText("Remote 'origin' configured successfully.");
+                    success.showAndWait();
+                } catch (Exception e) {
+                    showError("Git Error", "Failed to add remote: " + e.getMessage());
+                }
+            }
+        });
+    }
+
     // -------------------------------------------------------------------------
     // Setters pour les callbacks git
     // -------------------------------------------------------------------------
@@ -938,6 +1011,7 @@ public class ProjectExplorerPanel extends BasePanel {
     public void setOnGitCommit(Runnable cb)               { this.onGitCommit         = cb; }
     public void setOnGitInit(Runnable cb)                  { this.onGitInit           = cb; }
     public void setOnGitAddRemote(Runnable cb)             { this.onGitAddRemote      = cb; }
+    public void setOnGitCreateRemote(Runnable cb)          { this.onGitCreateRemote   = cb; }
     public void setOnGitAdd(Consumer<File> cb)             { this.onGitAdd            = cb; }
     public void setOnGitRemoveFromIndex(Consumer<File> cb) { this.onGitRemoveFromIndex = cb; }
     public void setOnGitPull(Runnable cb)                  { this.onGitPull           = cb; }

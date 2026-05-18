@@ -1,4 +1,6 @@
-package utils;
+package services.git;
+
+import utils.LogService;
 
 import java.io.File;
 import java.io.IOException;
@@ -209,6 +211,25 @@ public class GitService {
         cmd.setUri(new URIish(url));
         cmd.call();
         log.info(LOG_SOURCE, "Remote '" + name + "' added.");
+    }
+
+    /**
+     * Récupère l'URL d'un remote.
+     *
+     * @param name nom du remote (typiquement "origin")
+     * @return URL du remote, ou null si non trouvé
+     */
+    public String getRemoteUrl(String name) throws GitAPIException {
+        if (!isGitRepo || jgit == null) return null;
+        List<RemoteConfig> remotes = jgit.remoteList().call();
+        for (RemoteConfig remote : remotes) {
+            if (remote.getName().equals(name)) {
+                if (!remote.getURIs().isEmpty()) {
+                    return remote.getURIs().get(0).toString();
+                }
+            }
+        }
+        return null;
     }
 
     /**

@@ -16,8 +16,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
-import utils.GitService;
-import utils.GitService.StagedFile;
+import services.git.GitService;
+import services.git.GitService.StagedFile;
 
 /**
  * Dialogue modal pour créer un commit git.

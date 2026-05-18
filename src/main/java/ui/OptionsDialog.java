@@ -10,6 +10,11 @@ import java.util.function.Consumer;
 import config.AppConfig;
 import config.LLMConfig;
 import config.ThemeManager;
+import services.git.GitService;
+import services.git.RemoteConnector.RemoteRepo;
+import services.git.RemoteConnectorFactory;
+import ui.git.CreateRemoteRepositoryDialog;
+import ui.git.RemoteRepositoryBrowserDialog;
 import services.LLMService;
 
 import javafx.collections.FXCollections;
@@ -77,8 +82,9 @@ public class OptionsDialog {
      *
      * @param owner  Le stage parent
      * @param config La configuration de l'application
+     * @param gitService Le service Git pour afficher l'URL du remote
      */
-    public OptionsDialog(Stage owner, AppConfig config) {
+    public OptionsDialog(Stage owner, AppConfig config, GitService gitService) {
         this.config = config;
 
         dialog = new Stage();
@@ -445,6 +451,70 @@ public class OptionsDialog {
         GridPane.setHgrow(tokenField, Priority.ALWAYS);
         gitGrid.add(tokenLabel, 0, 8);
         gitGrid.add(tokenField, 1, 8);
+        
+        // Section Remote Repositories
+        Label remoteHeader = new Label(safeKey("options.git.remote.header", "Remote Repositories"));
+        remoteHeader.setStyle("-fx-font-weight: bold;");
+        gitGrid.add(remoteHeader, 0, 10, 3, 1);
+        
+        // Current remote URL display
+        Label remoteUrlLabel = new Label(safeKey("options.git.remote.current", "Current remote:"));
+        Label remoteUrlValue = new Label();
+        remoteUrlValue.setStyle("-fx-text-fill: #666;");
+        
+        // Get current remote URL if available
+        String currentRemote = "(not configured)";
+        if (gitService != null && gitService.isGitRepo()) {
+            try {
+                String url = gitService.getRemoteUrl("origin");
+                if (url != null && !url.isBlank()) {
+                    currentRemote = url;
+                }
+            } catch (Exception e) {
+                // Ignore - no remote configured
+            }
+        }
+        remoteUrlValue.setText(currentRemote);
+        gitGrid.add(remoteUrlLabel, 0, 11);
+        gitGrid.add(remoteUrlValue, 1, 11, 2, 1);
+        
+        // Buttons to browse and create repositories
+        Button browseReposBtn = new Button(safeKey("options.git.remote.browse", "Browse Repositories…"));
+        browseReposBtn.setOnAction(e -> {
+            String platform = RemoteConnectorFactory.detectPlatform(remoteUrlValue.getText());
+            if (platform == null) platform = "github";
+            String token = tokenField.getText();
+            
+            RemoteRepositoryBrowserDialog browserDialog = 
+                new RemoteRepositoryBrowserDialog(dialog, platform, token);
+            browserDialog.showAndWait();
+            
+            browserDialog.getSelectedRepository().ifPresent(repo -> {
+                remoteUrlValue.setText(repo.cloneUrl());
+            });
+        });
+        
+        Button createRepoBtn = new Button(safeKey("options.git.remote.create", "Create Repository…"));
+        createRepoBtn.setOnAction(e -> {
+            String platform = RemoteConnectorFactory.detectPlatform(remoteUrlValue.getText());
+            if (platform == null) platform = "github";
+            String token = tokenField.getText();
+            
+            CreateRemoteRepositoryDialog createDialog = 
+                new CreateRemoteRepositoryDialog(dialog, platform, token);
+            createDialog.showAndWait();
+            
+            createDialog.getCreatedRepository().ifPresent(repo -> {
+                remoteUrlValue.setText(repo.cloneUrl());
+            });
+        });
+        
+        // Disable buttons if no token
+        browseReposBtn.disableProperty().bind(tokenField.textProperty().isEmpty());
+        createRepoBtn.disableProperty().bind(tokenField.textProperty().isEmpty());
+        
+        HBox remoteButtonsBox = new HBox(10, browseReposBtn, createRepoBtn);
+        gitGrid.add(remoteButtonsBox, 1, 12, 2, 1);
 
         gitTab.setContent(gitGrid);
         optionsTabs.getTabs().add(gitTab);
