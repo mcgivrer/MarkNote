@@ -52,14 +52,14 @@ Immediately after a successful `git init` + identity setup, a confirmation dialo
 
 The first time the user clicks **↑ Push** (or selects `↑ Push` from the context menu) when no remote is configured, an **Add Remote** dialog appears:
 
-| Field | Description |
-|-------|-------------|
-| Remote URL | HTTPS or SSH URL (e.g. `https://github.com/user/repo.git` or `git@github.com:user/repo.git`) |
-| Authentication | Selector: **None / Basic / Token / SSH key** |
-| Username | Visible for Basic and Token auth |
-| Password / Token | Visible for Basic and Token auth; masked input |
-| SSH private key path | Visible for SSH auth; file-picker |
-| SSH passphrase | Visible for SSH auth; optional, masked |
+| Field                | Description                                                                                  |
+|----------------------|----------------------------------------------------------------------------------------------|
+| Remote URL           | HTTPS or SSH URL (e.g. `https://github.com/user/repo.git` or `git@github.com:user/repo.git`) |
+| Authentication       | Selector: **None / Basic / Token / SSH key**                                                 |
+| Username             | Visible for Basic and Token auth                                                             |
+| Password / Token     | Visible for Basic and Token auth; masked input                                               |
+| SSH private key path | Visible for SSH auth; file-picker                                                            |
+| SSH passphrase       | Visible for SSH auth; optional, masked                                                       |
 
 Credentials are stored in `~/.marknote/config` (plain-text, owner-readable only, `chmod 600`). The remote is registered as `origin` in the local repo config. After the remote is saved the push is retried automatically.
 
@@ -71,11 +71,11 @@ Credentials are stored in `~/.marknote/config` (plain-text, owner-readable only,
 
 Three buttons are prepended to the existing toolbar and are only visible when the open project is a Git repository:
 
-| Button | Shortcut | Action |
-|--------|----------|--------|
-| `↓ Pull` | — | Fetch + fast-forward merge from `origin/<branch>` |
-| `↑ Push` | — | Push local commits to `origin/<branch>`; prompts Add Remote if none set |
-| `✓ Commit` | — | Opens the Commit dialog |
+| Button     | Shortcut | Action                                                                  |
+|------------|----------|-------------------------------------------------------------------------|
+| `↓ Pull`   | —        | Fetch + fast-forward merge from `origin/<branch>`                       |
+| `↑ Push`   | —        | Push local commits to `origin/<branch>`; prompts Add Remote if none set |
+| `✓ Commit` | —        | Opens the Commit dialog                                                 |
 
 A read-only **branch badge** (dark pill, e.g. `⎇ main`) appears at the right end of the toolbar, showing the current branch name. It is refreshed whenever a commit, pull, or push completes.
 
@@ -83,33 +83,33 @@ A read-only **branch badge** (dark pill, e.g. `⎇ main`) appears at the right e
 
 Right-clicking any file in the tree appends a **Git** section (preceded by a separator) to the existing file context menu:
 
-| Entry | Condition | Action |
-|-------|-----------|--------|
-| `+ git add` | File is untracked or modified | Stages the file (`git add <path>`) |
-| `✓ Commit…` | Always | Opens Commit dialog with this file pre-selected |
-| `↓ Pull` | Repo has a remote | Pull from origin |
-| `↑ Push` | Repo has a remote | Push to origin |
-| `↺ Fetch` | Repo has a remote | Fetch from origin (no merge) |
-| `✗ Remove from index` | File is tracked | Unstages / removes from index (`git rm --cached`) |
+| Entry                 | Condition                     | Action                                            |
+|-----------------------|-------------------------------|---------------------------------------------------|
+| `+ git add`           | File is untracked or modified | Stages the file (`git add <path>`)                |
+| `✓ Commit…`           | Always                        | Opens Commit dialog with this file pre-selected   |
+| `↓ Pull`              | Repo has a remote             | Pull from origin                                  |
+| `↑ Push`              | Repo has a remote             | Push to origin                                    |
+| `↺ Fetch`             | Repo has a remote             | Fetch from origin (no merge)                      |
+| `✗ Remove from index` | File is tracked               | Unstages / removes from index (`git rm --cached`) |
 
 ### Context menu — root folder
 
 Right-clicking the **root folder** node shows the same Git section as for files, plus two entries at the top when the project is not yet a Git repository:
 
-| Entry | Condition |
-|-------|-----------|
-| `⚙ Initialize Git repository…` | No `.git/` present |
-| `⊕ Add Remote…` | Repo exists but has no `origin` remote |
+| Entry                          | Condition                              |
+|--------------------------------|----------------------------------------|
+| `⚙ Initialize Git repository…` | No `.git/` present                     |
+| `⊕ Add Remote…`                | Repo exists but has no `origin` remote |
 
 ### File status indicators
 
 Status dots are rendered as small coloured circles on the right edge of each tree row (as currently):
 
-| Colour | Meaning |
-|--------|---------|
-| Green | Tracked and up to date (clean) |
+| Colour | Meaning                              |
+|--------|--------------------------------------|
+| Green  | Tracked and up to date (clean)       |
 | Orange | Tracked but locally modified (dirty) |
-| Red | Untracked (not in the index) |
+| Red    | Untracked (not in the index)         |
 
 The dots are refreshed asynchronously after every Git operation and after every file save.
 
@@ -272,12 +272,12 @@ A dedicated **Git** tab is added to the Options dialog (`Help → Options… →
 
 A radio-button selector controls which Git controls are displayed in the Project Explorer toolbar:
 
-| Mode | Description |
-|------|-------------|
-| **Standard** | Only the existing `⇅ Sync` and `↻ Index` buttons are shown. The branch badge is displayed but is read-only (label only, no interaction). This is the default mode; it is appropriate for users who do not need direct Git interaction from within MarkNote. |
+| Mode         | Description                                                                                                                                                                                                                                                                               |
+|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Standard** | Only the existing `⇅ Sync` and `↻ Index` buttons are shown. The branch badge is displayed but is read-only (label only, no interaction). This is the default mode; it is appropriate for users who do not need direct Git interaction from within MarkNote.                               |
 | **Advanced** | All Git buttons are active: `↓ Pull`, `↑ Push`, `✓ Commit`, `↻ Index`, `⇅ Sync`, and the `⎇ <branch>` badge. Selecting the branch badge opens a read-only dropdown listing existing local branches; switching branches is intentionally not supported (no branching operations in scope). |
 
-> [!IMPORTANT] IMPORTANT 
+> [!IMPORTANT] IMPORTANT
 > Even in **Standard** mode the per-file Git status dots (green / orange / red) and the root-folder context-menu entries (Init, Add Remote…) remain visible and functional. The mode only governs the toolbar buttons.
 
 The selected mode is persisted in `~/.marknote/config` under the key `git.toolbarMode` with values `standard` (default) or `advanced`.
@@ -309,17 +309,97 @@ No additional native binaries are required. JGit bundles all transitive dependen
 
 ## ToDo
 
-- [x] Use plan mode to prepare the implementation,
-- [x] wait for plan approval before proceeding,
-- [x] write a dedicated specification in `src/docs/git-client-and-connector-implementation.md`,
-- [x] add JGit dependency to `pom.xml`,
-- [x] implement `GitService` with all operations listed above,
-- [x] update Project Explorer toolbar (Pull / Push / Commit buttons + branch badge),
-- [x] add Git section to file and root-folder context menus,
-- [x] implement Commit dialog,
-- [x] implement Add Remote / Credentials dialog,
-- [x] wire status dot refresh to post-operation events,
-- [x] add Git tab in Options dialog (toolbar mode: standard / advanced; remote credentials).
+1. Stage 1 - GitService
+
+    - [x] Use plan mode to prepare the implementation,
+    - [x] wait for plan approval before proceeding,
+    - [x] write a dedicated specification in `src/docs/git-client-and-connector-implementation.md`,
+    - [x] add JGit dependency to `pom.xml`,
+    - [x] implement `GitService` with all operations listed above,
+    - [x] update Project Explorer toolbar (Pull / Push / Commit buttons + branch badge),
+    - [x] add Git section to file and root-folder context menus,
+    - [x] implement Commit dialog,
+    - [x] implement Add Remote / Credentials dialog,
+    - [x] wire status dot refresh to post-operation events,
+    - [x] add Git tab in Options dialog (toolbar mode: standard / advanced; remote credentials).
+
+2. Stage 2 - git RemoteConnector
+
+    **Goal**: Implement connectors for interacting with GitHub, GitLab, and Gitea REST APIs to list repositories and create new remote repositories directly from MarkNote.
+
+    **Architecture decisions**:
+    - Use existing `java.net.http.*` HttpClient (already used in UpdateChecker)
+    - Parse JSON responses with `org.json.simple` (already in dependencies for LLM config)
+    - Token-based authentication only (credentials already stored in AppConfig)
+    - Return empty lists on API errors, log via LogService
+    - Static factory for platform detection from remote URLs
+
+    **Phase 1: Core Infrastructure** (parallel steps)
+
+    - [ ] Create `RemoteConnector` interface in `src/main/java/utils/RemoteConnector.java`
+        - Define methods: `platform()`, `listRepositories()`, `createRepository(String name, boolean isPrivate)`
+        - Define `RemoteRepo` record: `name`, `cloneUrl`, `description`, `isPrivate`, `defaultBranch`
+        - Add JavaDoc describing contract and authentication expectations
+
+    - [ ] Create `RemoteConnectorFactory` utility in `src/main/java/utils/RemoteConnectorFactory.java`
+        - Static method `create(String remoteUrl, String token)` → returns appropriate connector or null
+        - URL parsing logic to detect platform (github.com, gitlab.com, custom domains)
+        - Support for custom GitLab and Gitea instances
+
+    **Phase 2: Platform Implementations** (parallel steps)
+
+    - [ ] Implement `GitHubConnector` in `src/main/java/utils/GitHubConnector.java`
+        - Constructor: `GitHubConnector(String token)`
+        - API base: `https://api.github.com`
+        - `listRepositories()`: GET `/user/repos?type=owner&per_page=100`
+        - `createRepository()`: POST `/user/repos` with JSON body `{"name": "...", "private": true/false}`
+        - Auth header: `Authorization: token <token>`
+
+    - [ ] Implement `GitLabConnector` in `src/main/java/utils/GitLabConnector.java`
+        - Constructor: `GitLabConnector(String instanceUrl, String token)`
+        - Support custom instances (default: `https://gitlab.com`)
+        - API base: `<instanceUrl>/api/v4`
+        - `listRepositories()`: GET `/projects?owned=true&per_page=100`
+        - `createRepository()`: POST `/projects` with JSON body `{"name": "...", "visibility": "private"/"public"}`
+        - Auth header: `PRIVATE-TOKEN: <token>`
+
+    - [ ] Implement `GiteaConnector` in `src/main/java/utils/GiteaConnector.java`
+        - Constructor: `GiteaConnector(String instanceUrl, String token)`
+        - Support custom instances only (no default, user provides URL)
+        - API base: `<instanceUrl>/api/v1`
+        - `listRepositories()`: GET `/user/repos`
+        - `createRepository()`: POST `/user/repos` with JSON body `{"name": "...", "private": true/false}`
+        - Auth header: `Authorization: token <token>`
+
+    **Phase 3: Testing & Error Handling**
+
+    - [ ] Create unit tests in `src/test/java/utils/`
+        - `RemoteConnectorFactoryTest`: URL parsing, platform detection
+        - Mock HTTP responses for connector tests
+        - Test authentication header generation
+        - Test JSON parsing for repository lists
+
+    - [ ] Add error handling and logging
+        - Wrap HTTP exceptions with user-friendly messages
+        - Log API errors via `LogService` with source "RemoteConnector"
+        - Handle common errors: 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Rate Limited
+        - Return empty lists on error (consistent with GitService async patterns)
+
+    **Verification steps**:
+    - Manual test: Create connector instances with valid tokens, verify `listRepositories()` returns expected repos
+    - Manual test: Call `createRepository("test-repo", true)` on each platform, verify repo created
+    - Unit tests: `mvn test -Dtest=RemoteConnectorFactoryTest`
+    - Integration check: Factory correctly identifies platforms from various URL formats
+
+    **Design decisions**:
+    - **JSON library**: Use `org.json.simple` (already in classpath)
+    - **Custom domains**: Auto-detect gitlab.com, require explicit URL for self-hosted instances
+    - **Error handling**: Return empty lists + log errors (no UI exceptions)
+    - **Factory pattern**: Static utility (no caching, connectors are lightweight)
+    - **Scope**: Repository operations only; no issues, PRs, CI status (deferred to future)
+
+3. stage 3 - UI integration
+    - [ ] integrate the RemoteConnector usage into git dialogs and UI.
 
 > [!IMPORTANT] GitService class
 > The Git client is a big feature; create it as a dedicated `GitService` class and keep all JGit calls inside it. The UI layer must never import JGit directly.
