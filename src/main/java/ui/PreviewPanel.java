@@ -89,6 +89,9 @@ public class PreviewPanel extends BasePanel {
     /** Fichier source Markdown courant (peut être null pour les documents non sauvegardés). */
     private File currentFile;
 
+    /** Fraction de défilement à appliquer après le prochain chargement de page. */
+    private Double pendingScrollFraction = null;
+
     /** Thème highlight.js courant, synchronisé avec le thème applicatif. */
     private SyntaxTheme syntaxTheme = new SyntaxTheme("github", "#f6f8fa", "#24292e");
 
@@ -184,6 +187,18 @@ public class PreviewPanel extends BasePanel {
             if (newState == Worker.State.SCHEDULED) {
                 String location = webView.getEngine().getLocation();
                 if (location != null && !location.isEmpty() && !location.equals("about:blank")) {
+                    // Ancre interne (#fragment) : défiler vers l'élément sans recharger la page
+                    if (location.contains("#")) {
+                        String fragment = location.substring(location.indexOf('#') + 1);
+                        if (!fragment.isEmpty()) {
+                            webView.getEngine().getLoadWorker().cancel();
+                            webView.getEngine().executeScript(
+                                "var el = document.getElementById('" + fragment.replace("'", "\\'") + "');" +
+                                "if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});"
+                            );
+                        }
+                        return;
+                    }
                     // Vérifier si c'est un lien vers un fichier .md
                     if (location.toLowerCase().endsWith(".md") || location.toLowerCase().endsWith(".markdown")) {
                         // Annuler la navigation
@@ -215,9 +230,19 @@ public class PreviewPanel extends BasePanel {
                         }
                     }
                 }
-            } else if (newState == Worker.State.SUCCEEDED && !pendingLocalPumlBlocks.isEmpty()) {
-                // Page chargée : déclencher le rendu async des blocs PlantUML locaux
-                dispatchLocalPumlRendering();
+            } else if (newState == Worker.State.SUCCEEDED) {
+                // Page chargée : appliquer le scroll en attente si défini
+                if (pendingScrollFraction != null) {
+                    double fraction = pendingScrollFraction;
+                    pendingScrollFraction = null;
+                    webView.getEngine().executeScript(
+                        "window.scrollTo(0, (document.body.scrollHeight - window.innerHeight) * " + fraction + ")"
+                    );
+                }
+                // Déclencher le rendu async des blocs PlantUML locaux
+                if (!pendingLocalPumlBlocks.isEmpty()) {
+                    dispatchLocalPumlRendering();
+                }
             }
         });
         
@@ -266,6 +291,9 @@ public class PreviewPanel extends BasePanel {
         body = preprocessImageSizes(body, imageSizes);
         
         String html = htmlRenderer.render(markdownParser.parse(body));
+
+        // ── IDs sur les titres : nécessaires pour la navigation par ancres (#fragment)
+        html = processHeadingIds(html);
 
         // ── Checkboxes : convertir [ ] et [x] en éléments checkbox HTML
         html = processCheckboxes(html);
@@ -525,6 +553,40 @@ public class PreviewPanel extends BasePanel {
                 return "";
             }
         });
+    }
+
+    /**
+     * Injecte un attribut {@code id} GitHub-compatible sur chaque titre HTML ({@code <h1>}–{@code <h6>})
+     * qui n'en possède pas encore. Requis pour que la navigation par ancres (#fragment) fonctionne.
+     */
+    private String processHeadingIds(String html) {
+        Pattern p = Pattern.compile(
+                "<(h[1-6])(\\s[^>]*)?>(.+?)</h[1-6]>",
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        Matcher m = p.matcher(html);
+        StringBuffer sb = new StringBuffer();
+        java.util.Map<String, Integer> seen = new java.util.HashMap<>();
+        while (m.find()) {
+            String tag     = m.group(1);
+            String attrs   = m.group(2) != null ? m.group(2) : "";
+            String content = m.group(3);
+            if (attrs.contains("id=")) {
+                m.appendReplacement(sb, Matcher.quoteReplacement(m.group(0)));
+                continue;
+            }
+            String text = content.replaceAll("<[^>]+>", "").trim();
+            String id = text.toLowerCase()
+                    .replaceAll("[^\\w\\s-]", "")
+                    .trim()
+                    .replaceAll("\\s+", "-");
+            int count = seen.getOrDefault(id, 0);
+            seen.put(id, count + 1);
+            String uid = count == 0 ? id : id + "-" + count;
+            m.appendReplacement(sb, Matcher.quoteReplacement(
+                    "<" + tag + attrs + " id=\"" + uid + "\">" + content + "</" + tag + ">"));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     /**
@@ -1126,6 +1188,17 @@ public class PreviewPanel extends BasePanel {
                 "window.scrollTo(0, (document.body.scrollHeight - window.innerHeight) * " + fraction + ")"
             );
         }
+    }
+
+    /**
+     * Planifie un défilement vers la fraction donnée après le prochain chargement de page.
+     * À utiliser juste avant ou juste après {@link #updatePreview(String)} lors d'un changement
+     * de document, quand le WebView n'a pas encore terminé de charger le nouveau contenu.
+     *
+     * @param fraction La fraction de défilement dans [0.0, 1.0]
+     */
+    public void scrollToFractionAfterLoad(double fraction) {
+        this.pendingScrollFraction = Math.min(1.0, Math.max(0.0, fraction));
     }
     
     /**

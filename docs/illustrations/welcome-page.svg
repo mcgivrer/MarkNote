@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350" width="500" height="350">
+  <!-- Light theme -->
+  <rect width="500" height="350" fill="#e8edf3"/>
+
+  <!-- Welcome tab window -->
+  <rect x="20" y="20" width="460" height="310" rx="6" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Tab bar -->
+  <rect x="20" y="20" width="460" height="30" rx="6" fill="#f1f3f5"/>
+  <rect x="20" y="44" width="460" height="6" fill="#f1f3f5"/>
+  <line x1="20" y1="50" x2="480" y2="50" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- Active Welcome tab -->
+  <rect x="25" y="22" width="88" height="24" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="36" y="38" font-family="Arial, sans-serif" font-size="11" fill="#1f2937">Welcome</text>
+  <text x="99" y="38" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">×</text>
+
+  <!-- Content area -->
+  <rect x="20" y="50" width="460" height="280" fill="#fafafa" rx="0 0 6 6"/>
+
+  <!-- App name -->
+  <text x="250" y="98" font-family="Arial, sans-serif" font-size="26" fill="#1f2937" text-anchor="middle" font-weight="bold">Welcome to MarkNote</text>
+  <text x="250" y="122" font-family="Arial, sans-serif" font-size="13" fill="#6b7280" text-anchor="middle">Lightweight and modern Markdown editor</text>
+
+  <!-- Divider -->
+  <line x1="80" y1="138" x2="420" y2="138" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- Recent projects section -->
+  <text x="80" y="162" font-family="Arial, sans-serif" font-size="13" fill="#374151" font-weight="600">Recent projects</text>
+
+  <!-- Project rows -->
+  <g transform="translate(80,172)">
+    <rect width="340" height="36" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="14" y="15" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">📁 my-documentation</text>
+    <text x="14" y="29" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">/home/user/projects/my-documentation</text>
+    <rect x="285" y="8" width="44" height="20" rx="3" fill="#2563eb"/>
+    <text x="307" y="22" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Open</text>
+  </g>
+
+  <g transform="translate(80,212)">
+    <rect width="340" height="36" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="14" y="15" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">📁 notes</text>
+    <text x="14" y="29" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">/home/user/notes</text>
+    <rect x="285" y="8" width="44" height="20" rx="3" fill="#2563eb"/>
+    <text x="307" y="22" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Open</text>
+  </g>
+
+  <g transform="translate(80,252)">
+    <rect width="340" height="36" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="14" y="15" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">📁 blog-posts</text>
+    <text x="14" y="29" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">/home/user/blog/posts</text>
+    <rect x="285" y="8" width="44" height="20" rx="3" fill="#2563eb"/>
+    <text x="307" y="22" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">Open</text>
+  </g>
+
+  <!-- New project button -->
+  <rect x="80" y="298" width="150" height="28" rx="5" fill="#2563eb"/>
+  <text x="155" y="317" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" text-anchor="middle">+ New Project</text>
+</svg>

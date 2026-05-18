@@ -606,6 +606,10 @@ public class DocumentTab extends Tab {
         return editor;
     }
 
+    public void scrollToTop() {
+        scrollPane.scrollYToPixel(0);
+    }
+
     /**
      * Insère du texte à la ligne suivant la position courante du curseur.
      * Si l'éditeur n'a pas de focus, le texte est ajouté à la fin du document.

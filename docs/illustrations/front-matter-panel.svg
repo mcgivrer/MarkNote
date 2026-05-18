@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 340" width="600" height="340">
+  <!-- Light theme -->
+  <rect width="600" height="340" fill="#e8edf3"/>
+
+  <!-- Title -->
+  <text x="300" y="24" font-family="Arial, sans-serif" font-size="16" fill="#1f2937" text-anchor="middle" font-weight="bold">Front Matter Panel</text>
+
+  <!-- Editor frame -->
+  <rect x="20" y="38" width="560" height="290" rx="6" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Tab bar -->
+  <rect x="20" y="38" width="560" height="28" rx="6" fill="#f1f3f5"/>
+  <rect x="20" y="58" width="560" height="8" fill="#f1f3f5"/>
+  <line x1="20" y1="66" x2="580" y2="66" stroke="#e5e7eb" stroke-width="1"/>
+  <!-- Active tab -->
+  <rect x="24" y="40" width="120" height="24" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="36" y="56" font-family="Arial, sans-serif" font-size="11" fill="#1f2937">README.md</text>
+  <text x="126" y="56" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">×</text>
+
+  <!-- Front Matter Panel section -->
+  <rect x="20" y="66" width="560" height="160" fill="#f8fafc" stroke-bottom="none"/>
+  <line x1="20" y1="226" x2="580" y2="226" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Section header -->
+  <text x="30" y="86" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">▼</text>
+  <text x="44" y="87" font-family="Arial, sans-serif" font-size="12" fill="#374151" font-weight="600">Front Matter</text>
+
+  <!-- Field row 1: Title -->
+  <text x="30" y="110" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Title</text>
+  <rect x="100" y="97" width="195" height="18" rx="3" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="106" y="111" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">Getting Started Guide</text>
+
+  <!-- UUID -->
+  <text x="320" y="110" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">UUID</text>
+  <rect x="375" y="97" width="195" height="18" rx="3" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="381" y="111" font-family="monospace" font-size="8" fill="#16a34a">550e8400-e29b-41d4...</text>
+
+  <!-- Field row 2: Tags -->
+  <text x="30" y="133" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Tags</text>
+  <rect x="100" y="120" width="195" height="18" rx="3" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="106" y="134" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">java, tutorial, beginner</text>
+
+  <!-- Created -->
+  <text x="320" y="133" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Created</text>
+  <rect x="375" y="120" width="120" height="18" rx="3" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="381" y="134" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">2026-02-22</text>
+
+  <!-- Field row 3: Authors -->
+  <text x="30" y="156" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Authors</text>
+  <rect x="100" y="143" width="195" height="18" rx="3" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="106" y="157" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">John Doe</text>
+
+  <!-- Draft checkbox -->
+  <text x="320" y="156" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Draft</text>
+  <rect x="375" y="144" width="14" height="14" rx="2" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+
+  <!-- Summary -->
+  <text x="30" y="179" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Summary</text>
+  <rect x="100" y="166" width="470" height="18" rx="3" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="106" y="180" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">A step-by-step introduction to MarkNote features</text>
+
+  <!-- Links section (collapsible) -->
+  <text x="30" y="202" font-family="Arial, sans-serif" font-size="10" fill="#2563eb">▶ Links</text>
+  <rect x="78" y="192" width="22" height="14" rx="7" fill="#2563eb"/>
+  <text x="89" y="203" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">2</text>
+
+  <!-- Custom field -->
+  <text x="30" y="220" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" font-style="italic">category</text>
+  <rect x="100" y="207" width="195" height="18" rx="3" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="106" y="221" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">documentation</text>
+
+  <!-- Editor text area below Front Matter -->
+  <rect x="20" y="226" width="560" height="102" fill="#fafafa"/>
+  <text x="35" y="252" font-family="monospace" font-size="12" fill="#7c3aed"># Getting Started Guide</text>
+  <text x="35" y="273" font-family="monospace" font-size="12" fill="#374151">Welcome to the **MarkNote** editor.</text>
+  <text x="35" y="294" font-family="monospace" font-size="12" fill="#374151">This guide will help you...</text>
+
+  <!-- Labels -->
+  <rect x="408" y="70" width="132" height="18" rx="4" fill="#2563eb"/>
+  <text x="474" y="83" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">Front Matter Panel</text>
+  <line x1="474" y1="78" x2="400" y2="78" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <rect x="430" y="295" width="80" height="18" rx="4" fill="#374151"/>
+  <text x="470" y="308" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">Editor area</text>
+</svg>

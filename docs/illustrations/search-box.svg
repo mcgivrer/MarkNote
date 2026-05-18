@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <!-- Light theme -->
+  <rect width="800" height="500" fill="#e8edf3"/>
+
+  <!-- Window frame -->
+  <rect x="20" y="20" width="760" height="460" rx="8" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Title bar -->
+  <rect x="20" y="20" width="760" height="32" rx="8" fill="#f1f3f5"/>
+  <rect x="20" y="44" width="760" height="8" fill="#f1f3f5"/>
+  <line x1="20" y1="52" x2="780" y2="52" stroke="#dde1e8" stroke-width="1"/>
+  <circle cx="44" cy="36" r="6" fill="#ef4444"/>
+  <circle cx="66" cy="36" r="6" fill="#f59e0b"/>
+  <circle cx="88" cy="36" r="6" fill="#22c55e"/>
+  <text x="400" y="40" font-family="Arial, sans-serif" font-size="13" fill="#374151" text-anchor="middle">MarkNote — Markdown Editor</text>
+
+  <!-- Menu bar -->
+  <rect x="20" y="52" width="760" height="28" fill="#f8f9fa"/>
+  <line x1="20" y1="80" x2="780" y2="80" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="36" y="70" font-family="Arial, sans-serif" font-size="12" fill="#374151">File</text>
+  <text x="74" y="70" font-family="Arial, sans-serif" font-size="12" fill="#374151">View</text>
+  <text x="116" y="70" font-family="Arial, sans-serif" font-size="12" fill="#374151">Help</text>
+
+  <!-- Search box (right side of menu bar) -->
+  <rect x="548" y="57" width="222" height="22" rx="4" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+  <text x="558" y="72" font-family="Arial, sans-serif" font-size="11" fill="#374151">tutorial</text>
+  <text x="760" y="72" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af" text-anchor="end">🔍</text>
+
+  <!-- Highlight callout for search box -->
+  <rect x="543" y="52" width="234" height="32" rx="6" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="5,3"/>
+
+  <!-- Search results popup -->
+  <rect x="548" y="83" width="222" height="178" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <!-- Result 1 (selected) -->
+  <rect x="550" y="85" width="218" height="52" rx="2" fill="#eff6ff"/>
+  <text x="560" y="101" font-family="Arial, sans-serif" font-size="12" fill="#1f2937" font-weight="bold">Getting Started Tutorial</text>
+  <text x="560" y="116" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">title: Getting Started Tutorial</text>
+  <text x="560" y="130" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">docs/getting-started.md</text>
+  <!-- Result 2 -->
+  <text x="560" y="153" font-family="Arial, sans-serif" font-size="12" fill="#374151" font-weight="bold">Advanced Tutorial</text>
+  <text x="560" y="168" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">tag: tutorial</text>
+  <text x="560" y="182" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">docs/advanced-tutorial.md</text>
+  <!-- Result 3 -->
+  <text x="560" y="205" font-family="Arial, sans-serif" font-size="12" fill="#374151" font-weight="bold">Tutorial Index</text>
+  <text x="560" y="220" font-family="Arial, sans-serif" font-size="10" fill="#16a34a">filename: tutorial-index.md</text>
+  <text x="560" y="234" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">tutorial-index.md</text>
+
+  <!-- Editor area (dimmed background) -->
+  <rect x="22" y="82" width="524" height="395" fill="#fafafa"/>
+  <text x="42" y="120" font-family="monospace" font-size="12" fill="#d0d0d0"># Tutorial</text>
+  <text x="42" y="144" font-family="monospace" font-size="12" fill="#d0d0d0">## Getting Started</text>
+  <text x="42" y="168" font-family="monospace" font-size="12" fill="#d0d0d0">Welcome to MarkNote...</text>
+  <rect x="550" y="264" width="228" height="220" fill="#f8f9fa" stroke="#e5e7eb" stroke-width="0.5"/>
+
+  <!-- Labels -->
+  <rect x="75" y="290" width="100" height="24" rx="4" fill="#2563eb"/>
+  <text x="125" y="306" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Search Box</text>
+  <line x1="175" y1="302" x2="547" y2="70" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <rect x="75" y="340" width="120" height="24" rx="4" fill="#2563eb"/>
+  <text x="135" y="356" font-family="Arial, sans-serif" font-size="11" fill="#ffffff" text-anchor="middle">Results Popup</text>
+  <line x1="195" y1="352" x2="547" y2="168" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- Explanation box -->
+  <rect x="40" y="398" width="480" height="72" rx="6" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1"/>
+  <text x="55" y="418" font-family="Arial, sans-serif" font-size="11" fill="#334155">The search box matches documents by:</text>
+  <text x="55" y="437" font-family="Arial, sans-serif" font-size="11" fill="#16a34a">• title  • filename  • tags  • summary  • authors  • uuid</text>
+  <text x="55" y="456" font-family="Arial, sans-serif" font-size="11" fill="#334155">Press Enter or click a result to open the document.</text>
+</svg>
