@@ -770,6 +770,24 @@ public class MarkNote extends Application {
                 detachPanel(panel, zone);
             }
         }
+
+        // Restaurer les positions des dividers après la construction du layout
+        Platform.runLater(() -> {
+            if (editorSplit.getItems().size() > 1) {
+                double divider = config.getEditorSplitDivider();
+                if (divider > 0.0 && divider < 1.0) {
+                    editorSplit.setDividerPositions(divider);
+                }
+            }
+            double[] hDividers = config.getDockingHorizontalDividers();
+            if (hDividers != null && hDividers.length > 0) {
+                dockingManager.setHorizontalDividers(hDividers);
+            }
+            double[] vDividers = config.getDockingVerticalDividers();
+            if (vDividers != null && vDividers.length > 0) {
+                dockingManager.setVerticalDividers(vDividers);
+            }
+        });
     }
 
     private void bindManagedPanelMenuItem(BasePanel panel, CheckMenuItem menuItem) {
@@ -1027,6 +1045,14 @@ public class MarkNote extends Application {
             DockZone zone = getStoredOrDefaultZone(panel);
             config.setPanelState(panel.getPanelStateId(), new AppConfig.PanelState(visible, docked, zone.name()));
         }
+
+        // Sauvegarder les positions des dividers
+        if (editorSplit.getItems().size() > 1 && !editorSplit.getDividers().isEmpty()) {
+            config.setEditorSplitDivider(editorSplit.getDividers().get(0).getPosition());
+        }
+        config.setDockingHorizontalDividers(dockingManager.getHorizontalDividers());
+        config.setDockingVerticalDividers(dockingManager.getVerticalDividers());
+
         config.save();
     }
 

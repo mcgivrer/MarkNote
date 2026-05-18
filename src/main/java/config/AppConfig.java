@@ -33,6 +33,11 @@ public class AppConfig {
     private boolean reattachDiagramOnTabClose = true;
     private final Map<String, PanelState> panelStates = new HashMap<>();
 
+    // Panel divider positions
+    private double editorSplitDivider = 0.5;
+    private double[] dockingHorizontalDividers = new double[0];
+    private double[] dockingVerticalDividers = new double[0];
+
     // Git credentials (V1: SSH passphrase-less + HTTPS token)
     private String gitSshKeyPath = "";
     private String gitToken = "";
@@ -154,6 +159,35 @@ public class AppConfig {
                         panelStates.put(parts[0], new PanelState(Boolean.parseBoolean(parts[1]),
                                 Boolean.parseBoolean(parts[2]), parts[3].trim()));
                     }
+                } else if (line.startsWith("editorSplitDivider=")) {
+                    try {
+                        editorSplitDivider = Double.parseDouble(line.substring("editorSplitDivider=".length()).trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else if (line.startsWith("dockingHDividers=")) {
+                    String raw = line.substring("dockingHDividers=".length()).trim();
+                    if (!raw.isEmpty()) {
+                        String[] parts = raw.split(",");
+                        dockingHorizontalDividers = new double[parts.length];
+                        for (int i = 0; i < parts.length; i++) {
+                            try {
+                                dockingHorizontalDividers[i] = Double.parseDouble(parts[i].trim());
+                            } catch (NumberFormatException ignored) {
+                            }
+                        }
+                    }
+                } else if (line.startsWith("dockingVDividers=")) {
+                    String raw = line.substring("dockingVDividers=".length()).trim();
+                    if (!raw.isEmpty()) {
+                        String[] parts = raw.split(",");
+                        dockingVerticalDividers = new double[parts.length];
+                        for (int i = 0; i < parts.length; i++) {
+                            try {
+                                dockingVerticalDividers[i] = Double.parseDouble(parts[i].trim());
+                            } catch (NumberFormatException ignored) {
+                            }
+                        }
+                    }
                 }
             }
         } catch (IOException ignored) {
@@ -196,6 +230,23 @@ public class AppConfig {
             lines.add("restoreWorkspaceOnStart=" + restoreWorkspaceOnStart);
             lines.add("autoCheckUpdate=" + autoCheckUpdate);
             lines.add("skipVersion=" + (skipVersion != null ? skipVersion : ""));
+            lines.add("editorSplitDivider=" + editorSplitDivider);
+            if (dockingHorizontalDividers.length > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < dockingHorizontalDividers.length; i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(dockingHorizontalDividers[i]);
+                }
+                lines.add("dockingHDividers=" + sb.toString());
+            }
+            if (dockingVerticalDividers.length > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < dockingVerticalDividers.length; i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(dockingVerticalDividers[i]);
+                }
+                lines.add("dockingVDividers=" + sb.toString());
+            }
             for (Map.Entry<String, PanelState> entry : panelStates.entrySet()) {
                 PanelState state = entry.getValue();
                 lines.add("panelState=" + entry.getKey() + "|" + state.visible() + "|" + state.docked() + "|"
@@ -499,5 +550,29 @@ public class AppConfig {
 
     public void setRestoreWorkspaceOnStart(boolean v) {
         this.restoreWorkspaceOnStart = v;
+    }
+
+    public double getEditorSplitDivider() {
+        return editorSplitDivider;
+    }
+
+    public void setEditorSplitDivider(double editorSplitDivider) {
+        this.editorSplitDivider = editorSplitDivider;
+    }
+
+    public double[] getDockingHorizontalDividers() {
+        return dockingHorizontalDividers;
+    }
+
+    public void setDockingHorizontalDividers(double[] dockingHorizontalDividers) {
+        this.dockingHorizontalDividers = dockingHorizontalDividers != null ? dockingHorizontalDividers : new double[0];
+    }
+
+    public double[] getDockingVerticalDividers() {
+        return dockingVerticalDividers;
+    }
+
+    public void setDockingVerticalDividers(double[] dockingVerticalDividers) {
+        this.dockingVerticalDividers = dockingVerticalDividers != null ? dockingVerticalDividers : new double[0];
     }
 }
