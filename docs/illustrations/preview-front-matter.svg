@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 320" width="500" height="320">
+  <!-- Light theme -->
+  <rect width="500" height="320" fill="#e8edf3"/>
+
+  <!-- Title -->
+  <text x="250" y="24" font-family="Arial, sans-serif" font-size="16" fill="#1f2937" text-anchor="middle" font-weight="bold">Preview — Collapsible Front Matter</text>
+
+  <!-- Preview panel frame -->
+  <rect x="20" y="40" width="460" height="265" rx="6" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+
+  <!-- Preview header -->
+  <rect x="20" y="40" width="460" height="26" rx="6" fill="#f1f5f9"/>
+  <rect x="20" y="56" width="460" height="10" fill="#f1f5f9"/>
+  <line x1="20" y1="66" x2="480" y2="66" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30" y="58" font-family="Arial, sans-serif" font-size="11" fill="#374151" font-weight="600">Preview</text>
+  <text x="434" y="58" font-family="Arial, sans-serif" font-size="11" fill="#6b7280">◂  ▸  ↻</text>
+  <text x="471" y="58" font-family="Arial, sans-serif" font-size="13" fill="#9ca3af">×</text>
+
+  <!-- Collapsible front matter block -->
+  <rect x="30" y="75" width="440" height="170" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Summary bar -->
+  <rect x="30" y="75" width="440" height="24" rx="6" fill="#e9ecef" stroke="#dee2e6" stroke-width="0.5"/>
+  <rect x="30" y="89" width="440" height="10" fill="#e9ecef"/>
+  <text x="42" y="92" font-family="Arial, sans-serif" font-size="11" fill="#374151">▼</text>
+  <text x="56" y="92" font-family="Arial, sans-serif" font-size="11" fill="#374151" font-weight="bold">Front Matter</text>
+
+  <!-- Title heading -->
+  <text x="42" y="118" font-family="Georgia, serif" font-size="16" fill="#1f2937" font-weight="bold">Getting Started Guide</text>
+
+  <!-- Draft badge -->
+  <rect x="234" y="105" width="60" height="18" rx="9" fill="#dc2626"/>
+  <text x="264" y="118" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">✎ Draft</text>
+
+  <!-- UUID -->
+  <text x="42" y="138" font-family="Arial, sans-serif" font-size="9" fill="#6b7280">UUID:</text>
+  <text x="74" y="138" font-family="monospace" font-size="9" fill="#6b7280">550e8400-e29b-41d4-a716-446655440000</text>
+
+  <!-- Author & Date -->
+  <text x="42" y="156" font-family="Arial, sans-serif" font-size="10" fill="#374151">Author: John Doe</text>
+  <text x="202" y="156" font-family="Arial, sans-serif" font-size="10" fill="#374151">Date: 2026-02-22</text>
+
+  <!-- Tags as badges -->
+  <text x="42" y="174" font-family="Arial, sans-serif" font-size="10" fill="#374151">Tags:</text>
+  <rect x="74" y="163" width="36" height="16" rx="8" fill="#2563eb"/>
+  <text x="92" y="175" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">java</text>
+  <rect x="116" y="163" width="52" height="16" rx="8" fill="#16a34a"/>
+  <text x="142" y="175" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">tutorial</text>
+  <rect x="174" y="163" width="56" height="16" rx="8" fill="#7c3aed"/>
+  <text x="202" y="175" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">beginner</text>
+
+  <!-- Summary in italics -->
+  <text x="42" y="194" font-family="Georgia, serif" font-size="10" fill="#6b7280" font-style="italic">A step-by-step introduction to MarkNote features</text>
+
+  <!-- Linked documents -->
+  <text x="42" y="214" font-family="Arial, sans-serif" font-size="10" fill="#374151">Links:</text>
+  <rect x="74" y="203" width="80" height="16" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="0.5"/>
+  <text x="114" y="215" font-family="Arial, sans-serif" font-size="9" fill="#2563eb" text-anchor="middle">📄 User Guide</text>
+  <rect x="162" y="203" width="75" height="16" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="0.5"/>
+  <text x="199" y="215" font-family="Arial, sans-serif" font-size="9" fill="#2563eb" text-anchor="middle">📄 API Docs</text>
+
+  <!-- Bottom line separator -->
+  <line x1="30" y1="230" x2="470" y2="230" stroke="#e2e8f0" stroke-width="0.5"/>
+
+  <!-- Preview content below front matter -->
+  <text x="40" y="260" font-family="Georgia, serif" font-size="18" fill="#1f2937" font-weight="bold">Getting Started Guide</text>
+  <text x="40" y="285" font-family="Georgia, serif" font-size="13" fill="#374151">Welcome to MarkNote! This guide will help you...</text>
+
+  <!-- Label -->
+  <rect x="340" y="80" width="124" height="18" rx="4" fill="#2563eb"/>
+  <text x="402" y="93" font-family="Arial, sans-serif" font-size="9" fill="#ffffff" text-anchor="middle">Collapsible Block</text>
+</svg>

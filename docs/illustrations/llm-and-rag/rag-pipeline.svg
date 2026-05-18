@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+    </marker>
+    <marker id="arrowR" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d97706"/>
+    </marker>
+    <filter id="sh" x="-6%" y="-6%" width="112%" height="112%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="420" rx="14" fill="#f8f9fb"/>
+
+  <!-- ══════════════ PHASE 1 : INDEXATION ══════════════ -->
+  <rect x="16" y="14" width="868" height="155" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="30" y="36" font-size="12" font-weight="bold" fill="#15803d">⚙  Phase 1 — Indexation  (offline / préparation)</text>
+
+  <!-- Documents sources -->
+  <rect x="36" y="50" width="110" height="100" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="91" y="78" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Documents</text>
+  <text x="91" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">sources</text>
+  <text x="91" y="115" text-anchor="middle" font-size="10" fill="#6b7280">PDF, MD,</text>
+  <text x="91" y="129" text-anchor="middle" font-size="10" fill="#6b7280">HTML, TXT…</text>
+
+  <!-- Arrow -->
+  <line x1="146" y1="100" x2="176" y2="100" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <!-- Chunking -->
+  <rect x="178" y="50" width="115" height="100" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="235" y="78" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Découpage</text>
+  <text x="235" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Chunking</text>
+  <text x="235" y="115" text-anchor="middle" font-size="10" fill="#6b7280">Passages de</text>
+  <text x="235" y="129" text-anchor="middle" font-size="10" fill="#6b7280">256–512 tokens</text>
+
+  <!-- Arrow -->
+  <line x1="293" y1="100" x2="323" y2="100" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <!-- Embedding Model (phase 1) -->
+  <rect x="325" y="50" width="125" height="100" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="387" y="78" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Modèle</text>
+  <text x="387" y="93" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">d'embedding</text>
+  <text x="387" y="115" text-anchor="middle" font-size="10" fill="#6b7280">text-embedding-</text>
+  <text x="387" y="129" text-anchor="middle" font-size="10" fill="#6b7280">3-small…</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="100" x2="480" y2="100" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <!-- Vector Store (cylinder) -->
+  <ellipse cx="560" cy="68" rx="60" ry="16" fill="#bbf7d0" stroke="#16a34a" stroke-width="1.5"/>
+  <rect x="500" y="68" width="120" height="64" fill="#bbf7d0" stroke="#16a34a" stroke-width="1.5"/>
+  <ellipse cx="560" cy="132" rx="60" ry="16" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="560" y="97" text-anchor="middle" font-size="11" font-weight="bold" fill="#15803d">Vector Store</text>
+  <text x="560" y="113" text-anchor="middle" font-size="10" fill="#6b7280">Faiss / Chroma</text>
+  <text x="560" y="56" text-anchor="middle" font-size="10" fill="#15803d">⎈  N vecteurs</text>
+
+  <!-- ══════════════ PHASE 2 : INFÉRENCE ══════════════ -->
+  <rect x="16" y="184" width="868" height="220" rx="10" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="30" y="206" font-size="12" font-weight="bold" fill="#c2410c">💬  Phase 2 — Inférence  (online / à la demande)</text>
+
+  <!-- Question utilisateur -->
+  <rect x="36" y="220" width="120" height="60" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="96" y="246" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Question</text>
+  <text x="96" y="262" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">utilisateur</text>
+
+  <!-- Arrow down to embedding -->
+  <line x1="96" y1="280" x2="96" y2="310" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <!-- Embedding Model (phase 2) -->
+  <rect x="36" y="312" width="120" height="60" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="96" y="336" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Embedding</text>
+  <text x="96" y="352" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">requête</text>
+
+  <!-- Arrow right from Q-embed to similarity search -->
+  <line x1="156" y1="342" x2="200" y2="342" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <!-- Similarity search -->
+  <rect x="202" y="312" width="135" height="60" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="269" y="336" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Recherche</text>
+  <text x="269" y="352" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">similarité (Top-K)</text>
+
+  <!-- Arrow from Vector Store down to similarity search -->
+  <line x1="560" y1="148" x2="560" y2="295" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <line x1="560" y1="295" x2="340" y2="342" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+  <!-- Arrow right to context -->
+  <line x1="337" y1="342" x2="376" y2="342" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <!-- Context -->
+  <rect x="378" y="312" width="130" height="60" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="443" y="336" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">Contexte</text>
+  <text x="443" y="352" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">K passages</text>
+
+  <!-- Question arrow also merges into prompt -->
+  <line x1="156" y1="250" x2="534" y2="250" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="534" y1="250" x2="534" y2="340" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowR)"/>
+
+  <!-- Arrow right to prompt -->
+  <line x1="508" y1="342" x2="546" y2="342" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <!-- Prompt enrichi -->
+  <rect x="548" y="305" width="130" height="74" rx="10" fill="#ffedd5" stroke="#f97316" stroke-width="2" filter="url(#sh)"/>
+  <text x="613" y="331" text-anchor="middle" font-size="11" font-weight="bold" fill="#c2410c">Prompt</text>
+  <text x="613" y="347" text-anchor="middle" font-size="11" font-weight="bold" fill="#c2410c">augmenté</text>
+  <text x="613" y="365" text-anchor="middle" font-size="10" fill="#9a3412">Contexte + Question</text>
+
+  <!-- Arrow right to LLM -->
+  <line x1="678" y1="342" x2="714" y2="342" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrowR)"/>
+
+  <!-- LLM -->
+  <rect x="716" y="305" width="100" height="74" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2" filter="url(#sh)"/>
+  <text x="766" y="334" text-anchor="middle" font-size="13" font-weight="bold" fill="#991b1b">LLM</text>
+  <text x="766" y="352" text-anchor="middle" font-size="10" fill="#7f1d1d">GPT-4 / Mistral</text>
+  <text x="766" y="366" text-anchor="middle" font-size="10" fill="#7f1d1d">LLaMA 3…</text>
+
+  <!-- Arrow right to Réponse -->
+  <line x1="816" y1="342" x2="848" y2="342" stroke="#555" stroke-width="1.5" marker-end="url(#arrowB)"/>
+
+  <!-- Réponse -->
+  <rect x="850" y="312" width="34" height="60" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="867" y="337" text-anchor="middle" font-size="10" font-weight="bold" fill="#1d4ed8" transform="rotate(-90,867,342)">Réponse</text>
+
+  <!-- Footer -->
+  <text x="450" y="412" text-anchor="middle" font-size="10" fill="#9ca3af">Le même modèle d'embedding est utilisé dans les deux phases pour garantir la cohérence de l'espace vectoriel.</text>
+</svg>

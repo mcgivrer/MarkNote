@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 550 260" width="550" height="260">
+  <!-- Light theme -->
+  <rect width="550" height="260" fill="#e8edf3"/>
+
+  <!-- Title -->
+  <text x="275" y="24" font-family="Arial, sans-serif" font-size="16" fill="#1f2937" text-anchor="middle" font-weight="bold">Drag &amp; Drop into Editor</text>
+
+  <!-- Project Explorer Panel -->
+  <rect x="20" y="45" width="170" height="195" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+  <rect x="20" y="45" width="170" height="26" rx="6" fill="#f1f5f9"/>
+  <rect x="20" y="61" width="170" height="10" fill="#f1f5f9"/>
+  <line x1="20" y1="71" x2="190" y2="71" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30" y="63" font-family="Arial, sans-serif" font-size="10" fill="#374151" font-weight="600">Project Explorer</text>
+
+  <!-- File tree -->
+  <text x="30" y="90" font-family="monospace" font-size="10" fill="#d97706">📁 my-project</text>
+  <text x="45" y="110" font-family="monospace" font-size="10" fill="#2563eb">📄 README.md</text>
+  <text x="45" y="130" font-family="monospace" font-size="10" fill="#d97706">📁 docs</text>
+  <text x="60" y="150" font-family="monospace" font-size="10" fill="#2563eb">📄 guide.md</text>
+  <text x="45" y="170" font-family="monospace" font-size="10" fill="#d97706">📁 images</text>
+  <!-- Highlighted file being dragged -->
+  <rect x="56" y="176" width="122" height="16" rx="2" fill="#dbeafe"/>
+  <text x="60" y="190" font-family="monospace" font-size="10" fill="#1d4ed8" font-weight="bold">🖼️ screenshot.png</text>
+
+  <!-- Drag arrow -->
+  <defs>
+    <marker id="arrowDrag" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <path d="M 192 188 C 230 188, 260 160, 308 155" stroke="#2563eb" stroke-width="2" fill="none" stroke-dasharray="6,3" marker-end="url(#arrowDrag)"/>
+  <text x="240" y="150" font-family="Arial, sans-serif" font-size="10" fill="#2563eb" font-style="italic">drag</text>
+
+  <!-- Editor area -->
+  <rect x="280" y="45" width="250" height="195" rx="6" fill="#fafafa" stroke="#e2e8f0" stroke-width="1.5"/>
+  <!-- Tab bar -->
+  <rect x="280" y="45" width="250" height="26" rx="6" fill="#f1f3f5"/>
+  <rect x="280" y="62" width="250" height="9" fill="#f1f3f5"/>
+  <line x1="280" y1="71" x2="530" y2="71" stroke="#e5e7eb" stroke-width="1"/>
+  <!-- Active tab -->
+  <rect x="284" y="47" width="102" height="22" rx="4" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.5"/>
+  <text x="293" y="63" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">README.md</text>
+
+  <!-- Markdown content -->
+  <text x="295" y="94" font-family="monospace" font-size="11" fill="#7c3aed"># My Project</text>
+  <text x="295" y="113" font-family="monospace" font-size="11" fill="#374151">Welcome to the project.</text>
+
+  <!-- Drop cursor indicator -->
+  <line x1="295" y1="126" x2="295" y2="142" stroke="#2563eb" stroke-width="2"/>
+
+  <!-- Inserted markdown link (highlighted) -->
+  <rect x="290" y="126" width="232" height="18" rx="2" fill="#dbeafe"/>
+  <text x="295" y="140" font-family="monospace" font-size="11" fill="#1d4ed8">![screenshot](images/screenshot.png)</text>
+
+  <!-- More content -->
+  <text x="295" y="160" font-family="monospace" font-size="11" fill="#374151">Check the docs for more.</text>
+
+  <!-- Legend -->
+  <rect x="290" y="210" width="230" height="22" rx="4" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="0.5"/>
+  <text x="300" y="225" font-family="monospace" font-size="9" fill="#6b7280">Image → ![name](path)</text>
+  <text x="440" y="225" font-family="monospace" font-size="9" fill="#6b7280">.md → [title](path)</text>
+</svg>
