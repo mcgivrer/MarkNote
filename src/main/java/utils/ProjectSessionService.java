@@ -18,81 +18,96 @@ public class ProjectSessionService {
 
     private static final String SESSION_FILE = ".marknote";
     private static final String SECTION_OPEN_FILES = "[open_files]";
+    private static final String SECTION_ACTIVE_FILE = "[active_file]";
 
     private final LogService log = LogService.getInstance();
     private static final String LOG_SOURCE = "ProjectSessionService";
 
+    /** État de session d'un projet : fichiers ouverts + onglet actif. */
+    public record SessionData(List<File> openFiles, File activeFile) {}
+
     /**
-     * Sauvegarde la liste des fichiers ouverts dans {@code <projectDir>/.marknote}.
+     * Sauvegarde la session du projet (fichiers ouverts + onglet actif) dans
+     * {@code <projectDir>/.marknote}.
      *
      * @param projectDir répertoire racine du projet
-     * @param openFiles  chemins absolus des fichiers actuellement ouverts
+     * @param openFiles  fichiers actuellement ouverts
+     * @param activeFile fichier actif (onglet sélectionné), peut être null
      */
-    public void saveSession(File projectDir, List<File> openFiles) {
+    public void saveSession(File projectDir, List<File> openFiles, File activeFile) {
         if (projectDir == null) return;
 
         Path sessionPath = projectDir.toPath().resolve(SESSION_FILE);
         List<String> lines = new ArrayList<>();
         lines.add(SECTION_OPEN_FILES);
         for (File f : openFiles) {
-            // Stocker le chemin relatif au répertoire projet pour la portabilité
             try {
                 String relative = projectDir.toPath().relativize(f.toPath()).toString();
                 lines.add(relative);
             } catch (IllegalArgumentException e) {
-                // Fichier hors du projet : chemin absolu en fallback
                 lines.add(f.getAbsolutePath());
+            }
+        }
+        if (activeFile != null) {
+            lines.add(SECTION_ACTIVE_FILE);
+            try {
+                lines.add(projectDir.toPath().relativize(activeFile.toPath()).toString());
+            } catch (IllegalArgumentException e) {
+                lines.add(activeFile.getAbsolutePath());
             }
         }
 
         try {
             Files.writeString(sessionPath, String.join("\n", lines) + "\n");
-            log.info(LOG_SOURCE, "Session saved: " + openFiles.size() + " file(s)");
+            log.info(LOG_SOURCE, "Session saved: " + openFiles.size() + " file(s), active=" +
+                    (activeFile != null ? activeFile.getName() : "none"));
         } catch (IOException e) {
             log.error(LOG_SOURCE, "Failed to save session: " + e.getMessage());
         }
     }
 
     /**
-     * Charge la liste des fichiers à rouvrir depuis {@code <projectDir>/.marknote}.
-     * Seuls les fichiers qui existent réellement sur le disque sont retournés.
+     * Charge la session depuis {@code <projectDir>/.marknote}.
      *
      * @param projectDir répertoire racine du projet
-     * @return liste des fichiers à rouvrir (jamais null)
+     * @return données de session (jamais null)
      */
-    public List<File> loadSession(File projectDir) {
-        List<File> result = new ArrayList<>();
-        if (projectDir == null) return result;
+    public SessionData loadSession(File projectDir) {
+        List<File> openFiles = new ArrayList<>();
+        File activeFile = null;
+        if (projectDir == null) return new SessionData(openFiles, null);
 
         Path sessionPath = projectDir.toPath().resolve(SESSION_FILE);
-        if (!Files.exists(sessionPath)) return result;
+        if (!Files.exists(sessionPath)) return new SessionData(openFiles, null);
 
         try {
             List<String> lines = Files.readAllLines(sessionPath);
-            boolean inSection = false;
+            String currentSection = null;
             for (String line : lines) {
                 String trimmed = line.strip();
                 if (trimmed.isEmpty()) continue;
-                if (SECTION_OPEN_FILES.equals(trimmed)) {
-                    inSection = true;
-                    continue;
-                }
                 if (trimmed.startsWith("[")) {
-                    inSection = false;
+                    currentSection = trimmed;
                     continue;
                 }
-                if (inSection) {
+                if (SECTION_OPEN_FILES.equals(currentSection)) {
                     File f = resolveFile(projectDir, trimmed);
                     if (f != null && f.exists() && f.isFile()) {
-                        result.add(f);
+                        openFiles.add(f);
+                    }
+                } else if (SECTION_ACTIVE_FILE.equals(currentSection)) {
+                    File f = resolveFile(projectDir, trimmed);
+                    if (f != null && f.exists() && f.isFile()) {
+                        activeFile = f;
                     }
                 }
             }
-            log.info(LOG_SOURCE, "Session loaded: " + result.size() + " file(s) to reopen");
+            log.info(LOG_SOURCE, "Session loaded: " + openFiles.size() + " file(s), active=" +
+                    (activeFile != null ? activeFile.getName() : "none"));
         } catch (IOException e) {
             log.error(LOG_SOURCE, "Failed to load session: " + e.getMessage());
         }
-        return result;
+        return new SessionData(openFiles, activeFile);
     }
 
     private File resolveFile(File projectDir, String path) {

@@ -29,6 +29,7 @@ import ui.TagCloudPanel;
 import ui.ThemeTab;
 import ui.VisualLinkPanel;
 import ui.WelcomeTab;
+import ui.WorkspaceRestoreOverlay;
 import ui.CommitDialog;
 import ui.AddRemoteDialog;
 import ui.UpdateDialog;
@@ -69,6 +70,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
@@ -98,18 +100,19 @@ public class MarkNote extends Application {
     private BorderPane root;
     private HBox topBar;
     private HBox exitReadingModeBar;
+    private WorkspaceRestoreOverlay restoreOverlay;
 
     // Panels et SplitPanes pour la gestion de l'affichage
     private SplitPane editorSplit;
     private DockingManager dockingManager;
 
     private ConsolePanel consolePanel;
-    private CheckMenuItem showConsoleMenuItem;
     private boolean consoleDebugEnabled = false;
 
     private GitService gitService;
     private ProjectSessionService projectSessionService;
     private Debouncer previewDebouncer;
+    private Debouncer geometryDebouncer;
 
     // LLM Chat Panel
     private PromptPanel promptPanel;
@@ -134,7 +137,8 @@ public class MarkNote extends Application {
 
     public static void main(String[] args) {
         // Prefer IPv6 when both IPv4/IPv6 exist for the same host.
-        // This avoids ConnectException on hosts where IPv4 resolves to a non-routable bridge address.
+        // This avoids ConnectException on hosts where IPv4 resolves to a non-routable
+        // bridge address.
         System.setProperty("java.net.preferIPv6Addresses", "true");
         launch(args);
     }
@@ -191,7 +195,8 @@ public class MarkNote extends Application {
         projectExplorerPanel = new ProjectExplorerPanel();
         projectExplorerPanel.setOnFileDoubleClick(this::openFileInTab);
 
-        // Synchronise l'arbre de l'explorateur et le diagramme réseau avec l'onglet actif
+        // Synchronise l'arbre de l'explorateur et le diagramme réseau avec l'onglet
+        // actif
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
                 File activeFile = docTab.getFile();
@@ -221,12 +226,14 @@ public class MarkNote extends Application {
 
         // Project session service
         projectSessionService = new ProjectSessionService();
-        // Sauvegarder la session à chaque ajout ou suppression d'onglet de document
-        mainTabPane.getTabs().addListener(
-            (javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
-                saveProjectSession();
-            }
-        );
+        geometryDebouncer = new Debouncer(500);
+        // Sauvegarder la session à chaque ajout/suppression d'onglet et changement
+        // d'onglet actif
+        mainTabPane.getTabs().addListener((javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
+            saveProjectSession();
+        });
+        mainTabPane.getSelectionModel().selectedItemProperty()
+                .addListener((obs, oldTab, newTab) -> saveProjectSession());
 
         // Index service
         indexService = new IndexService();
@@ -253,8 +260,7 @@ public class MarkNote extends Application {
 
         // Status bar (en bas de la fenêtre)
         statusBar = new StatusBar();
-        statusBar.setPlantUmlIndicator(
-                config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
+        statusBar.setPlantUmlIndicator(config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
 
         // Callbacks de progression de l'indexation
         indexService.setOnProgress(progress -> statusBar.setIndexProgress(progress));
@@ -326,18 +332,14 @@ public class MarkNote extends Application {
                 return (sel instanceof DocumentTab dt) ? dt : null;
             });
             // Fournit la liste de tous les DocumentTab ouverts pour la barre de contexte
-            promptPanel.setOpenTabsSupplier(() ->
-                mainTabPane.getTabs().stream()
-                    .filter(t -> t instanceof DocumentTab)
-                    .map(t -> (DocumentTab) t)
-                    .toList()
-            );
+            promptPanel.setOpenTabsSupplier(() -> mainTabPane.getTabs().stream().filter(t -> t instanceof DocumentTab)
+                    .map(t -> (DocumentTab) t).toList());
             // Rafraîchir la barre de documents à chaque ajout/suppression d'onglet
-            mainTabPane.getTabs().addListener(
-                (javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
-                    if (promptPanel != null) promptPanel.refreshDocumentContext();
-                }
-            );
+            mainTabPane.getTabs()
+                    .addListener((javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
+                        if (promptPanel != null)
+                            promptPanel.refreshDocumentContext();
+                    });
             // Navigation vers un onglet depuis un lien de contexte dans le chat
             promptPanel.setOnOpenTab(tab -> mainTabPane.getSelectionModel().select(tab));
             promptPanel.setOnDetach(() -> detachPanel(promptPanel));
@@ -386,13 +388,32 @@ public class MarkNote extends Application {
             }
         });
 
-        Scene scene = new Scene(root, 1200, 700);
+        // L'overlay recouvre toute la fenêtre via un AnchorPane (ancres 0 sur les 4
+        // côtés)
+        restoreOverlay = new WorkspaceRestoreOverlay(messages);
+        AnchorPane sceneRoot = new AnchorPane();
+        sceneRoot.getChildren().addAll(root, restoreOverlay);
+        AnchorPane.setTopAnchor(root, 0.0);
+        AnchorPane.setBottomAnchor(root, 0.0);
+        AnchorPane.setLeftAnchor(root, 0.0);
+        AnchorPane.setRightAnchor(root, 0.0);
+        AnchorPane.setTopAnchor(restoreOverlay, 0.0);
+        AnchorPane.setBottomAnchor(restoreOverlay, 0.0);
+        AnchorPane.setLeftAnchor(restoreOverlay, 0.0);
+        AnchorPane.setRightAnchor(restoreOverlay, 0.0);
+
+        Scene scene = new Scene(sceneRoot, 1200, 700);
         applyTheme(scene);
         if (projectExplorerPanel.getProjectDirectory() == null) {
             stage.setTitle(messages.getString("app.title.editor"));
         }
         stage.setScene(scene);
         stage.setOnCloseRequest(e -> saveManagedPanelStates());
+
+        // Restaurer la géométrie de fenêtre sauvegardée
+        restoreWindowGeometry(stage);
+        // Sauvegarder en temps réel pour survivre à un hard kill
+        installWindowGeometryListeners(stage);
 
         // Icônes de fenêtre / barre des tâches (du plus petit au plus grand)
         String[] iconSizes = { "16", "32", "64", "128" };
@@ -405,36 +426,29 @@ public class MarkNote extends Application {
             }
         }
 
+        // ShutdownHook pour SIGTERM / arrêt JVM hors FX (hard kill partiel)
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            saveManagedPanelStates();
+            saveProjectSession();
+        }, "marknote-shutdown-hook"));
+
         // Afficher le splash screen ; la fenêtre principale et la logique de
         // démarrage s'exécutent une fois le splash fermé.
         if (config.isShowSplashScreen()) {
             SplashScreen splash = new SplashScreen(messages, config.getCurrentTheme());
             splash.setOnClosed(() -> {
-                stage.show();
-                // Rouvrir le dernier projet si l'option est activée
-                handleReopenLastProject();
-                // Afficher l'onglet Welcome si l'option est activée
-                if (config.isShowWelcomePage()) {
-                    showWelcomeTab();
-                }
-                // Premier onglet (optionnel)
-                if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
-                    addNewDocument();
-                }
-                checkForUpdatesOnStartup();
+                startWorking(stage);
             });
             splash.show();
         } else {
-            stage.show();
-            handleReopenLastProject();
-            if (config.isShowWelcomePage()) {
-                showWelcomeTab();
-            }
-            if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
-                addNewDocument();
-            }
-            checkForUpdatesOnStartup();
+            startWorking(stage);
         }
+    }
+
+    private void startWorking(Stage stage) {
+        stage.show();
+        handleStartupRestore();
+        checkForUpdatesOnStartup();
     }
 
     /**
@@ -525,21 +539,22 @@ public class MarkNote extends Application {
 
         viewMenu.getItems().addAll(showProjectPanel, showPreviewPanel, new SeparatorMenuItem(), showTagCloud,
                 showNetworkDiagram);
-        
+
         // Ajouter l'option LLM si disponible
         if (showLLMPanelMenuItem != null) {
             viewMenu.getItems().add(showLLMPanelMenuItem);
         }
-        
+
         MenuItem enterReadingModeItem = new MenuItem(messages.getString("menu.view.readingMode"));
         enterReadingModeItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Shift+P"));
         enterReadingModeItem.setOnAction(e -> enterReadingMode());
-  
-        viewMenu.getItems().addAll(new SeparatorMenuItem(), enterReadingModeItem, new SeparatorMenuItem(), showWelcomeItem);
+
+        viewMenu.getItems().addAll(new SeparatorMenuItem(), enterReadingModeItem, new SeparatorMenuItem(),
+                showWelcomeItem);
 
         // Option Console (uniquement si --console-debug est actif)
         if (consoleDebugEnabled) {
-            showConsoleMenuItem = new CheckMenuItem(messages.getString("menu.view.console"));
+            CheckMenuItem showConsoleMenuItem = new CheckMenuItem(messages.getString("menu.view.console"));
             bindManagedPanelMenuItem(consolePanel, showConsoleMenuItem);
 
             viewMenu.getItems().add(viewMenu.getItems().size() - 1, new SeparatorMenuItem());
@@ -566,13 +581,15 @@ public class MarkNote extends Application {
         MenuItem searchItem = new MenuItem(messages.getString("menu.edit.search"));
         searchItem.setAccelerator(KeyCombination.keyCombination("Ctrl+F"));
         searchItem.setOnAction(e -> {
-            if (getActiveDocumentTab() != null) getActiveDocumentTab().openSearch();
+            if (getActiveDocumentTab() != null)
+                getActiveDocumentTab().openSearch();
         });
 
         MenuItem replaceItem = new MenuItem(messages.getString("menu.edit.replace"));
         replaceItem.setAccelerator(KeyCombination.keyCombination("Ctrl+H"));
         replaceItem.setOnAction(e -> {
-            if (getActiveDocumentTab() != null) getActiveDocumentTab().openReplace();
+            if (getActiveDocumentTab() != null)
+                getActiveDocumentTab().openReplace();
         });
 
         editMenu.getItems().addAll(searchItem, replaceItem);
@@ -753,6 +770,24 @@ public class MarkNote extends Application {
                 detachPanel(panel, zone);
             }
         }
+
+        // Restaurer les positions des dividers après la construction du layout
+        Platform.runLater(() -> {
+            if (editorSplit.getItems().size() > 1) {
+                double divider = config.getEditorSplitDivider();
+                if (divider > 0.0 && divider < 1.0) {
+                    editorSplit.setDividerPositions(divider);
+                }
+            }
+            double[] hDividers = config.getDockingHorizontalDividers();
+            if (hDividers != null && hDividers.length > 0) {
+                dockingManager.setHorizontalDividers(hDividers);
+            }
+            double[] vDividers = config.getDockingVerticalDividers();
+            if (vDividers != null && vDividers.length > 0) {
+                dockingManager.setVerticalDividers(vDividers);
+            }
+        });
     }
 
     private void bindManagedPanelMenuItem(BasePanel panel, CheckMenuItem menuItem) {
@@ -835,7 +870,8 @@ public class MarkNote extends Application {
     }
 
     private void enterReadingMode() {
-        if (readingModeActive) return;
+        if (readingModeActive)
+            return;
         readingModeActive = true;
 
         // Sauvegarder l'état du panneau de preview et la position du diviseur
@@ -904,7 +940,8 @@ public class MarkNote extends Application {
 
             projectExplorerPanel.setOnMinimize(() -> {
                 if (!projectExplorerPanel.isPanelMinimized()) {
-                    // Collapse: use the already-rendered header height (accurate since stage is shown).
+                    // Collapse: use the already-rendered header height (accurate since stage is
+                    // shown).
                     // Chrome height = OS title bar = stage total − scene content area.
                     double headerH = projectExplorerPanel.getHeader().getHeight();
                     double chromeH = readingModeFloatingStage.getHeight()
@@ -940,7 +977,8 @@ public class MarkNote extends Application {
     }
 
     private void exitReadingMode(boolean callSetFullScreen) {
-        if (!readingModeActive) return;
+        if (!readingModeActive)
+            return;
         readingModeActive = false;
 
         // Détacher l'explorateur de la scène flottante avant de le redocker
@@ -975,15 +1013,18 @@ public class MarkNote extends Application {
             editorSplit.getItems().remove(previewPanel);
         }
 
-        // Restaurer les panneaux qui étaient visibles (chaque appel peut déclencher rebuildLayout)
+        // Restaurer les panneaux qui étaient visibles (chaque appel peut déclencher
+        // rebuildLayout)
         for (Map.Entry<BasePanel, Boolean> entry : readingModePanelVisibility.entrySet()) {
             if (entry.getValue()) {
                 showManagedPanel(entry.getKey());
             }
         }
 
-        // Restaurer les positions des diviseurs après que tous les rebuildLayout ont été faits.
-        // Platform.runLater garantit que les positions sont appliquées après le passage de layout.
+        // Restaurer les positions des diviseurs après que tous les rebuildLayout ont
+        // été faits.
+        // Platform.runLater garantit que les positions sont appliquées après le passage
+        // de layout.
         final double savedEditorDivider = readingModeEditorSplitDivider;
         final double[] savedHDividers = readingModeDockingHDividers;
         final double[] savedVDividers = readingModeDockingVDividers;
@@ -1004,12 +1045,20 @@ public class MarkNote extends Application {
             DockZone zone = getStoredOrDefaultZone(panel);
             config.setPanelState(panel.getPanelStateId(), new AppConfig.PanelState(visible, docked, zone.name()));
         }
+
+        // Sauvegarder les positions des dividers
+        if (editorSplit.getItems().size() > 1 && !editorSplit.getDividers().isEmpty()) {
+            config.setEditorSplitDivider(editorSplit.getDividers().get(0).getPosition());
+        }
+        config.setDockingHorizontalDividers(dockingManager.getHorizontalDividers());
+        config.setDockingVerticalDividers(dockingManager.getVerticalDividers());
+
         config.save();
     }
 
     /**
-     * Met en valeur le document actif dans le VisualLinkPanel.
-     * À appeler à chaque changement d'onglet actif ou quand le panel devient visible.
+     * Met en valeur le document actif dans le VisualLinkPanel. À appeler à chaque
+     * changement d'onglet actif ou quand le panel devient visible.
      */
     private void syncVisualLinkToActiveTab() {
         var selected = mainTabPane.getSelectionModel().getSelectedItem();
@@ -1085,10 +1134,10 @@ public class MarkNote extends Application {
             }
         });
 
-        // Synchroniser le défilement éditeur → preview (pas en reading mode : éditeur hors-scène)
+        // Synchroniser le défilement éditeur → preview (pas en reading mode : éditeur
+        // hors-scène)
         tab.setOnScrollFractionChanged(fraction -> {
-            if (!readingModeActive
-                    && mainTabPane.getSelectionModel().getSelectedItem() == tab
+            if (!readingModeActive && mainTabPane.getSelectionModel().getSelectedItem() == tab
                     && editorSplit.getItems().contains(previewPanel)) {
                 previewPanel.scrollToFraction(fraction);
             }
@@ -1212,9 +1261,8 @@ public class MarkNote extends Application {
 
         File newProjectDir = new File(parentDir, projectName);
         if (newProjectDir.exists() || !newProjectDir.mkdirs()) {
-            showError(messages.getString("error.projectCreate.title"),
-                    MessageFormat.format(messages.getString("error.projectCreate.message"),
-                            newProjectDir.getAbsolutePath()));
+            showError(messages.getString("error.projectCreate.title"), MessageFormat
+                    .format(messages.getString("error.projectCreate.message"), newProjectDir.getAbsolutePath()));
             return null;
         }
 
@@ -1225,24 +1273,34 @@ public class MarkNote extends Application {
      * Ouvre un répertoire de projet et met à jour l'UI/l'historique.
      */
     private void openProjectDirectory(File dir) {
-        // Configurer le service git avec les credentials de la config
+        setupProjectDirectory(dir);
+        ProjectSessionService.SessionData session = projectSessionService.loadSession(dir);
+        for (File f : session.openFiles()) {
+            openFileInTab(f);
+        }
+        if (session.activeFile() != null) {
+            final File target = session.activeFile();
+            mainTabPane.getTabs().stream().filter(t -> t instanceof DocumentTab dt && target.equals(dt.getFile()))
+                    .findFirst().ifPresent(t -> mainTabPane.getSelectionModel().select(t));
+        }
+    }
+
+    /**
+     * Configure le projet (git, explorateur, titre, index) sans ouvrir les fichiers
+     * de session. Appelé à la fois par {@link #openProjectDirectory} et par la
+     * restauration avec overlay.
+     */
+    private void setupProjectDirectory(File dir) {
         gitService.setSshKeyPath(config.getGitSshKeyPath());
         gitService.setGitToken(config.getGitToken());
         gitService.setGitUsername(config.getGitUsername());
         gitService.setProject(dir);
-
         projectExplorerPanel.setProjectDirectory(dir);
         previewPanel.setBaseDirectory(dir);
         primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
         config.addRecentDir(dir);
         refreshRecentMenu();
         loadOrBuildIndex(dir);
-
-        // Rouvrir les documents de la session précédente
-        List<File> sessionFiles = projectSessionService.loadSession(dir);
-        for (File f : sessionFiles) {
-            openFileInTab(f);
-        }
     }
 
     /**
@@ -1400,6 +1458,146 @@ public class MarkNote extends Application {
     }
 
     /**
+     * Point d'entrée unique pour la logique de démarrage (après splash éventuel).
+     * Si restoreWorkspaceOnStart est actif, le dernier workspace est restauré
+     * automatiquement avec un overlay de progression. Sinon, le comportement
+     * historique (dialogue de confirmation) est conservé.
+     */
+    private void handleStartupRestore() {
+        if (config.isRestoreWorkspaceOnStart() && !config.getRecentDirs().isEmpty()) {
+            File lastDir = new File(config.getRecentDirs().getFirst());
+            if (lastDir.exists() && lastDir.isDirectory()) {
+                restoreOverlay.show();
+                setupProjectDirectory(lastDir);
+                ProjectSessionService.SessionData session = projectSessionService.loadSession(lastDir);
+                openSessionFilesSequentially(session.openFiles(), 0, session.activeFile());
+                return;
+            }
+        }
+        // Comportement historique : dialogue de confirmation ou onglet de bienvenue
+        handleReopenLastProject();
+        if (config.isShowWelcomePage()) {
+            showWelcomeTab();
+        }
+        if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
+            addNewDocument();
+        }
+    }
+
+    /**
+     * Ouvre les fichiers de session un par un en enchaînant des
+     * {@link Platform#runLater} pour que le FX thread puisse rafraîchir l'overlay
+     * entre chaque fichier.
+     */
+    private void openSessionFilesSequentially(List<File> files, int index, File activeFile) {
+        if (index >= files.size()) {
+            // Tous les fichiers ouverts : restaurer l'onglet actif puis masquer l'overlay
+            if (activeFile != null) {
+                final File target = activeFile;
+                mainTabPane.getTabs().stream().filter(t -> t instanceof DocumentTab dt && target.equals(dt.getFile()))
+                        .findFirst().ifPresent(t -> mainTabPane.getSelectionModel().select(t));
+            }
+            restoreOverlay.hide();
+            return;
+        }
+        File f = files.get(index);
+        restoreOverlay.setProgress(f.getName(), index + 1, files.size());
+        openFileInTab(f);
+        Platform.runLater(() -> openSessionFilesSequentially(files, index + 1, activeFile));
+    }
+
+    /**
+     * Applique la géométrie de fenêtre sauvegardée (position, taille, mode plein
+     * écran / maximisé). Doit être appelé avant {@code stage.show()} pour éviter un
+     * flash.
+     */
+    private void restoreWindowGeometry(Stage stage) {
+        if (config.getWindowWidth() > 100) {
+            stage.setWidth(config.getWindowWidth());
+        }
+        if (config.getWindowHeight() > 100) {
+            stage.setHeight(config.getWindowHeight());
+        }
+        if (config.getWindowX() >= 0) {
+            stage.setX(config.getWindowX());
+        }
+        if (config.getWindowY() >= 0) {
+            stage.setY(config.getWindowY());
+        }
+        if (config.isWindowMaximized()) {
+            stage.setMaximized(true);
+        }
+        // Le fullscreen doit être appliqué après que la fenêtre soit affichée (macOS
+        // green button)
+        if (config.isWindowFullscreen()) {
+            stage.showingProperty().addListener(new javafx.beans.value.ChangeListener<>() {
+                @Override
+                public void changed(javafx.beans.value.ObservableValue<? extends Boolean> obs, Boolean wasShowing,
+                        Boolean isShowing) {
+                    if (isShowing) {
+                        stage.showingProperty().removeListener(this);
+                        Platform.runLater(() -> {
+                            stage.setFullScreenExitHint("");
+                            stage.setFullScreen(true);
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Installe des listeners sur les propriétés de géométrie de fenêtre pour
+     * sauvegarder l'état en temps réel. Cela garantit la survie de l'état même
+     * après un hard kill (SIGKILL). La position et la taille sont sauvegardées avec
+     * un debounce de 500 ms pour éviter d'écrire la config à chaque pixel lors d'un
+     * redimensionnement.
+     */
+    private void installWindowGeometryListeners(Stage stage) {
+        // Un seul Runnable partagé qui sauvegarde les 4 dimensions d'un coup.
+        // Chaque listener déclenche le même debounce, évitant qu'une propriété
+        // n'écrase les autres quand plusieurs changent simultanément (ex: resize).
+        Runnable saveGeometry = () -> Platform.runLater(() -> {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen()) {
+                config.setWindowX(stage.getX());
+                config.setWindowY(stage.getY());
+                config.setWindowWidth(stage.getWidth());
+                config.setWindowHeight(stage.getHeight());
+                config.save();
+            }
+        });
+
+        stage.xProperty().addListener((obs, o, n) -> {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
+        });
+        stage.yProperty().addListener((obs, o, n) -> {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
+        });
+        stage.widthProperty().addListener((obs, o, n) -> {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
+        });
+        stage.heightProperty().addListener((obs, o, n) -> {
+            if (!readingModeActive && !stage.isMaximized() && !stage.isFullScreen())
+                geometryDebouncer.debounce(saveGeometry);
+        });
+        stage.maximizedProperty().addListener((obs, o, maximized) -> {
+            if (!readingModeActive) {
+                config.setWindowMaximized(maximized);
+                config.save();
+            }
+        });
+        stage.fullScreenProperty().addListener((obs, o, fullscreen) -> {
+            if (!readingModeActive) {
+                config.setWindowFullscreen(fullscreen);
+                config.save();
+            }
+        });
+    }
+
+    /**
      * Affiche le dialogue d'options.
      */
     private void showOptionsDialog() {
@@ -1416,8 +1614,7 @@ public class MarkNote extends Application {
             // Refresh preview in case PlantUML settings changed
             previewPanel.refresh();
             // Update PlantUML status bar indicator
-            statusBar.setPlantUmlIndicator(
-                    config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
+            statusBar.setPlantUmlIndicator(config.isUseLocalPlantUml() && !config.getPlantUmlJarPath().isBlank());
             // Update git credentials
             gitService.setSshKeyPath(config.getGitSshKeyPath());
             gitService.setGitToken(config.getGitToken());
@@ -1427,11 +1624,11 @@ public class MarkNote extends Application {
     }
 
     /**
-     * Affiche le résultat d'une opération git (pull/push) dans une boîte de dialogue.
+     * Affiche le résultat d'une opération git (pull/push) dans une boîte de
+     * dialogue.
      */
     private void showGitOperationResult(String result) {
-        Alert alert = new Alert(
-                result.startsWith("Error:") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
+        Alert alert = new Alert(result.startsWith("Error:") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
         alert.initOwner(primaryStage);
         alert.setTitle(messages.getString("git.operation.result.title"));
         alert.setHeaderText(null);
@@ -1445,20 +1642,21 @@ public class MarkNote extends Application {
 
     /** Ouvre la boîte de dialogue de commit git. */
     private void handleGitCommit() {
-        new CommitDialog(primaryStage, gitService).showAndWait()
-                .ifPresent(msg -> gitService.commitAsync(msg));
+        new CommitDialog(primaryStage, gitService).showAndWait().ifPresent(msg -> gitService.commitAsync(msg));
     }
 
     /** Ouvre la boîte de dialogue d'ajout d'un remote git. */
     private void handleGitAddRemote() {
         boolean saved = new AddRemoteDialog(primaryStage, gitService, config).showAndWait();
-        if (saved) projectExplorerPanel.refresh();
+        if (saved)
+            projectExplorerPanel.refresh();
     }
 
     /** Initialise un dépôt git dans le répertoire de projet courant. */
     private void handleGitInit() {
         File projectDir = projectExplorerPanel.getProjectDirectory();
-        if (projectDir == null) return;
+        if (projectDir == null)
+            return;
         try {
             gitService.init(projectDir);
             // Vérifier que l'identité est configurée
@@ -1490,9 +1688,8 @@ public class MarkNote extends Application {
             confirm.showAndWait().ifPresent(bt -> {
                 if (bt == javafx.scene.control.ButtonType.OK) {
                     gitService.addAllAsync();
-                    javafx.application.Platform.runLater(() ->
-                        new CommitDialog(primaryStage, gitService).showAndWait()
-                                .ifPresent(msg -> gitService.commitAsync(msg)));
+                    javafx.application.Platform.runLater(() -> new CommitDialog(primaryStage, gitService).showAndWait()
+                            .ifPresent(msg -> gitService.commitAsync(msg)));
                 }
             });
             projectExplorerPanel.refresh();
@@ -1534,27 +1731,28 @@ public class MarkNote extends Application {
     }
 
     private void checkForUpdatesOnStartup() {
-        if (!config.isAutoCheckUpdate()) return;
+        if (!config.isAutoCheckUpdate())
+            return;
         new Thread(() -> {
-            UpdateChecker.VersionInfo info =
-                    UpdateChecker.checkForUpdate(messages.getString("app.version"));
-            if (info == null) return;
-            if (info.tagName().equals(config.getSkipVersion())) return;
+            UpdateChecker.VersionInfo info = UpdateChecker.checkForUpdate(messages.getString("app.version"));
+            if (info == null)
+                return;
+            if (info.tagName().equals(config.getSkipVersion()))
+                return;
             Platform.runLater(() -> showUpdateDialog(info));
         }, "update-check").start();
     }
 
     private void checkForUpdatesManual() {
         new Thread(() -> {
-            UpdateChecker.VersionInfo info =
-                    UpdateChecker.checkForUpdate(messages.getString("app.version"));
+            UpdateChecker.VersionInfo info = UpdateChecker.checkForUpdate(messages.getString("app.version"));
             Platform.runLater(() -> {
                 if (info == null) {
                     Alert a = new Alert(Alert.AlertType.INFORMATION);
                     a.initOwner(primaryStage);
                     a.setTitle(messages.getString("update.uptodate.title"));
-                    a.setContentText(messages.getString("update.uptodate.content")
-                            .replace("{0}", messages.getString("app.version")));
+                    a.setContentText(messages.getString("update.uptodate.content").replace("{0}",
+                            messages.getString("app.version")));
                     a.showAndWait();
                 } else {
                     showUpdateDialog(info);
@@ -1564,8 +1762,7 @@ public class MarkNote extends Application {
     }
 
     private void showUpdateDialog(UpdateChecker.VersionInfo info) {
-        UpdateDialog dlg = new UpdateDialog(messages, primaryStage, info,
-                messages.getString("app.version"));
+        UpdateDialog dlg = new UpdateDialog(messages, primaryStage, info, messages.getString("app.version"));
         UpdateDialog.UpdateResult result = dlg.showAndGet();
         if (result == UpdateDialog.UpdateResult.SKIP) {
             config.setSkipVersion(info.tagName());
@@ -1578,16 +1775,12 @@ public class MarkNote extends Application {
     private void downloadAndInstall(UpdateChecker.VersionInfo info) {
         new Thread(() -> {
             try {
-                String suffix = info.assetName()
-                        .substring(info.assetName().lastIndexOf('.'));
+                String suffix = info.assetName().substring(info.assetName().lastIndexOf('.'));
                 Path dest = Files.createTempFile("marknote-update-", suffix);
-                HttpClient client = HttpClient.newBuilder()
-                        .followRedirects(HttpClient.Redirect.ALWAYS)
-                        .build();
+                HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
                 client.send(
                         HttpRequest.newBuilder(URI.create(info.downloadUrl()))
-                                .header("Accept", "application/octet-stream")
-                                .build(),
+                                .header("Accept", "application/octet-stream").build(),
                         HttpResponse.BodyHandlers.ofFile(dest));
                 java.awt.Desktop.getDesktop().open(dest.toFile());
             } catch (Exception e) {
@@ -1667,13 +1860,14 @@ public class MarkNote extends Application {
      */
     private void saveProjectSession() {
         File projectDir = projectExplorerPanel.getProjectDirectory();
-        if (projectDir == null) return;
+        if (projectDir == null)
+            return;
         List<File> openFiles = mainTabPane.getTabs().stream()
-                .filter(t -> t instanceof DocumentTab dt && dt.getFile() != null)
-                .map(t -> ((DocumentTab) t).getFile())
-                .filter(f -> f.toPath().startsWith(projectDir.toPath()))
-                .toList();
-        projectSessionService.saveSession(projectDir, openFiles);
+                .filter(t -> t instanceof DocumentTab dt && dt.getFile() != null).map(t -> ((DocumentTab) t).getFile())
+                .filter(f -> f.toPath().startsWith(projectDir.toPath())).toList();
+        DocumentTab activeDocTab = getActiveDocumentTab();
+        File activeFile = (activeDocTab != null && activeDocTab.getFile() != null) ? activeDocTab.getFile() : null;
+        projectSessionService.saveSession(projectDir, openFiles, activeFile);
     }
 
     @Override
@@ -1682,6 +1876,9 @@ public class MarkNote extends Application {
         saveProjectSession();
         if (previewDebouncer != null) {
             previewDebouncer.shutdown();
+        }
+        if (geometryDebouncer != null) {
+            geometryDebouncer.shutdown();
         }
     }
 

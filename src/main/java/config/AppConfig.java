@@ -33,16 +33,32 @@ public class AppConfig {
     private boolean reattachDiagramOnTabClose = true;
     private final Map<String, PanelState> panelStates = new HashMap<>();
 
+    // Panel divider positions
+    private double editorSplitDivider = 0.5;
+    private double[] dockingHorizontalDividers = new double[0];
+    private double[] dockingVerticalDividers = new double[0];
+
     // Git credentials (V1: SSH passphrase-less + HTTPS token)
     private String gitSshKeyPath = "";
-    private String gitToken      = "";
-    private String gitUsername   = "token";
+    private String gitToken = "";
+    private String gitUsername = "token";
     private String gitToolbarMode = "standard";
 
+    // Window geometry — persisted so workspace survives hard kill
+    private double windowX = -1;
+    private double windowY = -1;
+    private double windowWidth = 1200;
+    private double windowHeight = 700;
+    private boolean windowMaximized = false;
+    private boolean windowFullscreen = false;
+
+    // Workspace restore
+    private boolean restoreWorkspaceOnStart = true;
     private boolean autoCheckUpdate = true;
     private String skipVersion = null;
 
-    public record PanelState(boolean visible, boolean docked, String zone) {}
+    public record PanelState(boolean visible, boolean docked, String zone) {
+    }
 
     /**
      * Charge la configuration depuis le fichier.
@@ -84,13 +100,15 @@ public class AppConfig {
                 } else if (line.startsWith("language=")) {
                     language = line.substring("language=".length()).trim();
                 } else if (line.startsWith("frontMatterExpandedByDefault=")) {
-                    frontMatterExpandedByDefault = Boolean.parseBoolean(line.substring("frontMatterExpandedByDefault=".length()).trim());
+                    frontMatterExpandedByDefault = Boolean
+                            .parseBoolean(line.substring("frontMatterExpandedByDefault=".length()).trim());
                 } else if (line.startsWith("useLocalPlantUml=")) {
                     useLocalPlantUml = Boolean.parseBoolean(line.substring("useLocalPlantUml=".length()).trim());
                 } else if (line.startsWith("plantUmlJarPath=")) {
                     plantUmlJarPath = line.substring("plantUmlJarPath=".length()).trim();
                 } else if (line.startsWith("reattachDiagramOnTabClose=")) {
-                    reattachDiagramOnTabClose = Boolean.parseBoolean(line.substring("reattachDiagramOnTabClose=".length()).trim());
+                    reattachDiagramOnTabClose = Boolean
+                            .parseBoolean(line.substring("reattachDiagramOnTabClose=".length()).trim());
                 } else if (line.startsWith("gitSshKeyPath=")) {
                     gitSshKeyPath = line.substring("gitSshKeyPath=".length()).trim();
                 } else if (line.startsWith("gitToken=")) {
@@ -99,19 +117,76 @@ public class AppConfig {
                     gitUsername = line.substring("gitUsername=".length()).trim();
                 } else if (line.startsWith("gitToolbarMode=")) {
                     gitToolbarMode = line.substring("gitToolbarMode=".length()).trim();
+
+                } else if (line.startsWith("windowX=")) {
+                    try {
+                        windowX = Double.parseDouble(line.substring("windowX=".length()).trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else if (line.startsWith("windowY=")) {
+                    try {
+                        windowY = Double.parseDouble(line.substring("windowY=".length()).trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else if (line.startsWith("windowWidth=")) {
+                    try {
+                        windowWidth = Double.parseDouble(line.substring("windowWidth=".length()).trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else if (line.startsWith("windowHeight=")) {
+                    try {
+                        windowHeight = Double.parseDouble(line.substring("windowHeight=".length()).trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else if (line.startsWith("windowMaximized=")) {
+                    windowMaximized = Boolean.parseBoolean(line.substring("windowMaximized=".length()).trim());
+                } else if (line.startsWith("windowFullscreen=")) {
+                    windowFullscreen = Boolean.parseBoolean(line.substring("windowFullscreen=".length()).trim());
+                } else if (line.startsWith("restoreWorkspaceOnStart=")) {
+                    restoreWorkspaceOnStart = Boolean
+                            .parseBoolean(line.substring("restoreWorkspaceOnStart=".length()).trim());
+
                 } else if (line.startsWith("autoCheckUpdate=")) {
                     autoCheckUpdate = Boolean.parseBoolean(line.substring("autoCheckUpdate=".length()).trim());
                 } else if (line.startsWith("skipVersion=")) {
                     String v = line.substring("skipVersion=".length()).trim();
                     skipVersion = v.isEmpty() ? null : v;
+
                 } else if (line.startsWith("panelState=")) {
                     String raw = line.substring("panelState=".length()).trim();
                     String[] parts = raw.split("\\|", -1);
                     if (parts.length >= 4 && !parts[0].isBlank()) {
-                        panelStates.put(parts[0], new PanelState(
-                                Boolean.parseBoolean(parts[1]),
-                                Boolean.parseBoolean(parts[2]),
-                                parts[3].trim()));
+                        panelStates.put(parts[0], new PanelState(Boolean.parseBoolean(parts[1]),
+                                Boolean.parseBoolean(parts[2]), parts[3].trim()));
+                    }
+                } else if (line.startsWith("editorSplitDivider=")) {
+                    try {
+                        editorSplitDivider = Double.parseDouble(line.substring("editorSplitDivider=".length()).trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                } else if (line.startsWith("dockingHDividers=")) {
+                    String raw = line.substring("dockingHDividers=".length()).trim();
+                    if (!raw.isEmpty()) {
+                        String[] parts = raw.split(",");
+                        dockingHorizontalDividers = new double[parts.length];
+                        for (int i = 0; i < parts.length; i++) {
+                            try {
+                                dockingHorizontalDividers[i] = Double.parseDouble(parts[i].trim());
+                            } catch (NumberFormatException ignored) {
+                            }
+                        }
+                    }
+                } else if (line.startsWith("dockingVDividers=")) {
+                    String raw = line.substring("dockingVDividers=".length()).trim();
+                    if (!raw.isEmpty()) {
+                        String[] parts = raw.split(",");
+                        dockingVerticalDividers = new double[parts.length];
+                        for (int i = 0; i < parts.length; i++) {
+                            try {
+                                dockingVerticalDividers[i] = Double.parseDouble(parts[i].trim());
+                            } catch (NumberFormatException ignored) {
+                            }
+                        }
                     }
                 }
             }
@@ -129,7 +204,7 @@ public class AppConfig {
             if (!configDir.exists()) {
                 configDir.mkdirs();
             }
-            
+
             List<String> lines = new ArrayList<>();
             lines.add("maxRecentItems=" + maxRecentItems);
             lines.add("openDocOnStart=" + openDocOnStart);
@@ -146,11 +221,36 @@ public class AppConfig {
             lines.add("gitToken=" + gitToken);
             lines.add("gitUsername=" + gitUsername);
             lines.add("gitToolbarMode=" + gitToolbarMode);
+            lines.add("windowX=" + windowX);
+            lines.add("windowY=" + windowY);
+            lines.add("windowWidth=" + windowWidth);
+            lines.add("windowHeight=" + windowHeight);
+            lines.add("windowMaximized=" + windowMaximized);
+            lines.add("windowFullscreen=" + windowFullscreen);
+            lines.add("restoreWorkspaceOnStart=" + restoreWorkspaceOnStart);
             lines.add("autoCheckUpdate=" + autoCheckUpdate);
             lines.add("skipVersion=" + (skipVersion != null ? skipVersion : ""));
+            lines.add("editorSplitDivider=" + editorSplitDivider);
+            if (dockingHorizontalDividers.length > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < dockingHorizontalDividers.length; i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(dockingHorizontalDividers[i]);
+                }
+                lines.add("dockingHDividers=" + sb.toString());
+            }
+            if (dockingVerticalDividers.length > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < dockingVerticalDividers.length; i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(dockingVerticalDividers[i]);
+                }
+                lines.add("dockingVDividers=" + sb.toString());
+            }
             for (Map.Entry<String, PanelState> entry : panelStates.entrySet()) {
                 PanelState state = entry.getValue();
-                lines.add("panelState=" + entry.getKey() + "|" + state.visible() + "|" + state.docked() + "|" + state.zone());
+                lines.add("panelState=" + entry.getKey() + "|" + state.visible() + "|" + state.docked() + "|"
+                        + state.zone());
             }
             for (String f : recentFiles) {
                 lines.add("recentFile=" + f);
@@ -309,23 +409,53 @@ public class AppConfig {
         this.reattachDiagramOnTabClose = reattachDiagramOnTabClose;
     }
 
-    public String getGitSshKeyPath() { return gitSshKeyPath; }
-    public void setGitSshKeyPath(String path) { this.gitSshKeyPath = path != null ? path : ""; }
+    public String getGitSshKeyPath() {
+        return gitSshKeyPath;
+    }
 
-    public String getGitToken() { return gitToken; }
-    public void setGitToken(String token) { this.gitToken = token != null ? token : ""; }
+    public void setGitSshKeyPath(String path) {
+        this.gitSshKeyPath = path != null ? path : "";
+    }
 
-    public String getGitUsername() { return gitUsername; }
-    public void setGitUsername(String username) { this.gitUsername = username != null ? username : "token"; }
+    public String getGitToken() {
+        return gitToken;
+    }
 
-    public String getGitToolbarMode() { return gitToolbarMode; }
-    public void setGitToolbarMode(String mode) { this.gitToolbarMode = (mode != null && !mode.isBlank()) ? mode : "standard"; }
+    public void setGitToken(String token) {
+        this.gitToken = token != null ? token : "";
+    }
 
-    public boolean isAutoCheckUpdate() { return autoCheckUpdate; }
-    public void setAutoCheckUpdate(boolean autoCheckUpdate) { this.autoCheckUpdate = autoCheckUpdate; }
+    public String getGitUsername() {
+        return gitUsername;
+    }
 
-    public String getSkipVersion() { return skipVersion; }
-    public void setSkipVersion(String version) { this.skipVersion = version; }
+    public void setGitUsername(String username) {
+        this.gitUsername = username != null ? username : "token";
+    }
+
+    public String getGitToolbarMode() {
+        return gitToolbarMode;
+    }
+
+    public void setGitToolbarMode(String mode) {
+        this.gitToolbarMode = (mode != null && !mode.isBlank()) ? mode : "standard";
+    }
+
+    public boolean isAutoCheckUpdate() {
+        return autoCheckUpdate;
+    }
+
+    public void setAutoCheckUpdate(boolean autoCheckUpdate) {
+        this.autoCheckUpdate = autoCheckUpdate;
+    }
+
+    public String getSkipVersion() {
+        return skipVersion;
+    }
+
+    public void setSkipVersion(String version) {
+        this.skipVersion = version;
+    }
 
     /**
      * Supprime un fichier de la liste des récents.
@@ -364,5 +494,85 @@ public class AppConfig {
 
     public boolean hasAnyPanelStates() {
         return !panelStates.isEmpty();
+    }
+
+    public double getWindowX() {
+        return windowX;
+    }
+
+    public void setWindowX(double v) {
+        this.windowX = v;
+    }
+
+    public double getWindowY() {
+        return windowY;
+    }
+
+    public void setWindowY(double v) {
+        this.windowY = v;
+    }
+
+    public double getWindowWidth() {
+        return windowWidth;
+    }
+
+    public void setWindowWidth(double v) {
+        this.windowWidth = v;
+    }
+
+    public double getWindowHeight() {
+        return windowHeight;
+    }
+
+    public void setWindowHeight(double v) {
+        this.windowHeight = v;
+    }
+
+    public boolean isWindowMaximized() {
+        return windowMaximized;
+    }
+
+    public void setWindowMaximized(boolean v) {
+        this.windowMaximized = v;
+    }
+
+    public boolean isWindowFullscreen() {
+        return windowFullscreen;
+    }
+
+    public void setWindowFullscreen(boolean v) {
+        this.windowFullscreen = v;
+    }
+
+    public boolean isRestoreWorkspaceOnStart() {
+        return restoreWorkspaceOnStart;
+    }
+
+    public void setRestoreWorkspaceOnStart(boolean v) {
+        this.restoreWorkspaceOnStart = v;
+    }
+
+    public double getEditorSplitDivider() {
+        return editorSplitDivider;
+    }
+
+    public void setEditorSplitDivider(double editorSplitDivider) {
+        this.editorSplitDivider = editorSplitDivider;
+    }
+
+    public double[] getDockingHorizontalDividers() {
+        return dockingHorizontalDividers;
+    }
+
+    public void setDockingHorizontalDividers(double[] dockingHorizontalDividers) {
+        this.dockingHorizontalDividers = dockingHorizontalDividers != null ? dockingHorizontalDividers : new double[0];
+    }
+
+    public double[] getDockingVerticalDividers() {
+        return dockingVerticalDividers;
+    }
+
+    public void setDockingVerticalDividers(double[] dockingVerticalDividers) {
+        this.dockingVerticalDividers = dockingVerticalDividers != null ? dockingVerticalDividers : new double[0];
     }
 }
