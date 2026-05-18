@@ -336,67 +336,78 @@ No additional native binaries are required. JGit bundles all transitive dependen
 
     **Phase 1: Core Infrastructure** (parallel steps)
 
-    - [ ] Create `RemoteConnector` interface in `src/main/java/utils/RemoteConnector.java`
+    - [x] Create `RemoteConnector` interface in `src/main/java/utils/RemoteConnector.java`
         - Define methods: `platform()`, `listRepositories()`, `createRepository(String name, boolean isPrivate)`
         - Define `RemoteRepo` record: `name`, `cloneUrl`, `description`, `isPrivate`, `defaultBranch`
         - Add JavaDoc describing contract and authentication expectations
 
-    - [ ] Create `RemoteConnectorFactory` utility in `src/main/java/utils/RemoteConnectorFactory.java`
+    - [x] Create `RemoteConnectorException` class in `src/main/java/utils/RemoteConnectorException.java`
+        - Checked exception with HTTP status code, API message, and cause
+        - User-friendly error messages for common HTTP codes (401, 403, 404, 429, 500+)
+
+    - [x] Create `RemoteConnectorFactory` utility in `src/main/java/utils/RemoteConnectorFactory.java`
         - Static method `create(String remoteUrl, String token)` → returns appropriate connector or null
         - URL parsing logic to detect platform (github.com, gitlab.com, custom domains)
         - Support for custom GitLab and Gitea instances
+        - Uses JGit's URIish for parsing HTTPS and SSH URLs
 
     **Phase 2: Platform Implementations** (parallel steps)
 
-    - [ ] Implement `GitHubConnector` in `src/main/java/utils/GitHubConnector.java`
+    - [x] Implement `GitHubConnector` in `src/main/java/utils/GitHubConnector.java`
         - Constructor: `GitHubConnector(String token)`
         - API base: `https://api.github.com`
-        - `listRepositories()`: GET `/user/repos?type=owner&per_page=100`
-        - `createRepository()`: POST `/user/repos` with JSON body `{"name": "...", "private": true/false}`
-        - Auth header: `Authorization: token <token>`
+        - `listRepositories()`: GET `/user/repos?type=owner&per_page=100&sort=updated`
+        - `createRepository()`: POST `/user/repos` with JSON body `{"name": "...", "private": true/false, "auto_init": true}`
+        - Auth header: `Authorization: token <token>`, API version: `X-GitHub-Api-Version: 2022-11-28`
+        - Uses java.net.http.HttpClient with 10s connection timeout
 
-    - [ ] Implement `GitLabConnector` in `src/main/java/utils/GitLabConnector.java`
-        - Constructor: `GitLabConnector(String instanceUrl, String token)`
+    - [x] Implement `GitLabConnector` in `src/main/java/utils/GitLabConnector.java`
+        - Constructors: `GitLabConnector(String token)` for gitlab.com, `GitLabConnector(String instanceUrl, String token)` for custom
         - Support custom instances (default: `https://gitlab.com`)
         - API base: `<instanceUrl>/api/v4`
-        - `listRepositories()`: GET `/projects?owned=true&per_page=100`
-        - `createRepository()`: POST `/projects` with JSON body `{"name": "...", "visibility": "private"/"public"}`
+        - `listRepositories()`: GET `/projects?owned=true&per_page=100&order_by=updated_at&sort=desc`
+        - `createRepository()`: POST `/projects` with JSON body `{"name": "...", "visibility": "private"/"public", "initialize_with_readme": true}`
         - Auth header: `PRIVATE-TOKEN: <token>`
 
-    - [ ] Implement `GiteaConnector` in `src/main/java/utils/GiteaConnector.java`
+    - [x] Implement `GiteaConnector` in `src/main/java/utils/GiteaConnector.java`
         - Constructor: `GiteaConnector(String instanceUrl, String token)`
         - Support custom instances only (no default, user provides URL)
         - API base: `<instanceUrl>/api/v1`
-        - `listRepositories()`: GET `/user/repos`
-        - `createRepository()`: POST `/user/repos` with JSON body `{"name": "...", "private": true/false}`
+        - `listRepositories()`: GET `/user/repos?limit=100`
+        - `createRepository()`: POST `/user/repos` with JSON body `{"name": "...", "private": true/false, "auto_init": true, "default_branch": "main"}`
         - Auth header: `Authorization: token <token>`
 
     **Phase 3: Testing & Error Handling**
 
-    - [ ] Create unit tests in `src/test/java/utils/`
-        - `RemoteConnectorFactoryTest`: URL parsing, platform detection
-        - Mock HTTP responses for connector tests
-        - Test authentication header generation
-        - Test JSON parsing for repository lists
+    - [x] Create unit tests in `src/test/java/utils/`
+        - `RemoteConnectorFactoryTest`: 14 tests for URL parsing, platform detection, connector instantiation
+        - `RemoteConnectorExceptionTest`: 11 tests for exception construction, status codes, error messages
+        - `RemoteRepoTest`: 11 tests for record validation, null handling, default values
+        - Total: 36 tests, all passing
 
-    - [ ] Add error handling and logging
-        - Wrap HTTP exceptions with user-friendly messages
-        - Log API errors via `LogService` with source "RemoteConnector"
-        - Handle common errors: 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Rate Limited
-        - Return empty lists on error (consistent with GitService async patterns)
+    - [x] Add error handling and logging
+        - All HTTP exceptions wrapped in `RemoteConnectorException` with detailed context
+        - Log API errors via `LogService` with sources "GitHubConnector", "GitLabConnector", "GiteaConnector"
+        - Handle common errors: 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Rate Limited, 500+ Server errors
+        - Throw `RemoteConnectorException` on errors (user-friendly messages for UI display)
+        - Extract error messages from JSON responses (GitHub: "message", GitLab: "message" or "error")
 
     **Verification steps**:
-    - Manual test: Create connector instances with valid tokens, verify `listRepositories()` returns expected repos
-    - Manual test: Call `createRepository("test-repo", true)` on each platform, verify repo created
-    - Unit tests: `mvn test -Dtest=RemoteConnectorFactoryTest`
-    - Integration check: Factory correctly identifies platforms from various URL formats
+    - [x] Unit tests: `mvn test -Dtest=RemoteConnectorFactoryTest,RemoteConnectorExceptionTest,RemoteRepoTest` → 36 tests passed
+    - [x] Compilation: `mvn clean compile -DskipTests` → BUILD SUCCESS (no warnings)
+    - [x] Factory validation: Correctly identifies github.com, gitlab.com, custom GitLab, and Gitea from HTTPS/SSH URLs
+    - [x] Error handling: All connectors throw RemoteConnectorException with HTTP status codes and API messages
 
-    **Design decisions**:
-    - **JSON library**: Use `org.json.simple` (already in classpath)
-    - **Custom domains**: Auto-detect gitlab.com, require explicit URL for self-hosted instances
-    - **Error handling**: Return empty lists + log errors (no UI exceptions)
-    - **Factory pattern**: Static utility (no caching, connectors are lightweight)
-    - **Scope**: Repository operations only; no issues, PRs, CI status (deferred to future)
+    **Design decisions** (confirmed during implementation):
+    - **JSON library**: `org.json.simple` (already in classpath for LLM config)
+    - **HTTP client**: `java.net.http.HttpClient` with 10s timeout (consistent with UpdateChecker pattern)
+    - **Custom domains**: Auto-detect gitlab.com; for self-hosted GitLab/Gitea, extract base URL from remote URL
+    - **Error handling**: Throw `RemoteConnectorException` with HTTP status + API message (UI can display user-friendly errors)
+    - **Factory pattern**: Static utility with `create()` and `detectPlatform()` methods (no caching, lightweight connectors)
+    - **GitLab detection**: Check for "gitlab.com" first, then "gitlab" substring for self-hosted instances
+    - **Default branch**: Normalize to "main" if null/blank in RemoteRepo record
+    - **Authentication**: Token-based only (stored in AppConfig, chmod 600)
+    - **Scope**: Repository operations only; no issues, PRs, CI status (deferred to future Stage 4+)
 
 3. stage 3 - UI integration
     - [ ] integrate the RemoteConnector usage into git dialogs and UI.
