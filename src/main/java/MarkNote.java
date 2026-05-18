@@ -46,6 +46,7 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
@@ -168,6 +169,15 @@ public class MarkNote extends Application {
         mainTabPane = new TabPane();
         mainTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         mainTabPane.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);
+
+        // Attacher le menu contextuel à chaque onglet dès son ajout (tous types confondus)
+        mainTabPane.getTabs().addListener((javafx.collections.ListChangeListener<javafx.scene.control.Tab>) change -> {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    change.getAddedSubList().forEach(this::installTabContextMenu);
+                }
+            }
+        });
 
         // Panel de prévisualisation
         previewPanel = new PreviewPanel();
@@ -466,9 +476,13 @@ public class MarkNote extends Application {
         closeTabItem.setAccelerator(KeyCombination.keyCombination("Ctrl+W"));
         closeTabItem.setOnAction(e -> closeActiveTab());
 
+        MenuItem closeAllTabsItem = new MenuItem(messages.getString("menu.file.closeAll"));
+        closeAllTabsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Shift+W"));
+        closeAllTabsItem.setOnAction(e -> closeAllTabs());
+
         fileMenu.getItems().addAll(newDocItem, new SeparatorMenuItem(), openProjectItem, openItem,
                 new SeparatorMenuItem(), recentMenu, new SeparatorMenuItem(), saveItem, saveAsItem,
-                new SeparatorMenuItem(), closeTabItem, quitItem);
+                new SeparatorMenuItem(), closeTabItem, closeAllTabsItem, new SeparatorMenuItem(), quitItem);
 
         // == Menu Affichage ==
         Menu viewMenu = new Menu(messages.getString("menu.view"));
@@ -593,13 +607,51 @@ public class MarkNote extends Application {
     private void closeActiveTab() {
         var selected = mainTabPane.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            // Déclencher la logique de fermeture existante (onCloseRequest)
-            var closeEvent = new javafx.event.Event(javafx.scene.control.Tab.TAB_CLOSE_REQUEST_EVENT);
-            javafx.event.Event.fireEvent(selected, closeEvent);
-            if (!closeEvent.isConsumed()) {
-                mainTabPane.getTabs().remove(selected);
-            }
+            requestCloseTab(selected);
         }
+    }
+
+    /** Déclenche l'événement de fermeture sur un onglet et le retire s'il n'est pas consommé. */
+    private void requestCloseTab(javafx.scene.control.Tab tab) {
+        var event = new javafx.event.Event(javafx.scene.control.Tab.TAB_CLOSE_REQUEST_EVENT);
+        javafx.event.Event.fireEvent(tab, event);
+        if (!event.isConsumed()) {
+            mainTabPane.getTabs().remove(tab);
+        }
+    }
+
+    /** Ferme tous les onglets. */
+    private void closeAllTabs() {
+        List.copyOf(mainTabPane.getTabs()).forEach(this::requestCloseTab);
+    }
+
+    /** Ferme tous les onglets sauf {@code referenceTab}. */
+    private void closeOtherTabs(javafx.scene.control.Tab referenceTab) {
+        List.copyOf(mainTabPane.getTabs()).stream()
+                .filter(t -> t != referenceTab)
+                .forEach(this::requestCloseTab);
+    }
+
+    /** Ferme tous les onglets situés à gauche de {@code referenceTab}. */
+    private void closeTabsToLeft(javafx.scene.control.Tab referenceTab) {
+        int refIndex = mainTabPane.getTabs().indexOf(referenceTab);
+        if (refIndex > 0) {
+            List.copyOf(mainTabPane.getTabs().subList(0, refIndex)).forEach(this::requestCloseTab);
+        }
+    }
+
+    /** Installe un menu contextuel sur un onglet avec les actions de fermeture groupée. */
+    private void installTabContextMenu(javafx.scene.control.Tab tab) {
+        MenuItem closeAllItem = new MenuItem(messages.getString("menu.file.closeAll"));
+        closeAllItem.setOnAction(e -> closeAllTabs());
+
+        MenuItem closeOthersItem = new MenuItem(messages.getString("menu.tab.closeOthers"));
+        closeOthersItem.setOnAction(e -> closeOtherTabs(tab));
+
+        MenuItem closeToLeftItem = new MenuItem(messages.getString("menu.tab.closeToLeft"));
+        closeToLeftItem.setOnAction(e -> closeTabsToLeft(tab));
+
+        tab.setContextMenu(new ContextMenu(closeAllItem, new SeparatorMenuItem(), closeOthersItem, closeToLeftItem));
     }
 
     /**
