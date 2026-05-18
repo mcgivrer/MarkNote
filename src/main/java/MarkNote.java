@@ -29,6 +29,7 @@ import ui.TagCloudPanel;
 import ui.ThemeTab;
 import ui.VisualLinkPanel;
 import ui.WelcomeTab;
+import ui.WorkspaceRestoreOverlay;
 import ui.CommitDialog;
 import ui.AddRemoteDialog;
 import java.util.List;
@@ -61,6 +62,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
@@ -90,6 +92,7 @@ public class MarkNote extends Application {
     private BorderPane root;
     private HBox topBar;
     private HBox exitReadingModeBar;
+    private WorkspaceRestoreOverlay restoreOverlay;
 
     // Panels et SplitPanes pour la gestion de l'affichage
     private SplitPane editorSplit;
@@ -383,7 +386,11 @@ public class MarkNote extends Application {
             }
         });
 
-        Scene scene = new Scene(root, 1200, 700);
+        // L'overlay est empilé au-dessus du root via un StackPane pour couvrir toute la fenêtre
+        restoreOverlay = new WorkspaceRestoreOverlay(messages);
+        StackPane sceneRoot = new StackPane(root, restoreOverlay);
+
+        Scene scene = new Scene(sceneRoot, 1200, 700);
         applyTheme(scene);
         if (projectExplorerPanel.getProjectDirectory() == null) {
             stage.setTitle(messages.getString("app.title.editor"));
@@ -1203,20 +1210,7 @@ public class MarkNote extends Application {
      * Ouvre un répertoire de projet et met à jour l'UI/l'historique.
      */
     private void openProjectDirectory(File dir) {
-        // Configurer le service git avec les credentials de la config
-        gitService.setSshKeyPath(config.getGitSshKeyPath());
-        gitService.setGitToken(config.getGitToken());
-        gitService.setGitUsername(config.getGitUsername());
-        gitService.setProject(dir);
-
-        projectExplorerPanel.setProjectDirectory(dir);
-        previewPanel.setBaseDirectory(dir);
-        primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
-        config.addRecentDir(dir);
-        refreshRecentMenu();
-        loadOrBuildIndex(dir);
-
-        // Rouvrir les documents de la session précédente et restaurer l'onglet actif
+        setupProjectDirectory(dir);
         ProjectSessionService.SessionData session = projectSessionService.loadSession(dir);
         for (File f : session.openFiles()) {
             openFileInTab(f);
@@ -1228,6 +1222,23 @@ public class MarkNote extends Application {
                 .findFirst()
                 .ifPresent(t -> mainTabPane.getSelectionModel().select(t));
         }
+    }
+
+    /**
+     * Configure le projet (git, explorateur, titre, index) sans ouvrir les fichiers de session.
+     * Appelé à la fois par {@link #openProjectDirectory} et par la restauration avec overlay.
+     */
+    private void setupProjectDirectory(File dir) {
+        gitService.setSshKeyPath(config.getGitSshKeyPath());
+        gitService.setGitToken(config.getGitToken());
+        gitService.setGitUsername(config.getGitUsername());
+        gitService.setProject(dir);
+        projectExplorerPanel.setProjectDirectory(dir);
+        previewPanel.setBaseDirectory(dir);
+        primaryStage.setTitle(messages.getString("app.title") + " - " + dir.getName());
+        config.addRecentDir(dir);
+        refreshRecentMenu();
+        loadOrBuildIndex(dir);
     }
 
     /**
@@ -1387,13 +1398,17 @@ public class MarkNote extends Application {
     /**
      * Point d'entrée unique pour la logique de démarrage (après splash éventuel).
      * Si restoreWorkspaceOnStart est actif, le dernier workspace est restauré
-     * automatiquement sans dialogue. Sinon, le comportement historique est conservé.
+     * automatiquement avec un overlay de progression. Sinon, le comportement
+     * historique (dialogue de confirmation) est conservé.
      */
     private void handleStartupRestore() {
         if (config.isRestoreWorkspaceOnStart() && !config.getRecentDirs().isEmpty()) {
             File lastDir = new File(config.getRecentDirs().getFirst());
             if (lastDir.exists() && lastDir.isDirectory()) {
-                openProjectDirectory(lastDir);
+                restoreOverlay.show();
+                setupProjectDirectory(lastDir);
+                ProjectSessionService.SessionData session = projectSessionService.loadSession(lastDir);
+                openSessionFilesSequentially(session.openFiles(), 0, session.activeFile());
                 return;
             }
         }
@@ -1405,6 +1420,29 @@ public class MarkNote extends Application {
         if (config.isOpenDocOnStart() && !config.isShowWelcomePage()) {
             addNewDocument();
         }
+    }
+
+    /**
+     * Ouvre les fichiers de session un par un en enchaînant des {@link Platform#runLater}
+     * pour que le FX thread puisse rafraîchir l'overlay entre chaque fichier.
+     */
+    private void openSessionFilesSequentially(List<File> files, int index, File activeFile) {
+        if (index >= files.size()) {
+            // Tous les fichiers ouverts : restaurer l'onglet actif puis masquer l'overlay
+            if (activeFile != null) {
+                final File target = activeFile;
+                mainTabPane.getTabs().stream()
+                    .filter(t -> t instanceof DocumentTab dt && target.equals(dt.getFile()))
+                    .findFirst()
+                    .ifPresent(t -> mainTabPane.getSelectionModel().select(t));
+            }
+            restoreOverlay.hide();
+            return;
+        }
+        File f = files.get(index);
+        restoreOverlay.setProgress(f.getName(), index + 1, files.size());
+        openFileInTab(f);
+        Platform.runLater(() -> openSessionFilesSequentially(files, index + 1, activeFile));
     }
 
     /**
