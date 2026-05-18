@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 540" width="860" height="540">
+  <!-- Light theme palette: window=#fff, header=#f1f5f9, accent=#2563eb -->
+  <rect width="860" height="540" fill="#e8edf3"/>
+  
+  <!-- Window frame -->
+  <rect x="20" y="20" width="820" height="500" rx="8" fill="#ffffff" stroke="#c8cdd8" stroke-width="1.5"/>
+  
+  <!-- Title bar -->
+  <rect x="20" y="20" width="820" height="33" rx="8" fill="#f1f3f5"/>
+  <rect x="20" y="44" width="820" height="9" fill="#f1f3f5"/>
+  <line x1="20" y1="53" x2="840" y2="53" stroke="#dde1e8" stroke-width="1"/>
+  
+  <!-- Window controls -->
+  <circle cx="44" cy="36" r="6" fill="#ef4444"/>
+  <circle cx="66" cy="36" r="6" fill="#f59e0b"/>
+  <circle cx="88" cy="36" r="6" fill="#22c55e"/>
+  
+  <!-- Title -->
+  <text x="430" y="40" font-family="Arial, sans-serif" font-size="13" fill="#374151" text-anchor="middle">MarkNote — Markdown Editor</text>
+  
+  <!-- Menu bar -->
+  <rect x="20" y="54" width="820" height="28" fill="#f8f9fa"/>
+  <line x1="20" y1="82" x2="840" y2="82" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="36" y="72" font-family="Arial, sans-serif" font-size="12" fill="#374151">File</text>
+  <text x="72" y="72" font-family="Arial, sans-serif" font-size="12" fill="#374151">Edit</text>
+  <text x="112" y="72" font-family="Arial, sans-serif" font-size="12" fill="#374151">View</text>
+  <text x="152" y="72" font-family="Arial, sans-serif" font-size="12" fill="#374151">Help</text>
+  <!-- Search box -->
+  <rect x="620" y="57" width="205" height="20" rx="4" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="630" y="71" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">Search documents…</text>
+  <text x="820" y="71" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af" text-anchor="end">⌕</text>
+  
+  <!-- ── LEFT PANEL (Project Explorer + Tag Cloud + Network Diagram) ── -->
+  <!-- Project Explorer header -->
+  <rect x="20" y="83" width="160" height="24" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30" y="99" font-family="Arial, sans-serif" font-size="10" fill="#374151" font-weight="bold">Project Explorer</text>
+  <text x="172" y="99" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af" text-anchor="end">×</text>
+  <!-- Project Explorer content -->
+  <rect x="20" y="107" width="160" height="150" fill="#fafafa" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30" y="125" font-family="monospace" font-size="10" fill="#d97706">▶ 📁 my-project</text>
+  <text x="42" y="143" font-family="monospace" font-size="10" fill="#2563eb">📄 README.md</text>
+  <circle cx="155" cy="139" r="4" fill="#22c55e"/>
+  <text x="42" y="160" font-family="monospace" font-size="10" fill="#2563eb">📄 notes.md</text>
+  <circle cx="155" cy="156" r="4" fill="#f59e0b"/>
+  <text x="42" y="177" font-family="monospace" font-size="10" fill="#d97706">📁 docs</text>
+  <text x="54" y="194" font-family="monospace" font-size="10" fill="#2563eb">📄 guide.md</text>
+  <circle cx="155" cy="190" r="4" fill="#22c55e"/>
+  <text x="54" y="211" font-family="monospace" font-size="10" fill="#2563eb">📄 api.md</text>
+  <circle cx="155" cy="207" r="4" fill="#ef4444"/>
+  <text x="42" y="228" font-family="monospace" font-size="10" fill="#9ca3af">🖼️ logo.svg</text>
+  <!-- Tag Cloud header -->
+  <rect x="20" y="258" width="160" height="24" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30" y="274" font-family="Arial, sans-serif" font-size="10" fill="#374151" font-weight="bold">Tag Cloud</text>
+  <text x="172" y="274" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af" text-anchor="end">×</text>
+  <!-- Tag Cloud content -->
+  <rect x="20" y="282" width="160" height="90" fill="#fafafa" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="28" y="306" font-family="Arial, sans-serif" font-size="18" fill="#2563eb" font-weight="bold">java</text>
+  <text x="80" y="303" font-family="Arial, sans-serif" font-size="12" fill="#16a34a">markdown</text>
+  <text x="28" y="332" font-family="Arial, sans-serif" font-size="10" fill="#d97706">css</text>
+  <text x="50" y="330" font-family="Arial, sans-serif" font-size="15" fill="#7c3aed">tutorial</text>
+  <text x="135" y="330" font-family="Arial, sans-serif" font-size="11" fill="#0891b2">api</text>
+  <text x="28" y="358" font-family="Arial, sans-serif" font-size="13" fill="#dc2626">blog</text>
+  <text x="75" y="360" font-family="Arial, sans-serif" font-size="16" fill="#2563eb">docs</text>
+  <!-- Network Diagram header -->
+  <rect x="20" y="373" width="160" height="24" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="30" y="389" font-family="Arial, sans-serif" font-size="10" fill="#374151" font-weight="bold">Network Diagram</text>
+  <text x="172" y="389" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af" text-anchor="end">×</text>
+  <!-- Network Diagram mini-graph -->
+  <rect x="20" y="397" width="160" height="100" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <circle cx="60" cy="425" r="7" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+  <circle cx="130" cy="415" r="7" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+  <circle cx="90" cy="460" r="7" fill="#fffbeb" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="155" cy="450" r="7" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+  <circle cx="100" cy="435" r="5" fill="#2563eb"/>
+  <line x1="60" y1="425" x2="130" y2="415" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="60" y1="425" x2="90" y2="460" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="130" y1="415" x2="155" y2="450" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="60" y1="425" x2="100" y2="435" stroke="#3b82f6" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <line x1="130" y1="415" x2="100" y2="435" stroke="#3b82f6" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <line x1="90" y1="460" x2="100" y2="435" stroke="#3b82f6" stroke-width="0.8" stroke-dasharray="3,2"/>
+  
+  <!-- ── EDITOR PANEL ── -->
+  <rect x="185" y="83" width="215" height="414" fill="#fafafa" stroke="#e2e8f0" stroke-width="1"/>
+  
+  <!-- Tab bar -->
+  <rect x="185" y="83" width="215" height="26" fill="#f3f4f6" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Active tab -->
+  <rect x="186" y="84" width="95" height="25" rx="3" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="196" y="100" font-family="Arial, sans-serif" font-size="10" fill="#1f2937">README.md</text>
+  <text x="272" y="100" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">×</text>
+  <!-- Inactive tab -->
+  <rect x="283" y="86" width="80" height="22" rx="3" fill="#f3f4f6"/>
+  <text x="290" y="100" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">guide.md</text>
+  <text x="353" y="100" font-family="Arial, sans-serif" font-size="10" fill="#d1d5db">×</text>
+
+  <!-- Front Matter Panel (collapsible) -->
+  <rect x="185" y="109" width="215" height="60" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="193" y="123" font-family="Arial, sans-serif" font-size="9" fill="#2563eb">▼</text>
+  <text x="205" y="123" font-family="Arial, sans-serif" font-size="9" fill="#374151" font-weight="bold">Front Matter</text>
+  <text x="193" y="140" font-family="Arial, sans-serif" font-size="8" fill="#6b7280">Title</text>
+  <rect x="225" y="131" width="80" height="12" rx="2" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="229" y="141" font-family="Arial, sans-serif" font-size="8" fill="#374151">README</text>
+  <text x="315" y="140" font-family="Arial, sans-serif" font-size="8" fill="#6b7280">Tags</text>
+  <rect x="338" y="131" width="58" height="12" rx="2" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="342" y="141" font-family="Arial, sans-serif" font-size="8" fill="#374151">docs, intro</text>
+  <text x="193" y="160" font-family="Arial, sans-serif" font-size="8" fill="#6b7280">UUID</text>
+  <rect x="225" y="151" width="80" height="12" rx="2" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="229" y="161" font-family="monospace" font-size="7" fill="#16a34a">550e840...</text>
+  <text x="315" y="160" font-family="Arial, sans-serif" font-size="8" fill="#6b7280">Date</text>
+  <rect x="338" y="151" width="58" height="12" rx="2" fill="#ffffff" stroke="#d1d5db" stroke-width="0.5"/>
+  <text x="342" y="161" font-family="Arial, sans-serif" font-size="8" fill="#374151">2026-02-22</text>
+  
+  <!-- Editor markdown content -->
+  <text x="193" y="192" font-family="monospace" font-size="11" fill="#7c3aed"># README</text>
+  <rect x="193" y="200" width="2" height="14" fill="#2563eb"/>
+  <text x="200" y="213" font-family="monospace" font-size="11" fill="#374151">Welcome to **MarkNote**,</text>
+  <text x="193" y="232" font-family="monospace" font-size="11" fill="#374151">a *lightweight* editor.</text>
+  <text x="193" y="281" font-family="monospace" font-size="11" fill="#7c3aed">## Features</text>
+  <text x="193" y="300" font-family="monospace" font-size="11" fill="#374151">- Live preview</text>
+  <text x="193" y="318" font-family="monospace" font-size="11" fill="#374151">- Syntax highlighting</text>
+  <text x="193" y="336" font-family="monospace" font-size="11" fill="#374151">- LLM Chat integration</text>
+  <text x="193" y="360" font-family="monospace" font-size="11" fill="#7c3aed">## Usage</text>
+  <text x="193" y="378" font-family="monospace" font-size="11" fill="#374151">Open a project and start</text>
+  <text x="193" y="396" font-family="monospace" font-size="11" fill="#374151">writing your notes.</text>
+  
+  <!-- ── PREVIEW PANEL ── -->
+  <rect x="405" y="83" width="185" height="414" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Preview header -->
+  <rect x="405" y="83" width="185" height="24" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="415" y="99" font-family="Arial, sans-serif" font-size="10" fill="#374151" font-weight="bold">Preview</text>
+  <text x="555" y="98" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">◀ ▶ ↻</text>
+  <text x="585" y="98" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af" text-anchor="end">×</text>
+  <!-- Preview content -->
+  <text x="420" y="130" font-family="Georgia, serif" font-size="18" fill="#1e293b" font-weight="bold">README</text>
+  <line x1="420" y1="136" x2="580" y2="136" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="420" y="156" font-family="Georgia, serif" font-size="12" fill="#374151">Welcome to </text>
+  <text x="498" y="156" font-family="Georgia, serif" font-size="12" fill="#374151" font-weight="bold">MarkNote</text>
+  <text x="420" y="172" font-family="Georgia, serif" font-size="12" fill="#374151">a </text>
+  <text x="433" y="172" font-family="Georgia, serif" font-size="12" fill="#374151" font-style="italic">lightweight</text>
+  <text x="505" y="172" font-family="Georgia, serif" font-size="12" fill="#374151"> editor.</text>
+  <text x="420" y="200" font-family="Georgia, serif" font-size="15" fill="#1e293b" font-weight="bold">Features</text>
+  <text x="428" y="220" font-family="Georgia, serif" font-size="12" fill="#374151">• Live preview</text>
+  <text x="428" y="238" font-family="Georgia, serif" font-size="12" fill="#374151">• Syntax highlighting</text>
+  <text x="428" y="256" font-family="Georgia, serif" font-size="12" fill="#374151">• LLM Chat</text>
+  <text x="420" y="285" font-family="Georgia, serif" font-size="15" fill="#1e293b" font-weight="bold">Usage</text>
+  <text x="428" y="305" font-family="Georgia, serif" font-size="12" fill="#374151">Open a project and</text>
+  <text x="428" y="322" font-family="Georgia, serif" font-size="12" fill="#374151">start writing.</text>
+  
+  <!-- ── LLM CHAT PANEL ── -->
+  <rect x="595" y="83" width="245" height="414" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- LLM Chat header -->
+  <rect x="595" y="83" width="245" height="24" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="605" y="99" font-family="Arial, sans-serif" font-size="10" fill="#374151" font-weight="bold">LLM Chat</text>
+  <text x="818" y="98" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">⇱</text>
+  <text x="832" y="98" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af" text-anchor="end">×</text>
+  <!-- Action buttons in header -->
+  <text x="750" y="99" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">⤓ ↷ ✗</text>
+  <!-- Conversation area -->
+  <rect x="595" y="107" width="245" height="280" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Assistant message bubble (left/gray) -->
+  <rect x="600" y="114" width="175" height="52" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="607" y="127" font-family="Arial, sans-serif" font-size="8" fill="#6b7280" font-weight="bold">Assistant  10:01</text>
+  <text x="607" y="141" font-family="Arial, sans-serif" font-size="9" fill="#374151">Here is a draft intro</text>
+  <text x="607" y="154" font-family="Arial, sans-serif" font-size="9" fill="#374151">for your README…</text>
+  <text x="752" y="162" font-family="Arial, sans-serif" font-size="8" fill="#9ca3af">⎘ ⤓ ↷</text>
+  <!-- User message bubble (right/blue) -->
+  <rect x="658" y="174" width="177" height="40" rx="6" fill="#dbeafe" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="665" y="187" font-family="Arial, sans-serif" font-size="8" fill="#1d4ed8" font-weight="bold">You  10:03</text>
+  <text x="665" y="199" font-family="Arial, sans-serif" font-size="9" fill="#1e3a8a">Can you expand the</text>
+  <text x="665" y="211" font-family="Arial, sans-serif" font-size="9" fill="#1e3a8a">Features section?</text>
+  <text x="820" y="211" font-family="Arial, sans-serif" font-size="8" fill="#9ca3af">✎</text>
+  <!-- Streaming assistant reply -->
+  <rect x="600" y="222" width="190" height="52" rx="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="607" y="235" font-family="Arial, sans-serif" font-size="8" fill="#6b7280" font-weight="bold">Assistant  10:03</text>
+  <text x="607" y="249" font-family="Arial, sans-serif" font-size="9" fill="#374151">Sure! Here are more</text>
+  <text x="607" y="262" font-family="Arial, sans-serif" font-size="9" fill="#374151">feature highlights…▊</text>
+  <text x="774" y="270" font-family="Arial, sans-serif" font-size="8" fill="#9ca3af">⎘ ⤓ ↷</text>
+  <!-- Prompt input area -->
+  <rect x="595" y="387" width="245" height="110" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+  <rect x="602" y="394" width="231" height="70" rx="4" fill="#f9fafb" stroke="#d1d5db" stroke-width="1"/>
+  <text x="609" y="412" font-family="Arial, sans-serif" font-size="9" fill="#9ca3af">Enter your prompt…</text>
+  <!-- Prompt buttons -->
+  <rect x="688" y="470" width="22" height="20" rx="3" fill="#e5e7eb"/>
+  <text x="699" y="484" font-family="Arial, sans-serif" font-size="10" fill="#374151" text-anchor="middle">⚙</text>
+  <rect x="717" y="470" width="50" height="20" rx="3" fill="#2563eb"/>
+  <text x="742" y="484" font-family="Arial, sans-serif" font-size="10" fill="#ffffff" text-anchor="middle">▶ Send</text>
+  <!-- Status bar -->
+  <rect x="20" y="497" width="820" height="23" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="30" y="512" font-family="Arial, sans-serif" font-size="10" fill="#374151">README.md</text>
+  <text x="118" y="512" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Ln 12, Col 4</text>
+  <line x1="200" y1="500" x2="200" y2="518" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="210" y="512" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">Docs: 8  Lines: 64  Words: 320</text>
+  <line x1="430" y1="500" x2="430" y2="518" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="440" y="512" font-family="Arial, sans-serif" font-size="10" fill="#6b7280">● PlantUML: local jar</text>
+  <!-- Callout labels -->
+  <rect x="20" y="506" width="98" height="14" rx="3" fill="#2563eb"/>
+  <text x="69" y="517" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">① Project Explorer</text>
+  <rect x="185" y="506" width="50" height="14" rx="3" fill="#2563eb"/>
+  <text x="210" y="517" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">② Editor</text>
+  <rect x="405" y="506" width="50" height="14" rx="3" fill="#2563eb"/>
+  <text x="430" y="517" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">③ Preview</text>
+  <rect x="595" y="506" width="60" height="14" rx="3" fill="#7c3aed"/>
+  <text x="625" y="517" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">④ LLM Chat</text>
+  <rect x="620" y="492" width="86" height="14" rx="3" fill="#2563eb" opacity="0.8"/>
+  <text x="663" y="503" font-family="Arial, sans-serif" font-size="8" fill="#fff" text-anchor="middle">Search Box</text>
+</svg>
