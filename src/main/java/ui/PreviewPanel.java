@@ -89,6 +89,9 @@ public class PreviewPanel extends BasePanel {
     /** Fichier source Markdown courant (peut être null pour les documents non sauvegardés). */
     private File currentFile;
 
+    /** Fraction de défilement à appliquer après le prochain chargement de page. */
+    private Double pendingScrollFraction = null;
+
     /** Thème highlight.js courant, synchronisé avec le thème applicatif. */
     private SyntaxTheme syntaxTheme = new SyntaxTheme("github", "#f6f8fa", "#24292e");
 
@@ -215,9 +218,19 @@ public class PreviewPanel extends BasePanel {
                         }
                     }
                 }
-            } else if (newState == Worker.State.SUCCEEDED && !pendingLocalPumlBlocks.isEmpty()) {
-                // Page chargée : déclencher le rendu async des blocs PlantUML locaux
-                dispatchLocalPumlRendering();
+            } else if (newState == Worker.State.SUCCEEDED) {
+                // Page chargée : appliquer le scroll en attente si défini
+                if (pendingScrollFraction != null) {
+                    double fraction = pendingScrollFraction;
+                    pendingScrollFraction = null;
+                    webView.getEngine().executeScript(
+                        "window.scrollTo(0, (document.body.scrollHeight - window.innerHeight) * " + fraction + ")"
+                    );
+                }
+                // Déclencher le rendu async des blocs PlantUML locaux
+                if (!pendingLocalPumlBlocks.isEmpty()) {
+                    dispatchLocalPumlRendering();
+                }
             }
         });
         
@@ -1126,6 +1139,17 @@ public class PreviewPanel extends BasePanel {
                 "window.scrollTo(0, (document.body.scrollHeight - window.innerHeight) * " + fraction + ")"
             );
         }
+    }
+
+    /**
+     * Planifie un défilement vers la fraction donnée après le prochain chargement de page.
+     * À utiliser juste avant ou juste après {@link #updatePreview(String)} lors d'un changement
+     * de document, quand le WebView n'a pas encore terminé de charger le nouveau contenu.
+     *
+     * @param fraction La fraction de défilement dans [0.0, 1.0]
+     */
+    public void scrollToFractionAfterLoad(double fraction) {
+        this.pendingScrollFraction = Math.min(1.0, Math.max(0.0, fraction));
     }
     
     /**
