@@ -1047,8 +1047,9 @@ public class MarkNote extends Application {
                 previewDebouncer.debounce(() -> {
                     Platform.runLater(() -> {
                         previewPanel.updatePreview(text);
-                        // Realigner la preview avec la position actuelle de l'éditeur
-                        if (editorSplit.getItems().contains(previewPanel)) {
+                        // Realigner la preview sur l'éditeur, mais pas en reading mode
+                        // (l'éditeur est hors-scène, getScrollFraction() peut être faux)
+                        if (!readingModeActive && editorSplit.getItems().contains(previewPanel)) {
                             previewPanel.scrollToFraction(tab.getScrollFraction());
                         }
                         updateStatusBarForTab(tab);
@@ -1067,6 +1068,14 @@ public class MarkNote extends Application {
         // Mettre à jour la preview et la statusbar quand on change d'onglet
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof DocumentTab docTab) {
+                if (readingModeActive) {
+                    // En mode lecture : remettre la scrollbar à zéro sur le nouveau document
+                    docTab.scrollToTop();
+                    previewPanel.scrollToFractionAfterLoad(0.0);
+                } else {
+                    // En mode normal : synchroniser la preview sur la position de l'éditeur
+                    previewPanel.scrollToFractionAfterLoad(docTab.getScrollFraction());
+                }
                 previewPanel.updatePreview(docTab.getFullContent());
                 previewPanel.setCurrentFile(docTab.getFile());
                 updateStatusBarForTab(docTab);
@@ -1076,9 +1085,10 @@ public class MarkNote extends Application {
             }
         });
 
-        // Synchroniser le défilement éditeur → preview
+        // Synchroniser le défilement éditeur → preview (pas en reading mode : éditeur hors-scène)
         tab.setOnScrollFractionChanged(fraction -> {
-            if (mainTabPane.getSelectionModel().getSelectedItem() == tab
+            if (!readingModeActive
+                    && mainTabPane.getSelectionModel().getSelectedItem() == tab
                     && editorSplit.getItems().contains(previewPanel)) {
                 previewPanel.scrollToFraction(fraction);
             }
