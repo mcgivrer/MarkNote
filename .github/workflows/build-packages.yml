@@ -66,7 +66,33 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get install -y fakeroot
 
-      # ── 4. Build fat JAR + native installer ──────────────────────────────
+      # ── 4a. macOS: import Developer ID certificate into a temp keychain ──
+      #    Secrets required (optional – unsigned DMG built if absent):
+      #      MACOS_CERTIFICATE     base64-encoded .p12 (export from Keychain Access)
+      #      MACOS_CERTIFICATE_PWD password chosen when exporting the .p12
+      #    To encode locally: base64 -i Developer_ID.p12 | pbcopy
+      - name: Import Developer ID certificate (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          if [[ -z "${MACOS_CERTIFICATE:-}" ]]; then
+            echo "::notice::MACOS_CERTIFICATE not configured – DMG will be unsigned"
+            exit 0
+          fi
+          echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "$MACOS_CERTIFICATE_PWD" \
+            -T /usr/bin/codesign \
+            -T "$(which jpackage 2>/dev/null || true)"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          rm /tmp/cert.p12
+
+      # ── 4b. Build fat JAR + native installer ─────────────────────────────
       #    The active OS profile (linux / mac / win) is detected automatically
       #    by Maven via <os><family> activation in pom.xml.
       #    maven_extra_args overrides javafx.platform for the two macOS arches.
@@ -85,10 +111,54 @@ jobs:
 
       - name: Build and package
         shell: bash
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
           ARGS="${{ matrix.maven_extra_args }}"
           [[ -n "${JPACKAGE_APP_VERSION:-}" ]] && ARGS="$ARGS -Djpackage.app.version=$JPACKAGE_APP_VERSION"
+          # Enable Developer ID signing on macOS when the secret is configured
+          if [[ "$RUNNER_OS" == "macOS" ]] && [[ -n "${MACOS_SIGNING_IDENTITY:-}" ]]; then
+            ARGS="$ARGS -Pmac-sign -Djpackage.mac.signing.key=${MACOS_SIGNING_IDENTITY}"
+          fi
           mvn package -Ppackage $ARGS --batch-mode
+
+      # ── 4c. macOS: notarise and staple the DMG ────────────────────────────
+      #    Uses App Store Connect API key (no password needed).
+      #    Secrets required (optional – skip if not configured):
+      #      NOTARIZATION_KEY_CONTENT   base64-encoded .p8 API key
+      #      NOTARIZATION_KEY_ID        10-char key ID  (ex: ABC123DEF4)
+      #      NOTARIZATION_ISSUER_ID     UUID of the issuer shown in App Store Connect
+      #    To encode locally: base64 -i AuthKey_XXXXXX.p8 | pbcopy
+      - name: Notarize and staple DMG (macOS)
+        if: runner.os == 'macOS'
+        env:
+          NOTARIZATION_KEY_CONTENT: ${{ secrets.NOTARIZATION_KEY_CONTENT }}
+          NOTARIZATION_KEY_ID: ${{ secrets.NOTARIZATION_KEY_ID }}
+          NOTARIZATION_ISSUER_ID: ${{ secrets.NOTARIZATION_ISSUER_ID }}
+        run: |
+          if [[ -z "${NOTARIZATION_KEY_CONTENT:-}" ]]; then
+            echo "::notice::NOTARIZATION_KEY_CONTENT not configured – skipping notarization"
+            exit 0
+          fi
+          echo "$NOTARIZATION_KEY_CONTENT" | base64 --decode > /tmp/notarization.p8
+          DMG=$(ls target/dist/*.dmg 2>/dev/null | head -1)
+          if [[ -z "$DMG" ]]; then
+            echo "::error::No DMG found in target/dist/ – notarization skipped"
+            rm /tmp/notarization.p8
+            exit 1
+          fi
+          xcrun notarytool submit "$DMG" \
+            --key /tmp/notarization.p8 \
+            --key-id "$NOTARIZATION_KEY_ID" \
+            --issuer-id "$NOTARIZATION_ISSUER_ID" \
+            --wait
+          xcrun stapler staple "$DMG"
+          rm /tmp/notarization.p8
+
+      # ── 4d. Always clean up the temp keychain ────────────────────────────
+      - name: Clean up keychain (macOS)
+        if: always() && runner.os == 'macOS'
+        run: security delete-keychain build.keychain 2>/dev/null || true
 
       # ── 5. Upload installer as workflow artifact ──────────────────────────
       #    Artifact is available in the Actions run page for 90 days.
