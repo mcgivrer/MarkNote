@@ -7,6 +7,10 @@ JARS=
 JFX_VERSION=25
 vendor_name="SNAPGAMES"
 author_name="Frédéric Delorme<contact.snapgames@gmail.com>"
+# macOS signing (optional) – set via env vars before calling: ./build package
+# ex: export MAC_SIGNING_IDENTITY="Developer ID Application: Jean-Baptiste Meyer (TEAMXXXX)"
+mac_signing_identity="${MAC_SIGNING_IDENTITY:-}"
+mac_notary_profile="${MAC_NOTARY_PROFILE:-marknote-notary}"
 #
 #--- DO NOT CHANGE THE FOLLOWING LINES ---
 #
@@ -510,6 +514,13 @@ WIN_INSTALL_EOF2
                 [[ -f "${GENERATED_ICNS}" ]] && JPACKAGE_ICON_OPT=(--icon "${GENERATED_ICNS}")
             fi
 
+            # Signing options (optional – set MAC_SIGNING_IDENTITY env var to enable)
+            local SIGN_OPTS=()
+            if [[ -n "${mac_signing_identity}" ]]; then
+                SIGN_OPTS=(--mac-sign --mac-signing-key-user-name "${mac_signing_identity}")
+                echo "  Code signing enabled: ${mac_signing_identity}"
+            fi
+
             mkdir -p "${TARGET}/dist"
             jpackage \
                 --type dmg \
@@ -526,7 +537,8 @@ WIN_INSTALL_EOF2
                 --dest "${TARGET}/dist" \
                 --mac-package-identifier "com.snapgames.marknote" \
                 --mac-package-name "${project_name}" \
-                "${JPACKAGE_ICON_OPT[@]}"
+                "${JPACKAGE_ICON_OPT[@]}" \
+                "${SIGN_OPTS[@]}"
 
             [[ -n "${ICON_TMPDIR}" ]] && rm -rf "${ICON_TMPDIR}"
 
@@ -535,6 +547,19 @@ WIN_INSTALL_EOF2
             if [[ -f "${DMG_FILE}" ]]; then
                 echo -e "${GREEN}macOS DMG created: ${DMG_FILE}${NC}"
                 echo "Package size: $(du -sh "${DMG_FILE}" | cut -f1)"
+                # Notarisation (uniquement si signing activé)
+                if [[ -n "${mac_signing_identity}" ]]; then
+                    echo "  Submitting DMG for notarization (keychain-profile: ${mac_notary_profile})..."
+                    if xcrun notarytool submit "${DMG_FILE}" \
+                            --keychain-profile "${mac_notary_profile}" \
+                            --wait; then
+                        echo "  Notarization successful. Stapling ticket to DMG..."
+                        xcrun stapler staple "${DMG_FILE}"
+                        echo -e "${GREEN}  DMG notarisé et agrafé.${NC}"
+                    else
+                        echo -e "${YELLOW}  Notarization failed – DMG signé mais non notarisé.${NC}"
+                    fi
+                fi
             else
                 echo -e "${YELLOW}Warning: DMG not found – check ${TARGET}/dist/${NC}"
                 ls -lh "${TARGET}/dist/" 2>/dev/null || true
