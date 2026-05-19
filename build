@@ -7,8 +7,15 @@ JARS=
 JFX_VERSION=25
 vendor_name="SNAPGAMES"
 author_name="Frédéric Delorme<contact.snapgames@gmail.com>"
-# macOS signing (optional) – set via env vars before calling: ./build package
-# ex: export MAC_SIGNING_IDENTITY="Developer ID Application: Jean-Baptiste Meyer (TEAMXXXX)"
+# macOS signing + notarisation (optional) – set via env vars before calling: ./build package
+# Signing  : export MAC_SIGNING_IDENTITY="Developer ID Application: Nom (TEAMXXXX)"
+#            Certificat à créer sur developer.apple.com/account/resources/certificates/add
+#            → Software → Developer ID Application
+# Notarisation locale : utilise un profil stocké dans le Keychain via :
+#   xcrun notarytool store-credentials "marknote-notary" \
+#     --apple-id "votre@email.com" --team-id "TEAMXXXX" \
+#     --password "xxxx-xxxx-xxxx-xxxx"   ← mot de passe d'app (≠ mot de passe Apple ID)
+#     généré sur https://appleid.apple.com → Connexion & sécurité → Mots de passe d'app
 mac_signing_identity="${MAC_SIGNING_IDENTITY:-}"
 mac_notary_profile="${MAC_NOTARY_PROFILE:-marknote-notary}"
 #

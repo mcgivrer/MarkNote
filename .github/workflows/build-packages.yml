@@ -67,10 +67,14 @@ jobs:
         run: sudo apt-get install -y fakeroot
 
       # ── 4a. macOS: import Developer ID certificate into a temp keychain ──
-      #    Secrets required (optional – unsigned DMG built if absent):
-      #      MACOS_CERTIFICATE     base64-encoded .p12 (export from Keychain Access)
-      #      MACOS_CERTIFICATE_PWD password chosen when exporting the .p12
-      #    To encode locally: base64 -i Developer_ID.p12 | pbcopy
+      #    Prérequis : créer un certificat "Developer ID Application" sur
+      #    https://developer.apple.com/account/resources/certificates/add
+      #    (section Software → Developer ID Application), puis l'exporter
+      #    depuis Keychain Access en .p12 (clic droit → Exporter).
+      #
+      #    Secrets requis (optionnels – DMG non signé si absents) :
+      #      MACOS_CERTIFICATE     base64 du .p12  →  base64 -i cert.p12 | pbcopy
+      #      MACOS_CERTIFICATE_PWD mot de passe choisi lors de l'export .p12
       - name: Import Developer ID certificate (macOS)
         if: runner.os == 'macOS'
         env:
@@ -123,37 +127,37 @@ jobs:
           mvn package -Ppackage $ARGS --batch-mode
 
       # ── 4c. macOS: notarise and staple the DMG ────────────────────────────
-      #    Uses App Store Connect API key (no password needed).
-      #    Secrets required (optional – skip if not configured):
-      #      NOTARIZATION_KEY_CONTENT   base64-encoded .p8 API key
-      #      NOTARIZATION_KEY_ID        10-char key ID  (ex: ABC123DEF4)
-      #      NOTARIZATION_ISSUER_ID     UUID of the issuer shown in App Store Connect
-      #    To encode locally: base64 -i AuthKey_XXXXXX.p8 | pbcopy
+      #    Utilise un mot de passe d'app (app-specific password) — différent
+      #    du vrai mot de passe Apple ID, généré sur :
+      #    https://appleid.apple.com → Connexion & sécurité → Mots de passe
+      #    d'app → "+" → nommer "marknote-notary" → copier le mot de passe.
+      #
+      #    Secrets requis (optionnels – notarisation ignorée si absents) :
+      #      APPLE_ID                   adresse e-mail du compte Apple Developer
+      #      APPLE_TEAM_ID              Team ID (visible sur developer.apple.com/account)
+      #      APPLE_APP_SPECIFIC_PWD     mot de passe d'app généré sur appleid.apple.com
       - name: Notarize and staple DMG (macOS)
         if: runner.os == 'macOS'
         env:
-          NOTARIZATION_KEY_CONTENT: ${{ secrets.NOTARIZATION_KEY_CONTENT }}
-          NOTARIZATION_KEY_ID: ${{ secrets.NOTARIZATION_KEY_ID }}
-          NOTARIZATION_ISSUER_ID: ${{ secrets.NOTARIZATION_ISSUER_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PWD: ${{ secrets.APPLE_APP_SPECIFIC_PWD }}
         run: |
-          if [[ -z "${NOTARIZATION_KEY_CONTENT:-}" ]]; then
-            echo "::notice::NOTARIZATION_KEY_CONTENT not configured – skipping notarization"
+          if [[ -z "${APPLE_APP_SPECIFIC_PWD:-}" ]]; then
+            echo "::notice::APPLE_APP_SPECIFIC_PWD not configured – skipping notarization"
             exit 0
           fi
-          echo "$NOTARIZATION_KEY_CONTENT" | base64 --decode > /tmp/notarization.p8
           DMG=$(ls target/dist/*.dmg 2>/dev/null | head -1)
           if [[ -z "$DMG" ]]; then
             echo "::error::No DMG found in target/dist/ – notarization skipped"
-            rm /tmp/notarization.p8
             exit 1
           fi
           xcrun notarytool submit "$DMG" \
-            --key /tmp/notarization.p8 \
-            --key-id "$NOTARIZATION_KEY_ID" \
-            --issuer-id "$NOTARIZATION_ISSUER_ID" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PWD" \
             --wait
           xcrun stapler staple "$DMG"
-          rm /tmp/notarization.p8
 
       # ── 4d. Always clean up the temp keychain ────────────────────────────
       - name: Clean up keychain (macOS)
