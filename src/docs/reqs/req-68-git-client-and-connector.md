@@ -156,6 +156,26 @@ A single-page modal with the fields listed in §4 (Proposal). The auth type sele
 
 ## Architecture
 
+### Package structure
+
+All Git-related classes are organized under the `services.git` package:
+
+**Production classes** (`src/main/java/services/git/`):
+
+- `GitService.java` — Singleton service wrapping JGit API
+- `RemoteConnector.java` — Interface for platform-specific Git remote APIs
+- `RemoteConnectorException.java` — Checked exception for API errors
+- `RemoteConnectorFactory.java` — Static factory for platform detection and connector instantiation
+- `GitHubConnector.java` — GitHub REST API v3 connector
+- `GitLabConnector.java` — GitLab API v4 connector (public and self-hosted)
+- `GiteaConnector.java` — Gitea API v1 connector (self-hosted only)
+
+**Test classes** (`src/test/java/services/git/`):
+
+- `RemoteConnectorFactoryTest.java` — URL parsing and platform detection tests
+- `RemoteConnectorExceptionTest.java` — Exception construction and error message tests
+- `RemoteRepoTest.java` — RemoteRepo record validation tests
+
 ### `GitService` class
 
 A singleton service (instantiated by `MarkNote` at startup, injected where needed) that wraps JGit's `Git` API:

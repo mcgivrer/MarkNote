@@ -1,4 +1,6 @@
-package utils;
+package services.git;
+
+import utils.LogService;
 
 import java.io.File;
 import java.io.IOException;
@@ -212,6 +214,25 @@ public class GitService {
     }
 
     /**
+     * Récupère l'URL d'un remote.
+     *
+     * @param name nom du remote (typiquement "origin")
+     * @return URL du remote, ou null si non trouvé
+     */
+    public String getRemoteUrl(String name) throws GitAPIException {
+        if (!isGitRepo || jgit == null) return null;
+        List<RemoteConfig> remotes = jgit.remoteList().call();
+        for (RemoteConfig remote : remotes) {
+            if (remote.getName().equals(name)) {
+                if (!remote.getURIs().isEmpty()) {
+                    return remote.getURIs().get(0).toString();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Lit l'identité (user.name, user.email) depuis la config locale du dépôt,
      * ou à défaut depuis {@code ~/.gitconfig}.
      *
@@ -271,9 +292,10 @@ public class GitService {
      * sur le thread JavaFX.
      */
     public void refreshStatusAsync() {
+        final Git jgitLocal = this.jgit;
         Thread t = new Thread(() -> {
-            refreshStatus();
-            updateBranchProperty(currentBranch());
+            refreshStatus(jgitLocal);
+            updateBranchProperty(currentBranchFrom(jgitLocal));
             if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
         }, "git-status-refresh");
         t.setDaemon(true);
@@ -282,16 +304,19 @@ public class GitService {
 
     /** Stage un fichier individuel (git add <file>). */
     public void addAsync(File file) {
+        final Git jgitLocal    = this.jgit;
+        final File dirLocal    = this.projectDir;
+        final boolean gitLocal = this.isGitRepo;
         runAsync("git-add", () -> {
-            if (!isGitRepo || jgit == null) return;
-            String relative = projectDir.toPath()
+            if (!gitLocal || jgitLocal == null) return;
+            String relative = dirLocal.toPath()
                     .relativize(file.toPath())
                     .toString()
                     .replace(File.separatorChar, '/');
             log.info(LOG_SOURCE, "git add " + relative);
-            jgit.add().addFilepattern(relative).call();
+            jgitLocal.add().addFilepattern(relative).call();
             log.debug(LOG_SOURCE, "Staged: " + relative);
-            refreshStatus();
+            refreshStatus(jgitLocal);
         });
     }
 
@@ -299,9 +324,10 @@ public class GitService {
      * Stage tous les changements (équivalent git add -A) de manière asynchrone.
      */
     public void addAllAsync() {
+        final Git jgitLocal = this.jgit;
         runAsync("git-add-all", () -> {
             log.info(LOG_SOURCE, "git add -A");
-            addAllInternal();
+            addAllInternal(jgitLocal);
             log.debug(LOG_SOURCE, "Stage all complete.");
         });
     }
@@ -311,65 +337,73 @@ public class GitService {
      * qui tourne déjà sur un thread daemon).
      */
     public void addAll() throws GitAPIException {
-        addAllInternal();
+        addAllInternal(this.jgit);
     }
 
     /** Retire un fichier de l'index sans supprimer le fichier (git rm --cached). */
     public void removeFromIndexAsync(File file) {
+        final Git jgitLocal    = this.jgit;
+        final File dirLocal    = this.projectDir;
+        final boolean gitLocal = this.isGitRepo;
         runAsync("git-rm-cached", () -> {
-            if (!isGitRepo || jgit == null) return;
-            String relative = projectDir.toPath()
+            if (!gitLocal || jgitLocal == null) return;
+            String relative = dirLocal.toPath()
                     .relativize(file.toPath())
                     .toString()
                     .replace(File.separatorChar, '/');
             log.info(LOG_SOURCE, "git rm --cached " + relative);
-            jgit.rm().addFilepattern(relative).setCached(true).call();
+            jgitLocal.rm().addFilepattern(relative).setCached(true).call();
             log.debug(LOG_SOURCE, "Removed from index: " + relative);
-            refreshStatus();
+            refreshStatus(jgitLocal);
         });
     }
 
     /** Crée un commit avec le message donné (asynchrone). */
     public void commitAsync(String message) {
+        final Git jgitLocal    = this.jgit;
+        final boolean gitLocal = this.isGitRepo;
         runAsync("git-commit", () -> {
-            if (!isGitRepo || jgit == null) return;
+            if (!gitLocal || jgitLocal == null) return;
             log.startOperation(LOG_SOURCE, "git commit");
             PersonIdent author = buildPersonIdent();
-            jgit.commit()
+            jgitLocal.commit()
                     .setMessage(message)
                     .setAuthor(author)
                     .setCommitter(author)
                     .call();
             log.endOperation(LOG_SOURCE, "git commit", "OK — " + firstLine(message));
-            refreshStatus();
-            updateBranchProperty(currentBranch());
+            refreshStatus(jgitLocal);
+            updateBranchProperty(currentBranchFrom(jgitLocal));
         });
     }
 
     /** Crée un commit de manière synchrone. */
     public void commit(String message) throws GitAPIException {
-        if (!isGitRepo || jgit == null) throw new IllegalStateException("Not a git repo");
+        final Git jgitLocal = this.jgit;
+        if (!isGitRepo || jgitLocal == null) throw new IllegalStateException("Not a git repo");
         log.startOperation(LOG_SOURCE, "git commit");
         PersonIdent author = buildPersonIdent();
-        jgit.commit()
+        jgitLocal.commit()
                 .setMessage(message)
                 .setAuthor(author)
                 .setCommitter(author)
                 .call();
         log.endOperation(LOG_SOURCE, "git commit", "OK — " + firstLine(message));
-        refreshStatus();
-        updateBranchProperty(currentBranch());
+        refreshStatus(jgitLocal);
+        updateBranchProperty(currentBranchFrom(jgitLocal));
     }
 
     /** Récupère les changements distants sans fusionner (git fetch). */
     public void fetchAsync() {
+        final Git jgitLocal    = this.jgit;
+        final boolean gitLocal = this.isGitRepo;
         runAsync("git-fetch", () -> {
-            if (!isGitRepo || jgit == null) return;
+            if (!gitLocal || jgitLocal == null) return;
             log.startOperation(LOG_SOURCE, "git fetch");
-            FetchResult result = jgit.fetch()
+            FetchResult result = jgitLocal.fetch()
                     .setCredentialsProvider(buildCredentials())
                     .call();
-            refreshStatus();
+            refreshStatus(jgitLocal);
             String msg = nvl(result.getMessages()).strip();
             log.endOperation(LOG_SOURCE, "git fetch", msg.isBlank() ? "OK" : msg);
             if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
@@ -378,15 +412,17 @@ public class GitService {
 
     /** Tire les changements distants en fast-forward uniquement (git pull --ff-only). */
     public void pullAsync() {
+        final Git jgitLocal    = this.jgit;
+        final boolean gitLocal = this.isGitRepo;
         runAsync("git-pull", () -> {
-            if (!isGitRepo || jgit == null) return;
+            if (!gitLocal || jgitLocal == null) return;
             log.startOperation(LOG_SOURCE, "git pull --ff-only");
-            PullResult result = jgit.pull()
+            PullResult result = jgitLocal.pull()
                     .setFastForward(FastForwardMode.FF_ONLY)
                     .setCredentialsProvider(buildCredentials())
                     .call();
-            refreshStatus();
-            updateBranchProperty(currentBranch());
+            refreshStatus(jgitLocal);
+            updateBranchProperty(currentBranchFrom(jgitLocal));
             String msg = result.isSuccessful() ? "" : "Pull failed: " + result;
             log.endOperation(LOG_SOURCE, "git pull --ff-only", result.isSuccessful() ? "OK" : "FAILED — " + result);
             if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
@@ -395,11 +431,13 @@ public class GitService {
 
     /** Pousse les commits locaux vers le remote (git push). */
     public void pushAsync() {
+        final Git jgitLocal    = this.jgit;
+        final boolean gitLocal = this.isGitRepo;
         runAsync("git-push", () -> {
-            if (!isGitRepo || jgit == null) return;
+            if (!gitLocal || jgitLocal == null) return;
             log.startOperation(LOG_SOURCE, "git push");
             StringBuilder sb = new StringBuilder();
-            Iterable<PushResult> results = jgit.push()
+            Iterable<PushResult> results = jgitLocal.push()
                     .setCredentialsProvider(buildCredentials())
                     .call();
             for (PushResult pr : results) {
@@ -414,7 +452,7 @@ public class GitService {
                     }
                 }
             }
-            refreshStatus();
+            refreshStatus(jgitLocal);
             String msg = sb.toString().strip();
             log.endOperation(LOG_SOURCE, "git push", msg.isBlank() ? "OK" : "FAILED");
             if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));
@@ -426,13 +464,15 @@ public class GitService {
      * Conserve la sémantique du bouton "Sync" de la V1.
      */
     public void syncAsync() {
+        final Git jgitLocal    = this.jgit;
+        final boolean gitLocal = this.isGitRepo;
         Thread t = new Thread(() -> {
             StringBuilder logBuilder = new StringBuilder();
             log.startOperation(LOG_SOURCE, "Git Sync");
             try {
-                if (!isGitRepo || jgit == null) throw new GitException("Not a git repository");
+                if (!gitLocal || jgitLocal == null) throw new GitException("Not a git repository");
 
-                refreshStatus();
+                refreshStatus(jgitLocal);
                 List<String> changedFiles = statusMap.entrySet().stream()
                         .filter(e -> e.getValue() != GitStatus.CLEAN)
                         .map(Map.Entry::getKey)
@@ -441,9 +481,9 @@ public class GitService {
 
                 if (!changedFiles.isEmpty()) {
                     String message = buildCommitMessage(changedFiles);
-                    addAllInternal();
+                    addAllInternal(jgitLocal);
                     PersonIdent author = buildPersonIdent();
-                    jgit.commit()
+                    jgitLocal.commit()
                             .setMessage(message)
                             .setAuthor(author)
                             .setCommitter(author)
@@ -457,7 +497,7 @@ public class GitService {
 
                 // Pull (ff-only)
                 try {
-                    PullResult pullResult = jgit.pull()
+                    PullResult pullResult = jgitLocal.pull()
                             .setFastForward(FastForwardMode.FF_ONLY)
                             .setCredentialsProvider(creds)
                             .call();
@@ -469,7 +509,7 @@ public class GitService {
                 }
 
                 // Push
-                Iterable<PushResult> pushResults = jgit.push()
+                Iterable<PushResult> pushResults = jgitLocal.push()
                         .setCredentialsProvider(creds)
                         .call();
                 for (PushResult pr : pushResults) {
@@ -482,8 +522,8 @@ public class GitService {
                     }
                 }
 
-                refreshStatus();
-                updateBranchProperty(currentBranch());
+                refreshStatus(jgitLocal);
+                updateBranchProperty(currentBranchFrom(jgitLocal));
                 String result = logBuilder.toString().strip();
                 log.endOperation(LOG_SOURCE, "Git Sync", "SUCCESS");
                 if (onStatusUpdated   != null) Platform.runLater(onStatusUpdated);
@@ -491,7 +531,7 @@ public class GitService {
 
             } catch (Exception e) {
                 log.error(LOG_SOURCE, "Git sync failed: " + e.getMessage());
-                refreshStatus();
+                refreshStatus(jgitLocal);
                 if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
                 String partial = logBuilder.toString().strip();
                 String errMsg  = (partial.isBlank() ? "" : partial + "\n\n") + "Error:\n" + e.getMessage();
@@ -562,25 +602,25 @@ public class GitService {
     // Implémentation interne
     // -------------------------------------------------------------------------
 
-    private void addAllInternal() throws GitAPIException {
-        if (!isGitRepo || jgit == null) return;
+    private void addAllInternal(Git git) throws GitAPIException {
+        if (git == null) return;
         // Stage new files + modifications
-        jgit.add().addFilepattern(".").call();
+        git.add().addFilepattern(".").call();
         // Stage deletions (fichiers disparus du working tree)
-        Status s = jgit.status().call();
+        Status s = git.status().call();
         if (!s.getMissing().isEmpty()) {
-            RmCommand rm = jgit.rm();
+            RmCommand rm = git.rm();
             s.getMissing().forEach(rm::addFilepattern);
             rm.call();
         }
-        refreshStatus();
+        refreshStatus(git);
     }
 
-    private void refreshStatus() {
-        if (!isGitRepo || jgit == null || projectDir == null) return;
+    private void refreshStatus(Git git) {
+        if (git == null) return;
         Map<String, GitStatus> newMap = new HashMap<>();
         try {
-            Status status = jgit.status().call();
+            Status status = git.status().call();
             status.getAdded().forEach(p       -> newMap.put(p, GitStatus.STAGED));
             status.getChanged().forEach(p     -> newMap.put(p, GitStatus.STAGED));
             status.getRemoved().forEach(p     -> newMap.put(p, GitStatus.STAGED));
@@ -592,6 +632,16 @@ public class GitService {
             log.debug(LOG_SOURCE, "Status check failed: " + e.getMessage());
         }
         statusMap = newMap;
+    }
+
+    private static String currentBranchFrom(Git git) {
+        if (git == null) return "";
+        try {
+            String branch = git.getRepository().getBranch();
+            return branch != null ? branch : "";
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     private CredentialsProvider buildCredentials() {
@@ -661,13 +711,14 @@ public class GitService {
      * En cas d'erreur, notifie {@code onOperationResult} avec "Error: …".
      */
     private void runAsync(String threadName, GitOperation op) {
+        final Git jgitLocal = this.jgit;
         Thread t = new Thread(() -> {
             try {
                 op.run();
                 if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
             } catch (Exception e) {
                 log.error(LOG_SOURCE, threadName + " failed: " + e.getMessage());
-                refreshStatus();
+                refreshStatus(jgitLocal);
                 if (onStatusUpdated != null) Platform.runLater(onStatusUpdated);
                 String msg = "Error: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
                 if (onOperationResult != null) Platform.runLater(() -> onOperationResult.accept(msg));

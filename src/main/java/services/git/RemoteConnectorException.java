@@ -1,4 +1,4 @@
-package utils;
+package services.git;
 
 /**
  * Exception levée lors d'une erreur avec un connecteur distant (GitHub, GitLab, Gitea).

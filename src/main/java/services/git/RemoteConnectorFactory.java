@@ -1,5 +1,6 @@
-package utils;
+package services.git;
 
+import utils.LogService;
 import org.eclipse.jgit.transport.URIish;
 
 import java.net.URISyntaxException;
