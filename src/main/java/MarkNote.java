@@ -41,9 +41,9 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import services.UpdateChecker;
+import services.git.GitService;
 import utils.Debouncer;
 import utils.DocumentService;
-import utils.GitService;
 import utils.IndexService;
 import utils.LogService;
 import utils.ProjectSessionService;
@@ -222,6 +222,7 @@ public class MarkNote extends Application {
         gitService.setOnStatusUpdated(() -> projectExplorerPanel.refresh());
         gitService.setOnOperationResult(this::showGitOperationResult);
         projectExplorerPanel.setGitService(gitService);
+        projectExplorerPanel.setAppConfig(config);
 
         // Callbacks git avancés
         projectExplorerPanel.setGitToolbarMode(config.getGitToolbarMode());
@@ -1654,7 +1655,7 @@ public class MarkNote extends Application {
      */
     private void showOptionsDialog() {
         String previousTheme = config.getCurrentTheme();
-        OptionsDialog dialog = new OptionsDialog(primaryStage, config);
+        OptionsDialog dialog = new OptionsDialog(primaryStage, config, gitService);
         dialog.setOnOpenThemeFile(this::openThemeFile);
         dialog.setOnLanguageChanged(this::restartApplication);
         if (dialog.showAndWait()) {

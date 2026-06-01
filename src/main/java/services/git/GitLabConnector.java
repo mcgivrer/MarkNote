@@ -1,5 +1,6 @@
-package utils;
+package services.git;
 
+import utils.LogService;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -15,35 +16,47 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Connecteur pour l'API GitHub (github.com).
+ * Connecteur pour l'API GitLab (gitlab.com ou instance self-hosted).
  * 
- * <p>Ce connecteur utilise l'API REST de GitHub v3 pour lister et créer des dépôts.
- * Il nécessite un Personal Access Token (PAT) avec les permissions {@code repo}.</p>
+ * <p>Ce connecteur utilise l'API REST de GitLab v4 pour lister et créer des dépôts (projects).
+ * Il nécessite un Personal Access Token avec les permissions {@code api} ou {@code write_repository}.</p>
  * 
  * <h2>Endpoints utilisés :</h2>
  * <ul>
- *   <li>GET /user/repos?type=owner&per_page=100 - Liste les dépôts de l'utilisateur</li>
- *   <li>POST /user/repos - Crée un nouveau dépôt</li>
+ *   <li>GET /api/v4/projects?owned=true&per_page=100 - Liste les projets de l'utilisateur</li>
+ *   <li>POST /api/v4/projects - Crée un nouveau projet</li>
  * </ul>
  * 
- * @see <a href="https://docs.github.com/en/rest">GitHub REST API</a>
+ * @see <a href="https://docs.gitlab.com/ee/api/">GitLab API Documentation</a>
  */
-public class GitHubConnector implements RemoteConnector {
+public class GitLabConnector implements RemoteConnector {
 
-    private static final String API_BASE_URL = "https://api.github.com";
+    private static final String DEFAULT_GITLAB_URL = "https://gitlab.com";
     private static final LogService log = LogService.getInstance();
-    private static final String LOG_SOURCE = "GitHubConnector";
+    private static final String LOG_SOURCE = "GitLabConnector";
 
+    private final String instanceUrl;
     private final String token;
     private final HttpClient httpClient;
     private final JSONParser jsonParser;
 
     /**
-     * Construit un connecteur GitHub avec le token fourni.
+     * Construit un connecteur pour GitLab.com (instance publique).
      *
-     * @param token Le Personal Access Token GitHub avec permissions {@code repo}
+     * @param token Le Personal Access Token GitLab avec permissions {@code api}
      */
-    public GitHubConnector(String token) {
+    public GitLabConnector(String token) {
+        this(DEFAULT_GITLAB_URL, token);
+    }
+
+    /**
+     * Construit un connecteur pour une instance GitLab custom.
+     *
+     * @param instanceUrl L'URL de base de l'instance GitLab (ex: https://gitlab.example.com)
+     * @param token       Le Personal Access Token GitLab avec permissions {@code api}
+     */
+    public GitLabConnector(String instanceUrl, String token) {
+        this.instanceUrl = instanceUrl.endsWith("/") ? instanceUrl.substring(0, instanceUrl.length() - 1) : instanceUrl;
         this.token = token;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -53,20 +66,18 @@ public class GitHubConnector implements RemoteConnector {
 
     @Override
     public String platform() {
-        return "github";
+        return "gitlab";
     }
 
     @Override
     public List<RemoteRepo> listRepositories() throws RemoteConnectorException {
-        log.debug(LOG_SOURCE, "Récupération de la liste des dépôts GitHub");
+        log.debug(LOG_SOURCE, "Récupération de la liste des projets GitLab depuis " + instanceUrl);
 
-        String url = API_BASE_URL + "/user/repos?type=owner&per_page=100&sort=updated";
+        String url = instanceUrl + "/api/v4/projects?owned=true&per_page=100&order_by=updated_at&sort=desc";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Accept", "application/vnd.github+json")
-                .header("Authorization", "token " + token)
-                .header("X-GitHub-Api-Version", "2022-11-28")
+                .header("PRIVATE-TOKEN", token)
                 .GET()
                 .build();
 
@@ -80,7 +91,7 @@ public class GitHubConnector implements RemoteConnector {
             return parseRepositories(response.body());
 
         } catch (IOException e) {
-            log.error(LOG_SOURCE, "Erreur réseau lors de la récupération des dépôts: " + e.getMessage());
+            log.error(LOG_SOURCE, "Erreur réseau lors de la récupération des projets: " + e.getMessage());
             throw new RemoteConnectorException("Erreur réseau: " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -92,21 +103,19 @@ public class GitHubConnector implements RemoteConnector {
     @Override
     @SuppressWarnings("unchecked")
     public void createRepository(String name, boolean isPrivate) throws RemoteConnectorException {
-        log.debug(LOG_SOURCE, "Création du dépôt GitHub: " + name + " (privé=" + isPrivate + ")");
+        log.debug(LOG_SOURCE, "Création du projet GitLab: " + name + " (privé=" + isPrivate + ")");
 
-        String url = API_BASE_URL + "/user/repos";
+        String url = instanceUrl + "/api/v4/projects";
 
         // Construction du body JSON
         JSONObject body = new JSONObject();
         body.put("name", name);
-        body.put("private", isPrivate);
-        body.put("auto_init", true); // Créer avec README initial
+        body.put("visibility", isPrivate ? "private" : "public");
+        body.put("initialize_with_readme", true);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("Accept", "application/vnd.github+json")
-                .header("Authorization", "token " + token)
-                .header("X-GitHub-Api-Version", "2022-11-28")
+                .header("PRIVATE-TOKEN", token)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toJSONString()))
                 .build();
@@ -118,10 +127,10 @@ public class GitHubConnector implements RemoteConnector {
                 handleErrorResponse(response);
             }
 
-            log.info(LOG_SOURCE, "Dépôt créé avec succès: " + name);
+            log.info(LOG_SOURCE, "Projet créé avec succès: " + name);
 
         } catch (IOException e) {
-            log.error(LOG_SOURCE, "Erreur réseau lors de la création du dépôt: " + e.getMessage());
+            log.error(LOG_SOURCE, "Erreur réseau lors de la création du projet: " + e.getMessage());
             throw new RemoteConnectorException("Erreur réseau: " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -131,7 +140,7 @@ public class GitHubConnector implements RemoteConnector {
     }
 
     /**
-     * Parse la réponse JSON pour extraire la liste des dépôts.
+     * Parse la réponse JSON pour extraire la liste des projets.
      */
     private List<RemoteRepo> parseRepositories(String jsonResponse) throws RemoteConnectorException {
         List<RemoteRepo> repos = new ArrayList<>();
@@ -140,19 +149,21 @@ public class GitHubConnector implements RemoteConnector {
             JSONArray jsonArray = (JSONArray) jsonParser.parse(jsonResponse);
 
             for (Object obj : jsonArray) {
-                JSONObject repo = (JSONObject) obj;
+                JSONObject project = (JSONObject) obj;
 
-                String name = (String) repo.get("name");
-                String cloneUrl = (String) repo.get("clone_url");
-                String description = (String) repo.get("description");
-                Boolean isPrivate = (Boolean) repo.get("private");
-                String defaultBranch = (String) repo.get("default_branch");
+                String name = (String) project.get("name");
+                String cloneUrl = (String) project.get("http_url_to_repo");
+                String description = (String) project.get("description");
+                String visibility = (String) project.get("visibility");
+                String defaultBranch = (String) project.get("default_branch");
+
+                boolean isPrivate = "private".equals(visibility);
 
                 repos.add(new RemoteRepo(
                         name,
                         cloneUrl,
                         description != null ? description : "",
-                        isPrivate != null && isPrivate,
+                        isPrivate,
                         defaultBranch != null ? defaultBranch : "main"
                 ));
             }
@@ -175,18 +186,29 @@ public class GitHubConnector implements RemoteConnector {
 
         String errorMessage = extractErrorMessage(body);
 
-        log.error(LOG_SOURCE, "Erreur API GitHub " + statusCode + ": " + errorMessage);
+        log.error(LOG_SOURCE, "Erreur API GitLab " + statusCode + ": " + errorMessage);
         throw new RemoteConnectorException(statusCode, errorMessage);
     }
 
     /**
-     * Extrait le message d'erreur du JSON de réponse GitHub.
+     * Extrait le message d'erreur du JSON de réponse GitLab.
      */
     private String extractErrorMessage(String jsonResponse) {
         try {
             JSONObject json = (JSONObject) jsonParser.parse(jsonResponse);
+            
+            // GitLab peut retourner "message" ou "error"
             String message = (String) json.get("message");
-            return message != null ? message : "Erreur inconnue";
+            if (message != null) {
+                return message;
+            }
+            
+            String error = (String) json.get("error");
+            if (error != null) {
+                return error;
+            }
+            
+            return "Erreur inconnue";
         } catch (Exception e) {
             return "Erreur inconnue";
         }

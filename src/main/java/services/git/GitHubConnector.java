@@ -1,5 +1,6 @@
-package utils;
+package services.git;
 
+import utils.LogService;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -15,40 +16,35 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Connecteur pour l'API Gitea (instance self-hosted uniquement).
+ * Connecteur pour l'API GitHub (github.com).
  * 
- * <p>Ce connecteur utilise l'API REST de Gitea v1 pour lister et créer des dépôts.
- * Il nécessite un Access Token avec les permissions appropriées.</p>
- * 
- * <p><b>Note :</b> Gitea n'a pas d'instance publique par défaut, toutes les instances
- * sont self-hosted. L'URL de base doit être fournie lors de la construction.</p>
+ * <p>Ce connecteur utilise l'API REST de GitHub v3 pour lister et créer des dépôts.
+ * Il nécessite un Personal Access Token (PAT) avec les permissions {@code repo}.</p>
  * 
  * <h2>Endpoints utilisés :</h2>
  * <ul>
- *   <li>GET /api/v1/user/repos - Liste les dépôts de l'utilisateur</li>
- *   <li>POST /api/v1/user/repos - Crée un nouveau dépôt</li>
+ *   <li>GET /user/repos?type=owner&per_page=100 - Liste les dépôts de l'utilisateur</li>
+ *   <li>POST /user/repos - Crée un nouveau dépôt</li>
  * </ul>
  * 
- * @see <a href="https://docs.gitea.io/en-us/api-usage/">Gitea API Documentation</a>
+ * @see <a href="https://docs.github.com/en/rest">GitHub REST API</a>
  */
-public class GiteaConnector implements RemoteConnector {
+public class GitHubConnector implements RemoteConnector {
 
+    private static final String API_BASE_URL = "https://api.github.com";
     private static final LogService log = LogService.getInstance();
-    private static final String LOG_SOURCE = "GiteaConnector";
+    private static final String LOG_SOURCE = "GitHubConnector";
 
-    private final String instanceUrl;
     private final String token;
     private final HttpClient httpClient;
     private final JSONParser jsonParser;
 
     /**
-     * Construit un connecteur pour une instance Gitea.
+     * Construit un connecteur GitHub avec le token fourni.
      *
-     * @param instanceUrl L'URL de base de l'instance Gitea (ex: https://gitea.example.com)
-     * @param token       L'Access Token Gitea
+     * @param token Le Personal Access Token GitHub avec permissions {@code repo}
      */
-    public GiteaConnector(String instanceUrl, String token) {
-        this.instanceUrl = instanceUrl.endsWith("/") ? instanceUrl.substring(0, instanceUrl.length() - 1) : instanceUrl;
+    public GitHubConnector(String token) {
         this.token = token;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -58,18 +54,20 @@ public class GiteaConnector implements RemoteConnector {
 
     @Override
     public String platform() {
-        return "gitea";
+        return "github";
     }
 
     @Override
     public List<RemoteRepo> listRepositories() throws RemoteConnectorException {
-        log.debug(LOG_SOURCE, "Récupération de la liste des dépôts Gitea depuis " + instanceUrl);
+        log.debug(LOG_SOURCE, "Récupération de la liste des dépôts GitHub");
 
-        String url = instanceUrl + "/api/v1/user/repos?limit=100";
+        String url = API_BASE_URL + "/user/repos?type=owner&per_page=100&sort=updated";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .header("Accept", "application/vnd.github+json")
                 .header("Authorization", "token " + token)
+                .header("X-GitHub-Api-Version", "2022-11-28")
                 .GET()
                 .build();
 
@@ -95,20 +93,21 @@ public class GiteaConnector implements RemoteConnector {
     @Override
     @SuppressWarnings("unchecked")
     public void createRepository(String name, boolean isPrivate) throws RemoteConnectorException {
-        log.debug(LOG_SOURCE, "Création du dépôt Gitea: " + name + " (privé=" + isPrivate + ")");
+        log.debug(LOG_SOURCE, "Création du dépôt GitHub: " + name + " (privé=" + isPrivate + ")");
 
-        String url = instanceUrl + "/api/v1/user/repos";
+        String url = API_BASE_URL + "/user/repos";
 
         // Construction du body JSON
         JSONObject body = new JSONObject();
         body.put("name", name);
         body.put("private", isPrivate);
         body.put("auto_init", true); // Créer avec README initial
-        body.put("default_branch", "main");
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
+                .header("Accept", "application/vnd.github+json")
                 .header("Authorization", "token " + token)
+                .header("X-GitHub-Api-Version", "2022-11-28")
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toJSONString()))
                 .build();
@@ -177,12 +176,12 @@ public class GiteaConnector implements RemoteConnector {
 
         String errorMessage = extractErrorMessage(body);
 
-        log.error(LOG_SOURCE, "Erreur API Gitea " + statusCode + ": " + errorMessage);
+        log.error(LOG_SOURCE, "Erreur API GitHub " + statusCode + ": " + errorMessage);
         throw new RemoteConnectorException(statusCode, errorMessage);
     }
 
     /**
-     * Extrait le message d'erreur du JSON de réponse Gitea.
+     * Extrait le message d'erreur du JSON de réponse GitHub.
      */
     private String extractErrorMessage(String jsonResponse) {
         try {

@@ -15,7 +15,11 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import config.AppConfig;
-import utils.GitService;
+import services.git.GitService;
+import services.git.RemoteConnector.RemoteRepo;
+import services.git.RemoteConnectorFactory;
+import ui.git.CreateRemoteRepositoryDialog;
+import ui.git.RemoteRepositoryBrowserDialog;
 import utils.LogService;
 
 /**
@@ -47,6 +51,7 @@ public class AddRemoteDialog {
 
     // Form fields
     private final TextField     urlField;
+    private final Label         platformDetectionLabel;
     private final ComboBox<String> authCombo;
     private final TextField     usernameField;
     private final PasswordField passwordField;
@@ -86,6 +91,22 @@ public class AddRemoteDialog {
         urlField = new TextField();
         urlField.setPromptText("https://github.com/user/repo.git");
         urlField.setPrefWidth(340);
+        
+        // Auto-detect platform from URL
+        platformDetectionLabel = new Label();
+        platformDetectionLabel.setStyle("-fx-text-fill: #666; -fx-font-size: 11px;");
+        urlField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                String platform = RemoteConnectorFactory.detectPlatform(newVal);
+                if (platform != null) {
+                    platformDetectionLabel.setText("Detected: " + platform);
+                } else {
+                    platformDetectionLabel.setText("");
+                }
+            } else {
+                platformDetectionLabel.setText("");
+            }
+        });
 
         // --- Auth combo ---
         authCombo = new ComboBox<>();
@@ -155,7 +176,23 @@ public class AddRemoteDialog {
 
         int row = 0;
         grid.add(new Label(s("git.add.remote.url")), 0, row);
-        grid.add(urlField, 1, row++);
+        
+        // URL field with Browse and Create buttons
+        Button browseReposBtn = new Button("Browse…");
+        browseReposBtn.setOnAction(e -> handleBrowseRepositories());
+        browseReposBtn.disableProperty().bind(tokenField.textProperty().isEmpty());
+        
+        Button createRepoBtn = new Button("Create New…");
+        createRepoBtn.setOnAction(e -> handleCreateRepository());
+        createRepoBtn.disableProperty().bind(tokenField.textProperty().isEmpty());
+        
+        HBox urlBox = new HBox(6, urlField, browseReposBtn, createRepoBtn);
+        urlBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(urlField, Priority.ALWAYS);
+        
+        grid.add(urlBox, 1, row++);
+        grid.add(new Label(), 0, row);
+        grid.add(platformDetectionLabel, 1, row++);
         grid.add(new Label(s("git.add.remote.auth")), 0, row);
         grid.add(authCombo, 1, row++);
 
@@ -329,6 +366,59 @@ public class AddRemoteDialog {
         try { return messages.getString(key); } catch (Exception e) { return fallback; }
     }
 
+    /**
+     * Ouvre le dialogue de navigation des dépôts distants.
+     */
+    private void handleBrowseRepositories() {
+        String platform = RemoteConnectorFactory.detectPlatform(urlField.getText());
+        if (platform == null) {
+            platform = "github"; // default
+        }
+        String token = getTokenFromAuthFields();
+        
+        RemoteRepositoryBrowserDialog browserDialog = 
+            new RemoteRepositoryBrowserDialog(dialog, platform, token);
+        browserDialog.showAndWait();
+        
+        browserDialog.getSelectedRepository().ifPresent(repo -> {
+            urlField.setText(repo.cloneUrl());
+            testResultLabel.setText("");
+        });
+    }
+    
+    /**
+     * Ouvre le dialogue de création de dépôt distant.
+     */
+    private void handleCreateRepository() {
+        String platform = RemoteConnectorFactory.detectPlatform(urlField.getText());
+        if (platform == null) {
+            platform = "github"; // default
+        }
+        String token = getTokenFromAuthFields();
+        
+        CreateRemoteRepositoryDialog createDialog = 
+            new CreateRemoteRepositoryDialog(dialog, platform, token);
+        createDialog.showAndWait();
+        
+        createDialog.getCreatedRepository().ifPresent(repo -> {
+            urlField.setText(repo.cloneUrl());
+            testResultLabel.setStyle("-fx-text-fill: green;");
+            testResultLabel.setText("✓ Repository created: " + repo.name());
+        });
+    }
+    
+    /**
+     * Extrait le token des champs d'authentification selon le mode sélectionné.
+     */
+    private String getTokenFromAuthFields() {
+        int idx = authCombo.getSelectionModel().getSelectedIndex();
+        return switch (idx) {
+            case 1 -> passwordField.getText(); // basic auth uses password
+            case 2 -> tokenField.getText();    // token auth
+            default -> config.getGitToken();   // fallback to config
+        };
+    }
+    
     private static class Spacer extends Region {
         Spacer() { HBox.setHgrow(this, Priority.ALWAYS); }
     }
