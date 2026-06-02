@@ -24,7 +24,7 @@
     </developer>
     <developer>
       <name>Jean-Baptiste Meyer</name>
-      <email>unfixed11_scarab@icloud.com</email>
+      <email>jib@jibstudios.com</email>
     </developer>
   </developers>
 
@@ -531,7 +531,7 @@
     <!-- ── mac-sign : signature Developer ID + notarisation ─────────────
          Activation : mvn package -Ppackage,mac-sign
          Requiert : variable d'env MAC_SIGNING_IDENTITY
-           ex: Developer ID Application: Jean-Baptiste Meyer (TEAMXXXX)
+           ex: Developer ID Application: First Name Last Name (TEAMXXXX)
          ──────────────────────────────────────────────────────────────── -->
     <profile>
       <id>mac-sign</id>
