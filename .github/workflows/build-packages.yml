@@ -121,10 +121,11 @@ jobs:
           ARGS="${{ matrix.maven_extra_args }}"
           [[ -n "${JPACKAGE_APP_VERSION:-}" ]] && ARGS="$ARGS -Djpackage.app.version=$JPACKAGE_APP_VERSION"
           # Enable Developer ID signing on macOS when the secret is configured
+          SIGN_ARGS=()
           if [[ "$RUNNER_OS" == "macOS" ]] && [[ -n "${MACOS_SIGNING_IDENTITY:-}" ]]; then
-            ARGS="$ARGS -Pmac-sign -Djpackage.mac.signing.key=${MACOS_SIGNING_IDENTITY}"
+            SIGN_ARGS=(-Pmac-sign "-Djpackage.mac.signing.key=${MACOS_SIGNING_IDENTITY}")
           fi
-          mvn package -Ppackage $ARGS --batch-mode
+          mvn package -Ppackage $ARGS "${SIGN_ARGS[@]}" --batch-mode
 
       # ── 4c. macOS: notarise and staple the DMG ────────────────────────────
       #    Utilise un mot de passe d'app (app-specific password) — différent
