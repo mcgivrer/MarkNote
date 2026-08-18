@@ -24,7 +24,7 @@
     </developer>
     <developer>
       <name>Jean-Baptiste Meyer</name>
-      <email>unfixed11_scarab@icloud.com</email>
+      <email>jib@jibstudios.com</email>
     </developer>
   </developers>
 
@@ -74,6 +74,9 @@
     <jpackage.win.dir.chooser>false</jpackage.win.dir.chooser>
     <jpackage.win.menu>false</jpackage.win.menu>
     <jpackage.win.shortcut>false</jpackage.win.shortcut>
+    <!-- macOS signing defaults (overridden by mac-sign profile) -->
+    <jpackage.mac.sign>false</jpackage.mac.sign>
+    <jpackage.mac.signing.key></jpackage.mac.signing.key>
   </properties>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
@@ -487,6 +490,7 @@
       <properties>
         <javafx.platform>mac</javafx.platform>
         <jpackage.type>DMG</jpackage.type>
+        <jpackage.icon>${project.basedir}/src/main/resources/images/icons/marknote.icns</jpackage.icon>
       </properties>
     </profile>
 
@@ -502,6 +506,7 @@
       <properties>
         <javafx.platform>mac-aarch64</javafx.platform>
         <jpackage.type>DMG</jpackage.type>
+        <jpackage.icon>${project.basedir}/src/main/resources/images/icons/marknote.icns</jpackage.icon>
       </properties>
     </profile>
 
@@ -520,6 +525,19 @@
         <jpackage.win.dir.chooser>true</jpackage.win.dir.chooser>
         <jpackage.win.menu>true</jpackage.win.menu>
         <jpackage.win.shortcut>true</jpackage.win.shortcut>
+      </properties>
+    </profile>
+
+    <!-- ── mac-sign : signature Developer ID + notarisation ─────────────
+         Activation : mvn package -Ppackage,mac-sign
+         Requiert : variable d'env MAC_SIGNING_IDENTITY
+           ex: Developer ID Application: First Name Last Name (TEAMXXXX)
+         ──────────────────────────────────────────────────────────────── -->
+    <profile>
+      <id>mac-sign</id>
+      <properties>
+        <jpackage.mac.sign>true</jpackage.mac.sign>
+        <jpackage.mac.signing.key>${env.MAC_SIGNING_IDENTITY}</jpackage.mac.signing.key>
       </properties>
     </profile>
 
@@ -646,6 +664,12 @@
                   <!-- ── macOS-specific ──────────────────────────────── -->
                   <macPackageIdentifier>${jpackage.bundle.id}</macPackageIdentifier>
                   <macPackageName>${project.name}</macPackageName>
+                  <!--
+                    Signature Developer ID : activer avec -Pmac-sign et
+                    export MAC_SIGNING_IDENTITY="Developer ID Application: Nom (TEAMID)"
+                  -->
+                  <macSign>${jpackage.mac.sign}</macSign>
+                  <macSigningKeyUserName>${jpackage.mac.signing.key}</macSigningKeyUserName>
                   <!--
                     NOTE: jpackage ne supporte pas de script post-install pour le
                     type DMG. Le script post-install-mac.sh doit être distribué

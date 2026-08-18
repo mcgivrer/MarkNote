@@ -66,7 +66,37 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get install -y fakeroot
 
-      # ── 4. Build fat JAR + native installer ──────────────────────────────
+      # ── 4a. macOS: import Developer ID certificate into a temp keychain ──
+      #    Prérequis : créer un certificat "Developer ID Application" sur
+      #    https://developer.apple.com/account/resources/certificates/add
+      #    (section Software → Developer ID Application), puis l'exporter
+      #    depuis Keychain Access en .p12 (clic droit → Exporter).
+      #
+      #    Secrets requis (optionnels – DMG non signé si absents) :
+      #      MACOS_CERTIFICATE     base64 du .p12  →  base64 -i cert.p12 | pbcopy
+      #      MACOS_CERTIFICATE_PWD mot de passe choisi lors de l'export .p12
+      - name: Import Developer ID certificate (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          if [[ -z "${MACOS_CERTIFICATE:-}" ]]; then
+            echo "::notice::MACOS_CERTIFICATE not configured – DMG will be unsigned"
+            exit 0
+          fi
+          echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import /tmp/cert.p12 -k build.keychain \
+            -P "$MACOS_CERTIFICATE_PWD" \
+            -T /usr/bin/codesign \
+            -T "$(which jpackage 2>/dev/null || true)"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          rm /tmp/cert.p12
+
+      # ── 4b. Build fat JAR + native installer ─────────────────────────────
       #    The active OS profile (linux / mac / win) is detected automatically
       #    by Maven via <os><family> activation in pom.xml.
       #    maven_extra_args overrides javafx.platform for the two macOS arches.
@@ -85,10 +115,55 @@ jobs:
 
       - name: Build and package
         shell: bash
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
           ARGS="${{ matrix.maven_extra_args }}"
           [[ -n "${JPACKAGE_APP_VERSION:-}" ]] && ARGS="$ARGS -Djpackage.app.version=$JPACKAGE_APP_VERSION"
-          mvn package -Ppackage $ARGS --batch-mode
+          # Enable Developer ID signing on macOS when the secret is configured
+          SIGN_ARGS=()
+          if [[ "$RUNNER_OS" == "macOS" ]] && [[ -n "${MACOS_SIGNING_IDENTITY:-}" ]]; then
+            SIGN_ARGS=(-Pmac-sign "-Djpackage.mac.signing.key=${MACOS_SIGNING_IDENTITY}")
+          fi
+          mvn package -Ppackage $ARGS "${SIGN_ARGS[@]}" --batch-mode
+
+      # ── 4c. macOS: notarise and staple the DMG ────────────────────────────
+      #    Utilise un mot de passe d'app (app-specific password) — différent
+      #    du vrai mot de passe Apple ID, généré sur :
+      #    https://appleid.apple.com → Connexion & sécurité → Mots de passe
+      #    d'app → "+" → nommer "marknote-notary" → copier le mot de passe.
+      #
+      #    Secrets requis (optionnels – notarisation ignorée si absents) :
+      #      APPLE_ID                   adresse e-mail du compte Apple Developer
+      #      APPLE_TEAM_ID              Team ID (visible sur developer.apple.com/account)
+      #      APPLE_APP_SPECIFIC_PWD     mot de passe d'app généré sur appleid.apple.com
+      - name: Notarize and staple DMG (macOS)
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PWD: ${{ secrets.APPLE_APP_SPECIFIC_PWD }}
+        run: |
+          if [[ -z "${APPLE_APP_SPECIFIC_PWD:-}" ]]; then
+            echo "::notice::APPLE_APP_SPECIFIC_PWD not configured – skipping notarization"
+            exit 0
+          fi
+          DMG=$(ls target/dist/*.dmg 2>/dev/null | head -1)
+          if [[ -z "$DMG" ]]; then
+            echo "::error::No DMG found in target/dist/ – notarization skipped"
+            exit 1
+          fi
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PWD" \
+            --wait
+          xcrun stapler staple "$DMG"
+
+      # ── 4d. Always clean up the temp keychain ────────────────────────────
+      - name: Clean up keychain (macOS)
+        if: always() && runner.os == 'macOS'
+        run: security delete-keychain build.keychain 2>/dev/null || true
 
       # ── 5. Upload installer as workflow artifact ──────────────────────────
       #    Artifact is available in the Actions run page for 90 days.
